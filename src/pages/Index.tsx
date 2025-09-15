@@ -3,6 +3,8 @@ import Navigation from "@/components/Navigation";
 import Dashboard from "./Dashboard";
 import Classes from "./Classes";
 import Calendar from "./Calendar";
+import Materials from "./Materials";
+import Achievements from "./Achievements";
 import Profile from "./Profile";
 
 const Index = () => {
@@ -17,9 +19,9 @@ const Index = () => {
       case "calendar":
         return <Calendar />;
       case "materials":
-        return <div className="p-8 text-center text-muted-foreground">Módulo de Materiais em desenvolvimento 🚧</div>;
+        return <Materials />;
       case "achievements":
-        return <div className="p-8 text-center text-muted-foreground">Módulo de Conquistas em desenvolvimento 🚧</div>;
+        return <Achievements />;
       case "profile":
         return <Profile />;
       default:
