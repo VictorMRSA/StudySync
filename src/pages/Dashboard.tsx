@@ -7,25 +7,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast, toast } from "@/hooks/use-toast";
-import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock, Calendar, Award } from "lucide-react";
+import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock, Calendar, Award, Trash2 } from "lucide-react";
 
 interface DashboardProps {
   onTabChange?: (tab: string) => void;
 }
 
 const Dashboard = ({ onTabChange }: DashboardProps) => {
-  const { toasts } = useToast();
+  useToast();
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [goalTitle, setGoalTitle] = useState("");
   const [goalDescription, setGoalDescription] = useState("");
   const streakDays = 7;
   const currentXP = 1250;
   const nextLevelXP = 2000;
-  const todayGoals = [
+  interface Goal {
+    id: number;
+    text: string;
+    completed: boolean;
+    description?: string;
+  }
+
+  const [goals, setGoals] = useState<Goal[]>([
     { id: 1, text: "Revisar Cálculo I - Limites", completed: true },
     { id: 2, text: "Fazer exercícios de Álgebra", completed: false },
     { id: 3, text: "Estudar para prova de Física", completed: false },
-  ];
+  ]);
 
   const upcomingDeadlines = [
     { subject: "Física I", task: "Prova", daysLeft: 3, urgent: true },
@@ -38,6 +45,14 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
     { action: "Meta concluída", subject: "Cálculo I", points: "+25 XP", time: "4h atrás" },
     { action: "Criou turma", subject: "Álgebra Linear", points: "+100 XP", time: "1 dia atrás" },
   ];
+
+  const removeGoal = (id: number) => {
+    setGoals((prev) => prev.filter((g) => g.id !== id));
+    toast({
+      title: "🗑️ Meta removida",
+      description: "A meta foi removida com sucesso.",
+    });
+  };
 
   const progressPercentage = (currentXP / nextLevelXP) * 100;
 
@@ -101,12 +116,22 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
               <h3 className="font-semibold">Metas de Hoje</h3>
             </div>
             <div className="space-y-3">
-              {todayGoals.map((goal) => (
+              {goals.map((goal) => (
                 <div key={goal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
                   <div className={`w-4 h-4 rounded-full ${goal.completed ? 'bg-success' : 'bg-muted'} transition-smooth`} />
                   <span className={`text-sm ${goal.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                     {goal.text}
                   </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="ml-auto"
+                    onClick={() => removeGoal(goal.id)}
+                    aria-label={`Remover meta ${goal.text}`}
+                    title="Remover meta"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -234,6 +259,10 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                   <Button 
                     onClick={() => {
                       if (goalTitle && goalDescription) {
+                        setGoals((prev) => [
+                          ...prev,
+                          { id: Date.now(), text: goalTitle, completed: false, description: goalDescription },
+                        ]);
                         toast({
                           title: "✅ Meta Adicionada!",
                           description: `Meta "${goalTitle}" foi criada com sucesso.`,
