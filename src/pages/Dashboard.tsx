@@ -109,10 +109,6 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                   </span>
                 </div>
               ))}
-              <Button variant="gamified" size="sm" className="w-full mt-3">
-                <Target className="w-4 h-4" />
-                Adicionar Meta
-              </Button>
             </div>
           </Card>
 
@@ -137,10 +133,6 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                   <p className="text-xs text-muted-foreground">{deadline.task}</p>
                 </div>
               ))}
-              <Button variant="outline" size="sm" className="w-full mt-3">
-                <CalendarDays className="w-4 h-4" />
-                Ver Calendário
-              </Button>
             </div>
           </Card>
 
