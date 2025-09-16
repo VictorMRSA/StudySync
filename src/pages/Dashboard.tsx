@@ -54,6 +54,16 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
     });
   };
 
+  const toggleGoalCompletion = (id: number) => {
+    setGoals((prev) => 
+      prev.map((goal) => 
+        goal.id === id 
+          ? { ...goal, completed: !goal.completed }
+          : goal
+      )
+    );
+  };
+
   const progressPercentage = (currentXP / nextLevelXP) * 100;
 
   return (
@@ -116,24 +126,39 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
               <h3 className="font-semibold">Metas de Hoje</h3>
             </div>
             <div className="space-y-3">
-              {goals.map((goal) => (
-                <div key={goal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                  <div className={`w-4 h-4 rounded-full ${goal.completed ? 'bg-success' : 'bg-muted'} transition-smooth`} />
-                  <span className={`text-sm ${goal.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                    {goal.text}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-auto"
-                    onClick={() => removeGoal(goal.id)}
-                    aria-label={`Remover meta ${goal.text}`}
-                    title="Remover meta"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+              {goals.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Sem metas para hoje</p>
+                  <p className="text-xs mt-1">Adicione uma nova meta para começar!</p>
                 </div>
-              ))}
+              ) : (
+                goals.map((goal) => (
+                  <div key={goal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                    <button
+                      onClick={() => toggleGoalCompletion(goal.id)}
+                      className={`w-4 h-4 rounded-full transition-smooth cursor-pointer hover:scale-110 ${
+                        goal.completed ? 'bg-success' : 'bg-muted hover:bg-muted/80'
+                      }`}
+                      aria-label={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
+                      title={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
+                    />
+                    <span className={`text-sm flex-1 ${goal.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                      {goal.text}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-auto"
+                      onClick={() => removeGoal(goal.id)}
+                      aria-label={`Remover meta ${goal.text}`}
+                      title="Remover meta"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
 
