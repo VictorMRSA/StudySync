@@ -1,10 +1,23 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock, Calendar, Award } from "lucide-react";
 
-const Dashboard = () => {
+interface DashboardProps {
+  onTabChange?: (tab: string) => void;
+}
+
+const Dashboard = ({ onTabChange }: DashboardProps) => {
+  const { toast } = useToast();
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [goalTitle, setGoalTitle] = useState("");
+  const [goalDescription, setGoalDescription] = useState("");
   const streakDays = 7;
   const currentXP = 1250;
   const nextLevelXP = 2000;
@@ -157,22 +170,107 @@ const Dashboard = () => {
         {/* Quick Actions */}
         <Card className="p-6 shadow-medium">
           <h3 className="font-semibold mb-4">Ações Rápidas</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="gamified" className="h-20 flex-col gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Button 
+              variant="gamified" 
+              className="h-20 flex-col gap-2"
+              onClick={() => toast({
+                title: "🚧 Em Construção",
+                description: "Esta funcionalidade está sendo desenvolvida!",
+              })}
+            >
               <Users className="w-6 h-6" />
               <span className="text-sm">Criar Turma</span>
             </Button>
-            <Button variant="success" className="h-20 flex-col gap-2">
+            <Button 
+              variant="success" 
+              className="h-20 flex-col gap-2"
+              onClick={() => toast({
+                title: "🚧 Em Construção", 
+                description: "Esta funcionalidade está sendo desenvolvida!",
+              })}
+            >
               <BookOpen className="w-6 h-6" />
               <span className="text-sm">Upload Material</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col gap-2"
+              onClick={() => onTabChange?.("calendar")}
+            >
               <CalendarDays className="w-6 h-6" />
               <span className="text-sm">Agendar Estudo</span>
             </Button>
-            <Button variant="xp" className="h-20 flex-col gap-2">
+            <Button 
+              variant="xp" 
+              className="h-20 flex-col gap-2"
+              onClick={() => onTabChange?.("achievements")}
+            >
               <Trophy className="w-6 h-6" />
               <span className="text-sm">Ver Conquistas</span>
+            </Button>
+            <Dialog open={isGoalModalOpen} onOpenChange={setIsGoalModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="h-20 flex-col gap-2">
+                  <Target className="w-6 h-6" />
+                  <span className="text-sm">Adicionar Meta</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Adicionar Nova Meta</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="goal-title">Título da Meta</Label>
+                    <Input
+                      id="goal-title"
+                      value={goalTitle}
+                      onChange={(e) => setGoalTitle(e.target.value)}
+                      placeholder="Ex: Revisar Cálculo I"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="goal-description">Descrição</Label>
+                    <Input
+                      id="goal-description"
+                      value={goalDescription}
+                      onChange={(e) => setGoalDescription(e.target.value)}
+                      placeholder="Ex: Resolver 5 exercícios hoje"
+                    />
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      if (goalTitle && goalDescription) {
+                        toast({
+                          title: "✅ Meta Adicionada!",
+                          description: `Meta "${goalTitle}" foi criada com sucesso.`,
+                        });
+                        setGoalTitle("");
+                        setGoalDescription("");
+                        setIsGoalModalOpen(false);
+                      } else {
+                        toast({
+                          title: "⚠️ Campos obrigatórios",
+                          description: "Preencha todos os campos para criar a meta.",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    Criar Meta
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col gap-2"
+              onClick={() => onTabChange?.("calendar")}
+            >
+              <Calendar className="w-6 h-6" />
+              <span className="text-sm">Ver Calendário</span>
             </Button>
           </div>
         </Card>

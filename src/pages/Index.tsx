@@ -13,7 +13,7 @@ const Index = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard onTabChange={setActiveTab} />;
       case "classes":
         return <Classes />;
       case "calendar":
@@ -25,7 +25,7 @@ const Index = () => {
       case "profile":
         return <Profile />;
       default:
-        return <Dashboard />;
+        return <Dashboard onTabChange={setActiveTab} />;
     }
   };
 
