@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast, toast } from "@/hooks/use-toast";
 import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock, Calendar, Award, Trash2 } from "lucide-react";
 
@@ -17,7 +18,6 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
   useToast();
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [goalTitle, setGoalTitle] = useState("");
-  const [goalDescription, setGoalDescription] = useState("");
   const streakDays = 7;
   const currentXP = 1250;
   const nextLevelXP = 2000;
@@ -125,41 +125,43 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
               <Target className="w-5 h-5 text-primary" />
               <h3 className="font-semibold">Metas de Hoje</h3>
             </div>
-            <div className="space-y-3">
-              {goals.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Sem metas para hoje</p>
-                  <p className="text-xs mt-1">Adicione uma nova meta para começar!</p>
-                </div>
-              ) : (
-                goals.map((goal) => (
-                  <div key={goal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                    <button
-                      onClick={() => toggleGoalCompletion(goal.id)}
-                      className={`w-4 h-4 rounded-full transition-smooth cursor-pointer hover:scale-110 ${
-                        goal.completed ? 'bg-success' : 'bg-muted hover:bg-muted/80'
-                      }`}
-                      aria-label={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
-                      title={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
-                    />
-                    <span className={`text-sm flex-1 ${goal.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                      {goal.text}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="ml-auto"
-                      onClick={() => removeGoal(goal.id)}
-                      aria-label={`Remover meta ${goal.text}`}
-                      title="Remover meta"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+            <ScrollArea className="h-64">
+              <div className="space-y-3 pr-4">
+                {goals.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Sem metas para hoje</p>
+                    <p className="text-xs mt-1">Adicione uma nova meta para começar!</p>
                   </div>
-                ))
-              )}
-            </div>
+                ) : (
+                  goals.map((goal) => (
+                    <div key={goal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                      <button
+                        onClick={() => toggleGoalCompletion(goal.id)}
+                        className={`w-4 h-4 rounded-full transition-smooth cursor-pointer hover:scale-110 ${
+                          goal.completed ? 'bg-success' : 'bg-muted hover:bg-muted/80'
+                        }`}
+                        aria-label={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
+                        title={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
+                      />
+                      <span className={`text-sm flex-1 ${goal.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                        {goal.text}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-auto"
+                        onClick={() => removeGoal(goal.id)}
+                        aria-label={`Remover meta ${goal.text}`}
+                        title="Remover meta"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
           </Card>
 
           {/* Upcoming Deadlines */}
@@ -272,33 +274,23 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                       placeholder="Ex: Revisar Cálculo I"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="goal-description">Descrição</Label>
-                    <Input
-                      id="goal-description"
-                      value={goalDescription}
-                      onChange={(e) => setGoalDescription(e.target.value)}
-                      placeholder="Ex: Resolver 5 exercícios hoje"
-                    />
-                  </div>
                   <Button 
                     onClick={() => {
-                      if (goalTitle && goalDescription) {
+                      if (goalTitle) {
                         setGoals((prev) => [
                           ...prev,
-                          { id: Date.now(), text: goalTitle, completed: false, description: goalDescription },
+                          { id: Date.now(), text: goalTitle, completed: false },
                         ]);
                         toast({
                           title: "✅ Meta Adicionada!",
                           description: `Meta "${goalTitle}" foi criada com sucesso.`,
                         });
                         setGoalTitle("");
-                        setGoalDescription("");
                         setIsGoalModalOpen(false);
                       } else {
                         toast({
-                          title: "⚠️ Campos obrigatórios",
-                          description: "Preencha todos os campos para criar a meta.",
+                          title: "⚠️ Campo obrigatório",
+                          description: "Preencha o título da meta.",
                           variant: "destructive"
                         });
                       }
