@@ -2,13 +2,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, BookOpen, Calendar, Plus, Search, Link, Crown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Users, BookOpen, Calendar, Plus, Search, Link, Crown, Copy, CheckCircle } from "lucide-react";
 import { useState } from "react";
 
 const Classes = () => {
   const [searchTerm, setSearchTerm] = useState("");
-
-  const myClasses = [
+  const [classes, setClasses] = useState([
     {
       id: 1,
       name: "Cálculo I",
@@ -39,9 +41,76 @@ const Classes = () => {
       role: "member",
       color: "bg-gradient-xp"
     }
-  ];
+  ]);
 
-  const filteredClasses = myClasses.filter(cls => 
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newClass, setNewClass] = useState({
+    name: "",
+    room: "",
+    code: ""
+  });
+  const [generatedLink, setGeneratedLink] = useState("");
+  const [showSuccessState, setShowSuccessState] = useState(false);
+  const { toast } = useToast();
+
+  const handleCreateClass = () => {
+    if (!newClass.name.trim() || !newClass.room.trim()) {
+      toast({
+        title: "Erro",
+        description: "Nome e sala são obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const classId = Math.random().toString(36).substr(2, 9);
+    const shareableLink = `${window.location.origin}/join/${classId}`;
+    
+    const createdClass = {
+      id: Date.now(),
+      name: newClass.name,
+      code: newClass.code || `TURMA${classId.toUpperCase()}`,
+      members: 1,
+      materials: 0,
+      nextDeadline: "Sem atividades",
+      role: "admin",
+      color: "bg-gradient-primary"
+    };
+
+    setClasses(prev => [...prev, createdClass]);
+    setGeneratedLink(shareableLink);
+    setShowSuccessState(true);
+    
+    toast({
+      title: "Turma criada com sucesso!",
+      description: "Link de compartilhamento gerado",
+    });
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedLink);
+      toast({
+        title: "Link copiado!",
+        description: "O link foi copiado para a área de transferência",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o link",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setNewClass({ name: "", room: "", code: "" });
+    setGeneratedLink("");
+    setShowSuccessState(false);
+    setIsCreateDialogOpen(false);
+  };
+
+  const filteredClasses = classes.filter(cls => 
     cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cls.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -61,10 +130,95 @@ const Classes = () => {
               <Link className="w-5 h-5" />
               Entrar em Turma
             </Button>
-            <Button variant="gamified" size="lg">
-              <Plus className="w-5 h-5" />
-              Criar Turma
-            </Button>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="gamified" size="lg">
+                  <Plus className="w-5 h-5" />
+                  Criar Turma
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {showSuccessState ? "Turma Criada!" : "Criar Nova Turma"}
+                  </DialogTitle>
+                </DialogHeader>
+                
+                {!showSuccessState ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nome da Turma *</Label>
+                      <Input
+                        id="name"
+                        placeholder="Ex: Cálculo I - Turma A"
+                        value={newClass.name}
+                        onChange={(e) => setNewClass(prev => ({ ...prev, name: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="room">Sala *</Label>
+                      <Input
+                        id="room"
+                        placeholder="Ex: A101, Lab 3, Online"
+                        value={newClass.room}
+                        onChange={(e) => setNewClass(prev => ({ ...prev, room: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="code">Código da Matéria (opcional)</Label>
+                      <Input
+                        id="code"
+                        placeholder="Ex: MAT101, FIS201"
+                        value={newClass.code}
+                        onChange={(e) => setNewClass(prev => ({ ...prev, code: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="flex gap-2 pt-4">
+                      <Button variant="outline" onClick={resetForm} className="flex-1">
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleCreateClass} className="flex-1">
+                        Criar Turma
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center py-6">
+                      <CheckCircle className="w-16 h-16 text-success" />
+                    </div>
+                    
+                    <div className="text-center space-y-2">
+                      <h3 className="font-semibold">Turma "{newClass.name}" criada!</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Compartilhe o link abaixo para convidar alunos
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Link de Convite</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          value={generatedLink} 
+                          readOnly 
+                          className="flex-1 font-mono text-xs"
+                        />
+                        <Button onClick={copyToClipboard} size="sm">
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <Button onClick={resetForm} className="w-full">
+                      Criar Outra Turma
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -169,10 +323,14 @@ const Classes = () => {
               <p className="text-muted-foreground">
                 Tente ajustar sua busca ou criar uma nova turma
               </p>
-              <Button variant="gamified">
-                <Plus className="w-4 h-4" />
-                Criar Nova Turma
-              </Button>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="gamified">
+                    <Plus className="w-4 h-4" />
+                    Criar Nova Turma
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
             </div>
           </Card>
         )}
