@@ -1,458 +1,547 @@
-import { Card } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Users, BookOpen, Calendar, Plus, Search, Link, Crown, Copy, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { User } from "@supabase/supabase-js";
+import { 
+  Users, 
+  BookOpen, 
+  Calendar, 
+  Plus, 
+  Search, 
+  Filter,
+  Copy,
+  ExternalLink,
+  GraduationCap,
+  Target,
+  Clock,
+  LogOut
+} from "lucide-react";
+
+interface Class {
+  id: string;
+  name: string;
+  subject: string;
+  description: string;
+  invite_code: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  members?: number;
+  materials?: number;
+  nextDeadline?: string;
+  role?: 'admin' | 'member';
+}
 
 const Classes = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [classes, setClasses] = useState([
-    {
-      id: 1,
-      name: "Cálculo I",
-      code: "MAT101",
-      members: 24,
-      materials: 12,
-      nextDeadline: "Prova - 3 dias",
-      role: "admin",
-      color: "bg-gradient-primary"
-    },
-    {
-      id: 2,
-      name: "Física I",
-      code: "FIS101", 
-      members: 18,
-      materials: 8,
-      nextDeadline: "Lista - 5 dias",
-      role: "member",
-      color: "bg-gradient-success"
-    },
-    {
-      id: 3,
-      name: "Programação",
-      code: "CS101",
-      members: 31,
-      materials: 15,
-      nextDeadline: "Projeto - 12 dias",
-      role: "member",
-      color: "bg-gradient-xp"
-    }
-  ]);
+  const navigate = useNavigate();
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
-  const [newClass, setNewClass] = useState({
-    name: "",
-    room: "",
-    code: ""
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [joinLink, setJoinLink] = useState('');
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    subject: '',
+    description: ''
   });
-  const [joinLink, setJoinLink] = useState("");
-  const [generatedLink, setGeneratedLink] = useState("");
-  const [showSuccessState, setShowSuccessState] = useState(false);
-  const { toast } = useToast();
+  const [generatedLink, setGeneratedLink] = useState('');
 
-  const handleJoinClass = () => {
-    if (!joinLink.trim()) {
-      toast({
-        title: "Erro",
-        description: "Insira o link de convite",
-        variant: "destructive"
-      });
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserClasses();
+    }
+  }, [user]);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      navigate("/auth");
       return;
     }
+    setUser(session.user);
 
-    // Validate link format
-    const linkRegex = /\/join\/([a-zA-Z0-9]+)$/;
-    const match = joinLink.match(linkRegex);
-    
-    if (!match) {
-      toast({
-        title: "Link inválido",
-        description: "O link de convite não é válido",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Check if already joined
-    const classId = match[1];
-    const existingClass = classes.find(cls => cls.code.includes(classId.toUpperCase()));
-    
-    if (existingClass) {
-      toast({
-        title: "Já participando",
-        description: "Você já faz parte desta turma",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Simulate joining class
-    const joinedClass = {
-      id: Date.now(),
-      name: `Turma ${classId.toUpperCase()}`,
-      code: `TURMA${classId.toUpperCase()}`,
-      members: Math.floor(Math.random() * 20) + 5,
-      materials: Math.floor(Math.random() * 10),
-      nextDeadline: "Sem atividades",
-      role: "member",
-      color: "bg-gradient-success"
-    };
-
-    setClasses(prev => [...prev, joinedClass]);
-    setJoinLink("");
-    setIsJoinDialogOpen(false);
-    
-    toast({
-      title: "Entrou na turma!",
-      description: `Você agora faz parte da ${joinedClass.name}`,
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session?.user) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
     });
+
+    return () => subscription.unsubscribe();
   };
 
-  const handleCreateClass = () => {
-    if (!newClass.name.trim() || !newClass.room.trim()) {
-      toast({
-        title: "Erro",
-        description: "Nome e sala são obrigatórios",
-        variant: "destructive"
-      });
-      return;
-    }
+  const fetchUserClasses = async () => {
+    if (!user) return;
 
-    const classId = Math.random().toString(36).substr(2, 9);
-    const shareableLink = `${window.location.origin}/join/${classId}`;
-    
-    const createdClass = {
-      id: Date.now(),
-      name: newClass.name,
-      code: newClass.code || `TURMA${classId.toUpperCase()}`,
-      members: 1,
-      materials: 0,
-      nextDeadline: "Sem atividades",
-      role: "admin",
-      color: "bg-gradient-primary"
-    };
-
-    setClasses(prev => [...prev, createdClass]);
-    setGeneratedLink(shareableLink);
-    setShowSuccessState(true);
-    
-    toast({
-      title: "Turma criada com sucesso!",
-      description: "Link de compartilhamento gerado",
-    });
-  };
-
-  const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(generatedLink);
-      toast({
-        title: "Link copiado!",
-        description: "O link foi copiado para a área de transferência",
-      });
+      const { data: memberData, error: memberError } = await supabase
+        .from("class_members")
+        .select(`
+          role,
+          class_id,
+          classes (
+            id,
+            name,
+            subject,
+            description,
+            invite_code,
+            created_by,
+            created_at,
+            updated_at
+          )
+        `)
+        .eq("user_id", user.id);
+
+      if (memberError) throw memberError;
+
+      const classesData = memberData.map((member: any) => ({
+        ...member.classes,
+        role: member.role
+      }));
+
+      setClasses(classesData);
+    } catch (error: any) {
+      toast.error("Erro ao carregar turmas");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
+  const handleJoinClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!joinLink.trim() || !user) {
+      toast.error("Por favor, insira um código válido.");
+      return;
+    }
+
+    try {
+      // Extract invite code from the link
+      const inviteCodeMatch = joinLink.match(/\/join\/([a-zA-Z0-9]+)$/);
+      const inviteCode = inviteCodeMatch ? inviteCodeMatch[1] : joinLink.trim();
+
+      // Find the class by invite code
+      const { data: classData, error: classError } = await supabase
+        .from("classes")
+        .select("*")
+        .eq("invite_code", inviteCode)
+        .single();
+
+      if (classError || !classData) {
+        toast.error("Código de turma inválido.");
+        return;
+      }
+
+      // Check if user is already a member
+      const { data: existingMember, error: memberError } = await supabase
+        .from("class_members")
+        .select("*")
+        .eq("class_id", classData.id)
+        .eq("user_id", user.id)
+        .single();
+
+      if (existingMember) {
+        toast.error("Você já está nesta turma.");
+        return;
+      }
+
+      // Join the class
+      const { error: joinError } = await supabase
+        .from("class_members")
+        .insert({
+          class_id: classData.id,
+          user_id: user.id,
+          role: 'member'
+        });
+
+      if (joinError) throw joinError;
+
+      toast.success("Você entrou na turma com sucesso!");
+      setShowJoinDialog(false);
+      setJoinLink('');
+      fetchUserClasses();
+    } catch (error: any) {
+      toast.error("Erro ao entrar na turma");
+      console.error(error);
+    }
+  };
+
+  const handleCreateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!createForm.name.trim() || !createForm.subject.trim() || !user) {
+      toast.error("Por favor, preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    try {
+      const { data: newClass, error: createError } = await supabase
+        .from("classes")
+        .insert({
+          name: createForm.name,
+          subject: createForm.subject,
+          description: createForm.description,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      const shareableLink = `${window.location.origin}/join/${newClass.invite_code}`;
+      setGeneratedLink(shareableLink);
+      
+      toast.success("Turma criada com sucesso!");
+      resetForm();
+      fetchUserClasses();
+    } catch (error: any) {
+      toast.error("Erro ao criar turma");
+      console.error(error);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Link copiado para a área de transferência!");
     } catch (err) {
-      toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar o link",
-        variant: "destructive"
-      });
+      console.error('Erro ao copiar:', err);
+      toast.error("Erro ao copiar link");
     }
   };
 
   const resetForm = () => {
-    setNewClass({ name: "", room: "", code: "" });
-    setGeneratedLink("");
-    setShowSuccessState(false);
-    setIsCreateDialogOpen(false);
+    setCreateForm({
+      name: '',
+      subject: '',
+      description: ''
+    });
   };
 
-  const filteredClasses = classes.filter(cls => 
-    cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cls.code.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredClasses = classes.filter(classItem =>
+    classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    classItem.subject.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleOpenClass = (classId: string) => {
+    navigate(`/class/${classId}`);
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-foreground">Minhas Turmas</h1>
-            <p className="text-muted-foreground">Gerencie suas disciplinas e colabore com colegas</p>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-primary mb-2">Minhas Turmas</h1>
+            <p className="text-muted-foreground text-lg">
+              Gerencie seus estudos e colabore com seus colegas
+            </p>
           </div>
-          
-          <div className="flex gap-3">
-            <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="lg">
-                  <Link className="w-5 h-5" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex-1 sm:flex-none">
+                <Plus className="mr-2 h-4 w-4" />
+                Entrar em Turma
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Entrar em uma Turma</DialogTitle>
+                <DialogDescription>
+                  Cole o link de convite ou código da turma abaixo para participar.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleJoinClass} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="joinLink">Link ou Código de Convite</Label>
+                  <Input
+                    id="joinLink"
+                    placeholder="Cole o link ou código aqui..."
+                    value={joinLink}
+                    onChange={(e) => setJoinLink(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    Entrar na Turma
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowJoinDialog(false);
+                      setJoinLink('');
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button className="flex-1 sm:flex-none bg-gradient-primary hover:bg-gradient-primary/90">
+                <Plus className="mr-2 h-4 w-4" />
+                Criar Turma
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Criar Nova Turma</DialogTitle>
+                <DialogDescription>
+                  Preencha as informações abaixo para criar uma nova turma.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreateClass} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="className">Nome da Turma *</Label>
+                  <Input
+                    id="className"
+                    placeholder="Ex: Matemática 3º Ano"
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="classSubject">Matéria *</Label>
+                  <Input
+                    id="classSubject"
+                    placeholder="Ex: Matemática"
+                    value={createForm.subject}
+                    onChange={(e) => setCreateForm({ ...createForm, subject: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="classDescription">Descrição</Label>
+                  <Textarea
+                    id="classDescription"
+                    placeholder="Descrição opcional da turma..."
+                    value={createForm.description}
+                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    Criar Turma
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowCreateDialog(false);
+                      resetForm();
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+              
+              {generatedLink && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h4 className="font-semibold text-green-800 mb-2">Turma criada com sucesso!</h4>
+                  <p className="text-sm text-green-700 mb-2">Compartilhe este link com seus alunos:</p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={generatedLink}
+                      readOnly
+                      className="text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => copyToClipboard(generatedLink)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Pesquisar turmas..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {filteredClasses.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="mb-4">
+              <GraduationCap className="mx-auto h-16 w-16 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">
+              {searchTerm ? "Nenhuma turma encontrada" : "Você ainda não está em nenhuma turma"}
+            </h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              {searchTerm 
+                ? "Tente pesquisar com termos diferentes ou verifique a ortografia."
+                : "Comece criando sua primeira turma ou entrando em uma turma existente usando um código de convite."
+              }
+            </p>
+            {!searchTerm && (
+              <div className="flex gap-2 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowJoinDialog(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
                   Entrar em Turma
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Entrar em Turma</DialogTitle>
-                </DialogHeader>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="joinLink">Link de Convite</Label>
-                    <Input
-                      id="joinLink"
-                      placeholder="Cole o link de convite aqui..."
-                      value={joinLink}
-                      onChange={(e) => setJoinLink(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      O link deve ter o formato: {window.location.origin}/join/...
-                    </p>
-                  </div>
-                  
-                  <div className="flex gap-2 pt-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setJoinLink("");
-                        setIsJoinDialogOpen(false);
-                      }} 
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                    <Button onClick={handleJoinClass} className="flex-1">
-                      Entrar
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="gamified" size="lg">
-                  <Plus className="w-5 h-5" />
+                <Button
+                  onClick={() => setShowCreateDialog(true)}
+                  className="bg-gradient-primary hover:bg-gradient-primary/90"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
                   Criar Turma
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>
-                    {showSuccessState ? "Turma Criada!" : "Criar Nova Turma"}
-                  </DialogTitle>
-                </DialogHeader>
-                
-                {!showSuccessState ? (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome da Turma *</Label>
-                      <Input
-                        id="name"
-                        placeholder="Ex: Cálculo I - Turma A"
-                        value={newClass.name}
-                        onChange={(e) => setNewClass(prev => ({ ...prev, name: e.target.value }))}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="room">Sala *</Label>
-                      <Input
-                        id="room"
-                        placeholder="Ex: A101, Lab 3, Online"
-                        value={newClass.room}
-                        onChange={(e) => setNewClass(prev => ({ ...prev, room: e.target.value }))}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="code">Código da Matéria (opcional)</Label>
-                      <Input
-                        id="code"
-                        placeholder="Ex: MAT101, FIS201"
-                        value={newClass.code}
-                        onChange={(e) => setNewClass(prev => ({ ...prev, code: e.target.value }))}
-                      />
-                    </div>
-                    
-                    <div className="flex gap-2 pt-4">
-                      <Button variant="outline" onClick={resetForm} className="flex-1">
-                        Cancelar
-                      </Button>
-                      <Button onClick={handleCreateClass} className="flex-1">
-                        Criar Turma
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center py-6">
-                      <CheckCircle className="w-16 h-16 text-success" />
-                    </div>
-                    
-                    <div className="text-center space-y-2">
-                      <h3 className="font-semibold">Turma "{newClass.name}" criada!</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Compartilhe o link abaixo para convidar alunos
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Link de Convite</Label>
-                      <div className="flex gap-2">
-                        <Input 
-                          value={generatedLink} 
-                          readOnly 
-                          className="flex-1 font-mono text-xs"
-                        />
-                        <Button onClick={copyToClipboard} size="sm">
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <Button onClick={resetForm} className="w-full">
-                      Criar Outra Turma
-                    </Button>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Search and filters */}
-        <Card className="p-4 shadow-medium">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Buscar turmas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-smooth">
-                Todas
-              </Badge>
-              <Badge variant="outline" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-smooth">
-                Admin
-              </Badge>
-              <Badge variant="outline" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-smooth">
-                Membro
-              </Badge>
-            </div>
-          </div>
-        </Card>
-
-        {/* Classes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClasses.map((classItem) => (
-            <Card key={classItem.id} className="overflow-hidden shadow-medium hover:shadow-large transition-smooth cursor-pointer group">
-              <div className={`h-3 ${classItem.color}`} />
-              
-              <div className="p-6 space-y-4">
-                {/* Class header */}
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-lg group-hover:text-primary transition-smooth">
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {filteredClasses.map((classItem) => (
+              <Card key={classItem.id} className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <CardTitle className="text-xl mb-1 text-primary group-hover:text-primary/80 transition-colors">
                         {classItem.name}
-                      </h3>
-                      {classItem.role === "admin" && (
-                        <Crown className="w-4 h-4 text-warning" />
-                      )}
+                      </CardTitle>
+                      <CardDescription className="text-sm font-medium text-secondary">
+                        {classItem.subject}
+                      </CardDescription>
                     </div>
-                    <p className="text-sm text-muted-foreground">{classItem.code}</p>
+                    <Badge variant={classItem.role === 'admin' ? 'default' : 'secondary'}>
+                      {classItem.role === 'admin' ? 'Admin' : 'Membro'}
+                    </Badge>
                   </div>
-                  <Badge 
-                    variant={classItem.role === "admin" ? "default" : "secondary"}
-                    className="text-xs"
+                  {classItem.description && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {classItem.description}
+                    </p>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="flex flex-col items-center space-y-1">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{classItem.members || 0}</span>
+                      <span className="text-xs text-muted-foreground">Membros</span>
+                    </div>
+                    <div className="flex flex-col items-center space-y-1">
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{classItem.materials || 0}</span>
+                      <span className="text-xs text-muted-foreground">Materiais</span>
+                    </div>
+                    <div className="flex flex-col items-center space-y-1">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">
+                        {classItem.nextDeadline || "Nenhuma"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">Próxima</span>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    className="w-full bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground shadow-medium hover:shadow-glow transition-all"
+                    onClick={() => handleOpenClass(classItem.id)}
                   >
-                    {classItem.role === "admin" ? "Admin" : "Membro"}
-                  </Badge>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Users className="w-4 h-4" />
-                    <span className="text-sm">{classItem.members} membros</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <BookOpen className="w-4 h-4" />
-                    <span className="text-sm">{classItem.materials} materiais</span>
-                  </div>
-                </div>
-
-                {/* Next deadline */}
-                <div className="p-3 rounded-lg bg-warning-light border border-warning/20">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-warning" />
-                    <span className="text-sm font-medium text-warning">
-                      Próximo: {classItem.nextDeadline}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                  <Button variant="default" size="sm" className="flex-1">
+                    <ExternalLink className="mr-2 h-4 w-4" />
                     Abrir Turma
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <Calendar className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Empty state or Create first class card */}
-        {filteredClasses.length === 0 && searchTerm && (
-          <Card className="p-12 text-center shadow-medium">
-            <div className="space-y-4">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-                <Search className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold">Nenhuma turma encontrada</h3>
-              <p className="text-muted-foreground">
-                Tente ajustar sua busca ou criar uma nova turma
-              </p>
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="gamified">
-                    <Plus className="w-4 h-4" />
-                    Criar Nova Turma
-                  </Button>
-                </DialogTrigger>
-              </Dialog>
-            </div>
-          </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
 
-        {/* Quick Tips */}
-        <Card className="p-6 shadow-medium bg-gradient-to-r from-accent/5 to-primary/5">
-          <h3 className="font-semibold mb-3 text-foreground">💡 Dicas para turmas eficazes</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-              <span>Compartilhe materiais regularmente para ganhar XP extra</span>
+        <div className="mt-12 p-6 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl border border-primary/20">
+          <h2 className="text-2xl font-bold text-primary mb-4 flex items-center">
+            <Target className="mr-2 h-6 w-6" />
+            Dicas para um Estudo Eficaz
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-start space-x-3">
+              <div className="bg-primary/20 p-2 rounded-lg">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-primary">Organize seu Tempo</h3>
+                <p className="text-sm text-muted-foreground">Mantenha um cronograma regular de estudos</p>
+              </div>
             </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-success rounded-full mt-2 flex-shrink-0" />
-              <span>Use o calendário compartilhado para manter todos atualizados</span>
+            <div className="flex items-start space-x-3">
+              <div className="bg-primary/20 p-2 rounded-lg">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-primary">Colabore</h3>
+                <p className="text-sm text-muted-foreground">Participe ativamente das discussões da turma</p>
+              </div>
             </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-warning rounded-full mt-2 flex-shrink-0" />
-              <span>Convide colegas para aumentar a colaboração</span>
+            <div className="flex items-start space-x-3">
+              <div className="bg-primary/20 p-2 rounded-lg">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-primary">Revise Materiais</h3>
+                <p className="text-sm text-muted-foreground">Acesse regularmente os conteúdos compartilhados</p>
+              </div>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );
