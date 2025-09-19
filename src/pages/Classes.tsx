@@ -44,14 +44,74 @@ const Classes = () => {
   ]);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [newClass, setNewClass] = useState({
     name: "",
     room: "",
     code: ""
   });
+  const [joinLink, setJoinLink] = useState("");
   const [generatedLink, setGeneratedLink] = useState("");
   const [showSuccessState, setShowSuccessState] = useState(false);
   const { toast } = useToast();
+
+  const handleJoinClass = () => {
+    if (!joinLink.trim()) {
+      toast({
+        title: "Erro",
+        description: "Insira o link de convite",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate link format
+    const linkRegex = /\/join\/([a-zA-Z0-9]+)$/;
+    const match = joinLink.match(linkRegex);
+    
+    if (!match) {
+      toast({
+        title: "Link inválido",
+        description: "O link de convite não é válido",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if already joined
+    const classId = match[1];
+    const existingClass = classes.find(cls => cls.code.includes(classId.toUpperCase()));
+    
+    if (existingClass) {
+      toast({
+        title: "Já participando",
+        description: "Você já faz parte desta turma",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Simulate joining class
+    const joinedClass = {
+      id: Date.now(),
+      name: `Turma ${classId.toUpperCase()}`,
+      code: `TURMA${classId.toUpperCase()}`,
+      members: Math.floor(Math.random() * 20) + 5,
+      materials: Math.floor(Math.random() * 10),
+      nextDeadline: "Sem atividades",
+      role: "member",
+      color: "bg-gradient-success"
+    };
+
+    setClasses(prev => [...prev, joinedClass]);
+    setJoinLink("");
+    setIsJoinDialogOpen(false);
+    
+    toast({
+      title: "Entrou na turma!",
+      description: `Você agora faz parte da ${joinedClass.name}`,
+    });
+  };
 
   const handleCreateClass = () => {
     if (!newClass.name.trim() || !newClass.room.trim()) {
@@ -126,10 +186,50 @@ const Classes = () => {
           </div>
           
           <div className="flex gap-3">
-            <Button variant="outline" size="lg">
-              <Link className="w-5 h-5" />
-              Entrar em Turma
-            </Button>
+            <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="lg">
+                  <Link className="w-5 h-5" />
+                  Entrar em Turma
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Entrar em Turma</DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="joinLink">Link de Convite</Label>
+                    <Input
+                      id="joinLink"
+                      placeholder="Cole o link de convite aqui..."
+                      value={joinLink}
+                      onChange={(e) => setJoinLink(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      O link deve ter o formato: {window.location.origin}/join/...
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setJoinLink("");
+                        setIsJoinDialogOpen(false);
+                      }} 
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleJoinClass} className="flex-1">
+                      Entrar
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="gamified" size="lg">
