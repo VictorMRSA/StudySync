@@ -1,13 +1,18 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Calendar as CalendarIcon, Clock, Plus, Filter, AlertCircle } from "lucide-react";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Calendar = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  
-  const events = [
+  const [events, setEvents] = useState([
     {
       id: 1,
       title: "Prova de Física I",
@@ -48,7 +53,56 @@ const Calendar = () => {
       daysLeft: 4,
       description: "Experimento: reações ácido-base"
     }
-  ];
+  ]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    subject: "",
+    date: "",
+    time: "",
+    type: "",
+    description: ""
+  });
+  const { toast } = useToast();
+
+  const handleCreateEvent = () => {
+    if (!newEvent.title || !newEvent.date || !newEvent.time || !newEvent.type) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const eventDate = new Date(newEvent.date);
+    const today = new Date();
+    const daysLeft = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    const event = {
+      id: events.length + 1,
+      ...newEvent,
+      daysLeft
+    };
+
+    setEvents([...events, event]);
+    setNewEvent({
+      title: "",
+      subject: "",
+      date: "",
+      time: "",
+      type: "",
+      description: ""
+    });
+    setIsDialogOpen(false);
+
+    toast({
+      title: "Evento criado!",
+      description: "Seu novo evento foi adicionado ao calendário.",
+      variant: "default"
+    });
+  };
+  
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
@@ -87,10 +141,96 @@ const Calendar = () => {
               <Filter className="w-5 h-5" />
               Filtros
             </Button>
-            <Button variant="gamified" size="lg">
-              <Plus className="w-5 h-5" />
-              Novo Evento
-            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="gamified" size="lg">
+                  <Plus className="w-5 h-5" />
+                  Novo Evento
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Criar Novo Evento</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Título *</Label>
+                    <Input
+                      id="title"
+                      placeholder="Ex: Prova de Física I"
+                      value={newEvent.title}
+                      onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="subject">Matéria</Label>
+                    <Input
+                      id="subject"
+                      placeholder="Ex: Física I"
+                      value={newEvent.subject}
+                      onChange={(e) => setNewEvent({...newEvent, subject: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Data *</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={newEvent.date}
+                        onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="time">Horário *</Label>
+                      <Input
+                        id="time"
+                        type="time"
+                        value={newEvent.time}
+                        onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Tipo *</Label>
+                    <Select value={newEvent.type} onValueChange={(value) => setNewEvent({...newEvent, type: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo do evento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="exam">Prova</SelectItem>
+                        <SelectItem value="assignment">Entrega</SelectItem>
+                        <SelectItem value="presentation">Apresentação</SelectItem>
+                        <SelectItem value="class">Aula</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Descrição</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Detalhes do evento..."
+                      value={newEvent.description}
+                      onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button variant="gamified" onClick={handleCreateEvent}>
+                      Criar Evento
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
