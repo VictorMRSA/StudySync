@@ -148,7 +148,7 @@ const Classes = () => {
         .from("classes")
         .select("*")
         .eq("invite_code", inviteCode)
-        .single();
+        .maybeSingle();
 
       if (classError || !classData) {
         toast.error("Código de turma inválido.");
@@ -161,7 +161,7 @@ const Classes = () => {
         .select("*")
         .eq("class_id", classData.id)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (existingMember) {
         toast.error("Você já está nesta turma.");
@@ -198,7 +198,7 @@ const Classes = () => {
     }
 
     try {
-      const { data: newClass, error: createError } = await supabase
+      const { data: classData, error: createError } = await supabase
         .from("classes")
         .insert({
           name: createForm.name,
@@ -207,9 +207,12 @@ const Classes = () => {
           created_by: user.id
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (createError) throw createError;
+      if (!classData) throw new Error("Falha ao criar turma");
+
+      const newClass = classData;
 
       const shareableLink = `${window.location.origin}/join/${newClass.invite_code}`;
       setGeneratedLink(shareableLink);
