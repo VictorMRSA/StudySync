@@ -109,11 +109,49 @@ const Classes = () => {
         `)
         .eq("user_id", user.id);
 
+      // Get member counts for each class
+      const classIds = memberData?.map(m => m.class_id) || [];
+      let memberCounts: Record<string, number> = {};
+      
+      if (classIds.length > 0) {
+        const { data: memberCountData } = await supabase
+          .from("class_members")
+          .select("class_id")
+          .in("class_id", classIds);
+          
+        if (memberCountData) {
+          memberCounts = memberCountData.reduce((acc, item) => {
+            acc[item.class_id] = (acc[item.class_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+        }
+      }
+
+      // Get material counts for each class
+      let materialCounts: Record<string, number> = {};
+      
+      if (classIds.length > 0) {
+        const { data: materialCountData } = await supabase
+          .from("materials")
+          .select("class_id")
+          .eq("status", "approved")
+          .in("class_id", classIds);
+          
+        if (materialCountData) {
+          materialCounts = materialCountData.reduce((acc, item) => {
+            acc[item.class_id] = (acc[item.class_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+        }
+      }
+
       if (memberError) throw memberError;
 
       const classesData = memberData.map((member: any) => ({
         ...member.classes,
-        role: member.role
+        role: member.role,
+        members: memberCounts[member.class_id] || 0,
+        materials: materialCounts[member.class_id] || 0
       }));
 
       setClasses(classesData);
