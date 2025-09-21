@@ -250,6 +250,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_class_by_invite: {
+        Args: { invite_code: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          invite_code: string
+          name: string
+          subject: string
+          updated_at: string
+        }[]
+      }
       is_admin: {
         Args: { _class_id: string }
         Returns: boolean
