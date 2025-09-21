@@ -263,6 +263,13 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_member_counts: {
+        Args: { _class_ids: string[] }
+        Returns: {
+          class_id: string
+          member_count: number
+        }[]
+      }
       is_admin: {
         Args: { _class_id: string }
         Returns: boolean

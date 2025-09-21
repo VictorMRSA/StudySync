@@ -109,19 +109,19 @@ const Classes = () => {
         `)
         .eq("user_id", user.id);
 
-      // Get member counts for each class
+      // Get member counts using RPC (respeita RLS e conta todos os membros)
       const classIds = memberData?.map(m => m.class_id) || [];
       let memberCounts: Record<string, number> = {};
       
       if (classIds.length > 0) {
-        // Count all members for each class
-        for (const classId of classIds) {
-          const { count } = await supabase
-            .from("class_members")
-            .select("*", { count: "exact", head: true })
-            .eq("class_id", classId);
-          
-          memberCounts[classId] = count || 0;
+        const { data: counts, error: countsError } = await supabase.rpc('get_member_counts', { _class_ids: classIds });
+        if (countsError) {
+          console.error('Erro ao buscar contagem de membros:', countsError);
+        } else if (counts) {
+          memberCounts = counts.reduce((acc: Record<string, number>, row: any) => {
+            acc[row.class_id] = Number(row.member_count) || 0;
+            return acc;
+          }, {});
         }
       }
 
