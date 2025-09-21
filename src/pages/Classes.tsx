@@ -142,13 +142,15 @@ const Classes = () => {
       // Extract invite code from the link
       const inviteCodeMatch = joinLink.match(/\/join\/([a-zA-Z0-9]+)$/);
       const inviteCode = inviteCodeMatch ? inviteCodeMatch[1] : joinLink.trim();
+      
+      console.log("Tentando entrar com código:", inviteCode);
 
-      // Find the class by invite code
+      // Find the class by invite code using secure RPC function
       const { data: classData, error: classError } = await supabase
-        .from("classes")
-        .select("*")
-        .eq("invite_code", inviteCode)
+        .rpc("get_class_by_invite", { invite_code: inviteCode })
         .maybeSingle();
+        
+      console.log("Resultado da busca:", { classData, classError });
 
       if (classError || !classData) {
         toast.error("Código de turma inválido.");
@@ -218,7 +220,8 @@ const Classes = () => {
       setGeneratedLink(shareableLink);
       
       toast.success("Turma criada com sucesso!");
-      resetForm();
+      // Não resetar o form imediatamente para manter o link visível
+      // resetForm();
       fetchUserClasses();
     } catch (error: any) {
       toast.error("Erro ao criar turma");
@@ -376,6 +379,7 @@ const Classes = () => {
                     variant="outline"
                     onClick={() => {
                       setShowCreateDialog(false);
+                      setGeneratedLink('');
                       resetForm();
                     }}
                   >
@@ -388,7 +392,7 @@ const Classes = () => {
                 <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <h4 className="font-semibold text-green-800 mb-2">Turma criada com sucesso!</h4>
                   <p className="text-sm text-green-700 mb-2">Compartilhe este link com seus alunos:</p>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mb-3">
                     <Input
                       value={generatedLink}
                       readOnly
@@ -401,6 +405,17 @@ const Classes = () => {
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setGeneratedLink('');
+                      resetForm();
+                    }}
+                    className="w-full"
+                  >
+                    Criar Outra Turma
+                  </Button>
                 </div>
               )}
             </DialogContent>
