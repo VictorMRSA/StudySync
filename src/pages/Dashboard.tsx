@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast, toast } from "@/hooks/use-toast";
 import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock, Calendar, Award, Trash2 } from "lucide-react";
+import { User } from "@supabase/supabase-js";
 
 interface DashboardProps {
   onTabChange?: (tab: string) => void;
@@ -18,21 +20,63 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
   useToast();
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [goalTitle, setGoalTitle] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const streakDays = 7;
   const currentXP = 1250;
   const nextLevelXP = 2000;
+  
   interface Goal {
-    id: number;
-    text: string;
+    id: string;
+    title: string;
     completed: boolean;
     description?: string;
+    user_id: string;
+    created_at: string;
+    updated_at: string;
   }
 
-  const [goals, setGoals] = useState<Goal[]>([
-    { id: 1, text: "Revisar Cálculo I - Limites", completed: true },
-    { id: 2, text: "Fazer exercícios de Álgebra", completed: false },
-    { id: 3, text: "Estudar para prova de Física", completed: false },
-  ]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchGoals();
+    }
+  }, [user]);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setUser(session.user);
+    }
+    setLoading(false);
+  };
+
+  const fetchGoals = async () => {
+    if (!user) return;
+
+    try {
+      const { data: goalsData, error } = await supabase
+        .from("goals")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setGoals(goalsData || []);
+    } catch (error: any) {
+      console.error("Error fetching goals:", error);
+      toast({
+        title: "Erro ao carregar metas",
+        description: "Não foi possível carregar suas metas.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const upcomingDeadlines = [
     { subject: "Física I", task: "Prova", daysLeft: 3, urgent: true },
@@ -46,25 +90,70 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
     { action: "Criou turma", subject: "Álgebra Linear", points: "+100 XP", time: "1 dia atrás" },
   ];
 
-  const removeGoal = (id: number) => {
-    setGoals((prev) => prev.filter((g) => g.id !== id));
-    toast({
-      title: "🗑️ Meta removida",
-      description: "A meta foi removida com sucesso.",
-    });
+  const removeGoal = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("goals")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setGoals((prev) => prev.filter((g) => g.id !== id));
+      toast({
+        title: "🗑️ Meta removida",
+        description: "A meta foi removida com sucesso.",
+      });
+    } catch (error: any) {
+      console.error("Error removing goal:", error);
+      toast({
+        title: "Erro ao remover meta",
+        description: "Não foi possível remover a meta.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const toggleGoalCompletion = (id: number) => {
-    setGoals((prev) => 
-      prev.map((goal) => 
-        goal.id === id 
-          ? { ...goal, completed: !goal.completed }
-          : goal
-      )
-    );
+  const toggleGoalCompletion = async (id: string) => {
+    if (!user) return;
+
+    const goal = goals.find(g => g.id === id);
+    if (!goal) return;
+
+    try {
+      const { error } = await supabase
+        .from("goals")
+        .update({ completed: !goal.completed })
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setGoals((prev) => 
+        prev.map((goal) => 
+          goal.id === id 
+            ? { ...goal, completed: !goal.completed }
+            : goal
+        )
+      );
+    } catch (error: any) {
+      console.error("Error updating goal:", error);
+      toast({
+        title: "Erro ao atualizar meta",
+        description: "Não foi possível atualizar a meta.",
+        variant: "destructive"
+      });
+    }
   };
 
   const progressPercentage = (currentXP / nextLevelXP) * 100;
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
@@ -144,15 +233,15 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                         aria-label={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
                         title={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
                       />
-                      <span className={`text-sm flex-1 ${goal.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                        {goal.text}
+                       <span className={`text-sm flex-1 ${goal.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                        {goal.title}
                       </span>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="ml-auto"
                         onClick={() => removeGoal(goal.id)}
-                        aria-label={`Remover meta ${goal.text}`}
+                        aria-label={`Remover meta ${goal.title}`}
                         title="Remover meta"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -275,18 +364,36 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                     />
                   </div>
                   <Button 
-                    onClick={() => {
-                      if (goalTitle) {
-                        setGoals((prev) => [
-                          ...prev,
-                          { id: Date.now(), text: goalTitle, completed: false },
-                        ]);
-                        toast({
-                          title: "✅ Meta Adicionada!",
-                          description: `Meta "${goalTitle}" foi criada com sucesso.`,
-                        });
-                        setGoalTitle("");
-                        setIsGoalModalOpen(false);
+                    onClick={async () => {
+                      if (goalTitle && user) {
+                        try {
+                          const { data: newGoal, error } = await supabase
+                            .from("goals")
+                            .insert({
+                              title: goalTitle,
+                              user_id: user.id,
+                              completed: false
+                            })
+                            .select()
+                            .single();
+
+                          if (error) throw error;
+
+                          setGoals((prev) => [newGoal, ...prev]);
+                          toast({
+                            title: "✅ Meta Adicionada!",
+                            description: `Meta "${goalTitle}" foi criada com sucesso.`,
+                          });
+                          setGoalTitle("");
+                          setIsGoalModalOpen(false);
+                        } catch (error: any) {
+                          console.error("Error creating goal:", error);
+                          toast({
+                            title: "Erro ao criar meta",
+                            description: "Não foi possível criar a meta.",
+                            variant: "destructive"
+                          });
+                        }
                       } else {
                         toast({
                           title: "⚠️ Campo obrigatório",
