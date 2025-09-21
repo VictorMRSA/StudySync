@@ -71,6 +71,44 @@ const Profile = () => {
         .from("profiles")
         .select("*")
         .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setProfile(data);
+        setFormData({
+          username: data.username || "",
+          full_name: data.full_name || "",
+          bio: data.bio || ""
+        });
+      } else {
+        // Create profile if it doesn't exist
+        await createProfile();
+      }
+    } catch (error: any) {
+      toast.error("Erro ao carregar perfil");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createProfile = async () => {
+    if (!user) return;
+
+    try {
+      const defaultUsername = user.email?.split('@')[0] || `user_${user.id.slice(0, 8)}`;
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          username: defaultUsername,
+          full_name: "",
+          bio: ""
+        })
+        .select()
         .single();
 
       if (error) throw error;
@@ -81,11 +119,11 @@ const Profile = () => {
         full_name: data.full_name || "",
         bio: data.bio || ""
       });
+      
+      toast.success("Perfil criado com sucesso!");
     } catch (error: any) {
-      toast.error("Erro ao carregar perfil");
+      toast.error("Erro ao criar perfil");
       console.error(error);
-    } finally {
-      setLoading(false);
     }
   };
 
