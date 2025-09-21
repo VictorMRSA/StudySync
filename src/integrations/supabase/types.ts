@@ -129,6 +129,72 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          start_date: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          start_date: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          start_date?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          completed: boolean
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           approved_at: string | null
