@@ -184,7 +184,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: { _class_id: string }
+        Returns: boolean
+      }
+      is_member: {
+        Args: { _class_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       assignment_type: "exam" | "homework" | "project"
