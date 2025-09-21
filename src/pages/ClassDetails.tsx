@@ -123,14 +123,22 @@ const ClassDetails = () => {
       if (memberError) throw memberError;
       setUserRole(memberData.role);
 
-      // Fetch all members
+      // Fetch all members using RPC (bypasses RLS restrictions)
       const { data: membersData, error: membersError } = await supabase
-        .from("class_members")
-        .select("*")
-        .eq("class_id", id);
+        .rpc("get_class_members", { _class_id: id });
 
-      if (membersError) throw membersError;
-      setMembers(membersData);
+      if (membersError) {
+        console.error("Erro ao buscar membros:", membersError);
+        // Se a RPC falhar, tenta buscar apenas o usuário atual
+        const { data: fallbackData } = await supabase
+          .from("class_members")
+          .select("*")
+          .eq("class_id", id)
+          .eq("user_id", currentUserId);
+        setMembers(fallbackData || []);
+      } else {
+        setMembers(membersData || []);
+      }
 
       // Fetch materials
       const { data: materialsData, error: materialsError } = await supabase

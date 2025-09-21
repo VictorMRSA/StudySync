@@ -263,6 +263,15 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_class_members: {
+        Args: { _class_id: string }
+        Returns: {
+          id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["class_role"]
+          user_id: string
+        }[]
+      }
       get_member_counts: {
         Args: { _class_ids: string[] }
         Returns: {
