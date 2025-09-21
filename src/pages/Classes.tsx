@@ -114,16 +114,14 @@ const Classes = () => {
       let memberCounts: Record<string, number> = {};
       
       if (classIds.length > 0) {
-        const { data: memberCountData } = await supabase
-          .from("class_members")
-          .select("class_id")
-          .in("class_id", classIds);
+        // Count all members for each class
+        for (const classId of classIds) {
+          const { count } = await supabase
+            .from("class_members")
+            .select("*", { count: "exact", head: true })
+            .eq("class_id", classId);
           
-        if (memberCountData) {
-          memberCounts = memberCountData.reduce((acc, item) => {
-            acc[item.class_id] = (acc[item.class_id] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
+          memberCounts[classId] = count || 0;
         }
       }
 
