@@ -16,7 +16,8 @@ import {
   User as UserIcon,
   Mail,
   Calendar,
-  LogOut
+  LogOut,
+  Trash2
 } from "lucide-react";
 
 interface Profile {
@@ -221,6 +222,36 @@ const Profile = () => {
     }
   };
 
+  const handleRemoveAvatar = async () => {
+    if (!user || !profile?.avatar_url) return;
+
+    setUploading(true);
+
+    try {
+      // Remove file from storage
+      const fileName = profile.avatar_url.split('/').pop();
+      if (fileName) {
+        await supabase.storage.from('avatars').remove([`${user.id}/${fileName}`]);
+      }
+
+      // Update profile to remove avatar URL
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      toast.success("Foto de perfil removida!");
+      fetchProfile();
+    } catch (error: any) {
+      toast.error("Erro ao remover foto");
+      console.error(error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
@@ -308,6 +339,17 @@ const Profile = () => {
               </div>
               {uploading && (
                 <p className="text-sm text-muted-foreground">Fazendo upload...</p>
+              )}
+              {profile?.avatar_url && !uploading && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveAvatar}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Remover Foto
+                </Button>
               )}
             </CardContent>
           </Card>
