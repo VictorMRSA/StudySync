@@ -11,6 +11,8 @@ import { User } from "@supabase/supabase-js";
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
@@ -60,11 +62,21 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      // Validate username
+      if (username.length < 3) {
+        toast.error("Nome de usuário deve ter pelo menos 3 caracteres");
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            username: username,
+            full_name: fullName
+          }
         }
       });
 
@@ -73,6 +85,8 @@ const Auth = () => {
     } catch (error: any) {
       if (error.message.includes("User already registered")) {
         toast.error("Este email já está cadastrado. Tente fazer login.");
+      } else if (error.message.includes("duplicate key")) {
+        toast.error("Este nome de usuário já está em uso. Escolha outro.");
       } else {
         toast.error(error.message || "Erro ao criar conta");
       }
@@ -123,6 +137,25 @@ const Auth = () => {
             
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Nome completo"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Nome de usuário (mínimo 3 caracteres)"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    required
+                    minLength={3}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Input
                     type="email"
