@@ -12,6 +12,7 @@ import Calendar from "./Calendar";
 import Materials from "./Materials";
 import Achievements from "./Achievements";
 import Profile from "./Profile";
+import AdminDashboard from "./AdminDashboard";
 import { 
   GraduationCap, 
   Users, 
@@ -66,6 +67,8 @@ const Index = () => {
         return <Achievements />;
       case "profile":
         return <Profile />;
+      case "admin":
+        return <AdminDashboard />;
       default:
         return <Dashboard onTabChange={setActiveTab} />;
     }

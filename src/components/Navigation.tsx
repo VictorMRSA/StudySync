@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Home, Users, Calendar, BookOpen, Trophy, User, Menu, X } from "lucide-react";
+import { Home, Users, Calendar, BookOpen, Trophy, User, Menu, X, Shield } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAdmin } from "@/hooks/useAdmin";
 
 interface NavigationProps {
   activeTab: string;
@@ -11,8 +12,9 @@ interface NavigationProps {
 
 const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAdmin } = useAdmin();
 
-  const navItems = [
+  const baseNavItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "classes", label: "Turmas", icon: Users },
     { id: "calendar", label: "Calendário", icon: Calendar },
@@ -20,6 +22,12 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
     { id: "achievements", label: "Conquistas", icon: Trophy },
     { id: "profile", label: "Perfil", icon: User },
   ];
+
+  const adminNavItems = [
+    { id: "admin", label: "Admin", icon: Shield },
+  ];
+
+  const navItems = isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
 
   return (
     <>

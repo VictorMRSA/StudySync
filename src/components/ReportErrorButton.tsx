@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Bug, Send } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReportErrorButtonProps {
   area?: string;
@@ -24,24 +25,36 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
     setIsSubmitting(true);
 
     try {
-      // Simulate error report submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, you would send this to your error reporting service
-      console.log("Error Report:", {
-        area,
-        description: errorDescription,
-        email: userEmail,
-        timestamp: new Date().toISOString(),
+      // Collect technical details
+      const technicalDetails = {
+        url: window.location.href,
         userAgent: navigator.userAgent,
-        url: window.location.href
-      });
+        timestamp: new Date().toISOString(),
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight
+        }
+      };
+
+      // Save to database
+      const { error } = await supabase
+        .from('error_reports')
+        .insert({
+          user_email: userEmail || 'anônimo',
+          area,
+          description: errorDescription,
+          technical_details: technicalDetails,
+          status: 'novo'
+        });
+
+      if (error) throw error;
 
       toast.success("Erro reportado com sucesso! Obrigado pelo feedback.");
       setIsOpen(false);
       setErrorDescription("");
       setUserEmail("");
     } catch (error) {
+      console.error('Error sending report:', error);
       toast.error("Erro ao enviar report. Tente novamente.");
     } finally {
       setIsSubmitting(false);
