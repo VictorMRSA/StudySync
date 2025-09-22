@@ -268,15 +268,14 @@ const ClassDetails = () => {
 
     try {
       const { error } = await supabase
-        .from("class_members")
-        .update({ role: 'admin' })
-        .eq("id", memberId);
+        .rpc("promote_member_to_admin", { _member_id: memberId });
 
       if (error) throw error;
       
       toast.success("Membro promovido a administrador!");
       fetchClassData();
     } catch (error: any) {
+      console.error("Erro ao promover membro:", error);
       toast.error("Erro ao promover membro");
     }
   };

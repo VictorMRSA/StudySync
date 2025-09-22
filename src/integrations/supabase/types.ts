@@ -390,6 +390,16 @@ export type Database = {
           status: string
         }[]
       }
+      promote_member_to_admin: {
+        Args: { _member_id: string }
+        Returns: {
+          class_id: string
+          id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["class_role"]
+          user_id: string
+        }
+      }
     }
     Enums: {
       assignment_type: "exam" | "homework" | "project"
