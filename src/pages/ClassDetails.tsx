@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Users, BookOpen, Calendar, Settings, Plus, Check, X, Crown, UserX } from "lucide-react";
+import { ArrowLeft, Users, BookOpen, Calendar, Settings, Plus, Check, X, Crown, UserX, Edit, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import ReportErrorButton from "@/components/ReportErrorButton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -69,6 +70,9 @@ const ClassDetails = () => {
   const [showAddMaterial, setShowAddMaterial] = useState(false);
   const [showAddAssignment, setShowAddAssignment] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
+  const [showEditClass, setShowEditClass] = useState(false);
+  const [showEditMaterial, setShowEditMaterial] = useState(false);
+  const [showEditAssignment, setShowEditAssignment] = useState(false);
 
   // Form states
   const [materialForm, setMaterialForm] = useState({ title: "", description: "", file: null as File | null });
@@ -79,6 +83,8 @@ const ClassDetails = () => {
     due_date: "" 
   });
   const [memberEmail, setMemberEmail] = useState("");
+  const [classForm, setClassForm] = useState({ name: "", subject: "", description: "" });
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   useEffect(() => {
     checkAuth();
@@ -298,6 +304,173 @@ const ClassDetails = () => {
     }
   };
 
+  // Edit Class
+  const handleEditClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (userRole !== 'admin') return;
+
+    try {
+      const { error } = await supabase
+        .from("classes")
+        .update({
+          name: classForm.name,
+          subject: classForm.subject,
+          description: classForm.description
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      toast.success("Turma atualizada!");
+      setShowEditClass(false);
+      fetchClassData();
+    } catch (error: any) {
+      toast.error("Erro ao atualizar turma");
+    }
+  };
+
+  // Delete Class
+  const handleDeleteClass = async () => {
+    if (userRole !== 'admin') return;
+
+    try {
+      const { error } = await supabase
+        .from("classes")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      toast.success("Turma excluída!");
+      navigate("/");
+    } catch (error: any) {
+      toast.error("Erro ao excluir turma");
+    }
+  };
+
+  // Edit Material
+  const handleEditMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (userRole !== 'admin' || !editingItem) return;
+
+    try {
+      const { error } = await supabase
+        .from("materials")
+        .update({
+          title: materialForm.title,
+          description: materialForm.description
+        })
+        .eq("id", editingItem.id);
+
+      if (error) throw error;
+      
+      toast.success("Material atualizado!");
+      setShowEditMaterial(false);
+      setEditingItem(null);
+      fetchClassData();
+    } catch (error: any) {
+      toast.error("Erro ao atualizar material");
+    }
+  };
+
+  // Delete Material
+  const handleDeleteMaterial = async (materialId: string) => {
+    if (userRole !== 'admin') return;
+
+    try {
+      const { error } = await supabase
+        .from("materials")
+        .delete()
+        .eq("id", materialId);
+
+      if (error) throw error;
+      
+      toast.success("Material excluído!");
+      fetchClassData();
+    } catch (error: any) {
+      toast.error("Erro ao excluir material");
+    }
+  };
+
+  // Edit Assignment
+  const handleEditAssignment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (userRole !== 'admin' || !editingItem) return;
+
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({
+          title: assignmentForm.title,
+          description: assignmentForm.description,
+          type: assignmentForm.type,
+          due_date: assignmentForm.due_date || null
+        })
+        .eq("id", editingItem.id);
+
+      if (error) throw error;
+      
+      toast.success("Atividade atualizada!");
+      setShowEditAssignment(false);
+      setEditingItem(null);
+      fetchClassData();
+    } catch (error: any) {
+      toast.error("Erro ao atualizar atividade");
+    }
+  };
+
+  // Delete Assignment
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    if (userRole !== 'admin') return;
+
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .delete()
+        .eq("id", assignmentId);
+
+      if (error) throw error;
+      
+      toast.success("Atividade excluída!");
+      fetchClassData();
+    } catch (error: any) {
+      toast.error("Erro ao excluir atividade");
+    }
+  };
+
+  // Open edit dialogs with current data
+  const openEditClass = () => {
+    if (classData) {
+      setClassForm({
+        name: classData.name,
+        subject: classData.subject || "",
+        description: classData.description || ""
+      });
+      setShowEditClass(true);
+    }
+  };
+
+  const openEditMaterial = (material: Material) => {
+    setEditingItem(material);
+    setMaterialForm({
+      title: material.title,
+      description: material.description || "",
+      file: null
+    });
+    setShowEditMaterial(true);
+  };
+
+  const openEditAssignment = (assignment: Assignment) => {
+    setEditingItem(assignment);
+    setAssignmentForm({
+      title: assignment.title,
+      description: assignment.description || "",
+      type: assignment.type,
+      due_date: assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 16) : ""
+    });
+    setShowEditAssignment(true);
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
@@ -317,14 +490,156 @@ const ClassDetails = () => {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold text-primary">{classData.name}</h1>
             <p className="text-muted-foreground">{classData.subject}</p>
           </div>
-          <Badge variant={userRole === 'admin' ? 'default' : 'secondary'} className="ml-auto">
-            {userRole === 'admin' ? 'Admin' : 'Membro'}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={userRole === 'admin' ? 'default' : 'secondary'}>
+              {userRole === 'admin' ? 'Admin' : 'Membro'}
+            </Badge>
+            {userRole === 'admin' && (
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openEditClass}
+                  title="Editar Turma"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      title="Excluir Turma"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Turma</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir esta turma? Esta ação não pode ser desfeita e todos os materiais, atividades e membros serão removidos.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteClass}>
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Edit Class Dialog */}
+        <Dialog open={showEditClass} onOpenChange={setShowEditClass}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Turma</DialogTitle>
+              <DialogDescription>
+                Atualize as informações da turma
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEditClass} className="space-y-4">
+              <Input
+                placeholder="Nome da turma"
+                value={classForm.name}
+                onChange={(e) => setClassForm({ ...classForm, name: e.target.value })}
+                required
+              />
+              <Input
+                placeholder="Matéria"
+                value={classForm.subject}
+                onChange={(e) => setClassForm({ ...classForm, subject: e.target.value })}
+              />
+              <Textarea
+                placeholder="Descrição (opcional)"
+                value={classForm.description}
+                onChange={(e) => setClassForm({ ...classForm, description: e.target.value })}
+              />
+              <Button type="submit">Salvar Alterações</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Material Dialog */}
+        <Dialog open={showEditMaterial} onOpenChange={setShowEditMaterial}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Material</DialogTitle>
+              <DialogDescription>
+                Atualize as informações do material
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEditMaterial} className="space-y-4">
+              <Input
+                placeholder="Título do material"
+                value={materialForm.title}
+                onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
+                required
+              />
+              <Textarea
+                placeholder="Descrição (opcional)"
+                value={materialForm.description}
+                onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
+              />
+              <Button type="submit">Salvar Alterações</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Assignment Dialog */}
+        <Dialog open={showEditAssignment} onOpenChange={setShowEditAssignment}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Atividade</DialogTitle>
+              <DialogDescription>
+                Atualize as informações da atividade
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEditAssignment} className="space-y-4">
+              <Input
+                placeholder="Título da atividade"
+                value={assignmentForm.title}
+                onChange={(e) => setAssignmentForm({ ...assignmentForm, title: e.target.value })}
+                required
+              />
+              <Textarea
+                placeholder="Descrição (opcional)"
+                value={assignmentForm.description}
+                onChange={(e) => setAssignmentForm({ ...assignmentForm, description: e.target.value })}
+              />
+              <Select
+                value={assignmentForm.type}
+                onValueChange={(value: "exam" | "homework" | "project") =>
+                  setAssignmentForm({ ...assignmentForm, type: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo de atividade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="homework">Trabalho</SelectItem>
+                  <SelectItem value="exam">Prova</SelectItem>
+                  <SelectItem value="project">Projeto</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="datetime-local"
+                value={assignmentForm.due_date}
+                onChange={(e) => setAssignmentForm({ ...assignmentForm, due_date: e.target.value })}
+              />
+              <Button type="submit">Salvar Alterações</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <Tabs defaultValue="materials" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
@@ -394,33 +709,70 @@ const ClassDetails = () => {
                           <CardDescription>{material.description}</CardDescription>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={
-                          material.status === 'approved' ? 'default' :
-                          material.status === 'pending' ? 'secondary' : 'destructive'
-                        }>
-                          {material.status === 'approved' ? 'Aprovado' :
-                           material.status === 'pending' ? 'Pendente' : 'Rejeitado'}
-                        </Badge>
-                        {userRole === 'admin' && material.status === 'pending' && (
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleApproveContent('materials', material.id)}
-                            >
-                              <Check className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleRejectContent('materials', material.id)}
-                            >
-                              <X className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                       <div className="flex items-center gap-2">
+                         <Badge variant={
+                           material.status === 'approved' ? 'default' :
+                           material.status === 'pending' ? 'secondary' : 'destructive'
+                         }>
+                           {material.status === 'approved' ? 'Aprovado' :
+                            material.status === 'pending' ? 'Pendente' : 'Rejeitado'}
+                         </Badge>
+                         {userRole === 'admin' && (
+                           <div className="flex gap-1">
+                             {material.status === 'pending' && (
+                               <>
+                                 <Button
+                                   size="sm"
+                                   variant="ghost"
+                                   onClick={() => handleApproveContent('materials', material.id)}
+                                 >
+                                   <Check className="h-4 w-4 text-green-600" />
+                                 </Button>
+                                 <Button
+                                   size="sm"
+                                   variant="ghost"
+                                   onClick={() => handleRejectContent('materials', material.id)}
+                                 >
+                                   <X className="h-4 w-4 text-red-600" />
+                                 </Button>
+                               </>
+                             )}
+                             <Button
+                               size="sm"
+                               variant="ghost"
+                               onClick={() => openEditMaterial(material)}
+                               title="Editar Material"
+                             >
+                               <Edit className="h-4 w-4" />
+                             </Button>
+                             <AlertDialog>
+                               <AlertDialogTrigger asChild>
+                                 <Button
+                                   size="sm"
+                                   variant="ghost"
+                                   title="Excluir Material"
+                                 >
+                                   <Trash2 className="h-4 w-4 text-red-600" />
+                                 </Button>
+                               </AlertDialogTrigger>
+                               <AlertDialogContent>
+                                 <AlertDialogHeader>
+                                   <AlertDialogTitle>Excluir Material</AlertDialogTitle>
+                                   <AlertDialogDescription>
+                                     Tem certeza que deseja excluir este material? Esta ação não pode ser desfeita.
+                                   </AlertDialogDescription>
+                                 </AlertDialogHeader>
+                                 <AlertDialogFooter>
+                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                   <AlertDialogAction onClick={() => handleDeleteMaterial(material.id)}>
+                                     Excluir
+                                   </AlertDialogAction>
+                                 </AlertDialogFooter>
+                               </AlertDialogContent>
+                             </AlertDialog>
+                           </div>
+                         )}
+                       </div>
                     </div>
                   </CardHeader>
                 </Card>
@@ -503,33 +855,70 @@ const ClassDetails = () => {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={
-                          assignment.status === 'approved' ? 'default' :
-                          assignment.status === 'pending' ? 'secondary' : 'destructive'
-                        }>
-                          {assignment.status === 'approved' ? 'Aprovado' :
-                           assignment.status === 'pending' ? 'Pendente' : 'Rejeitado'}
-                        </Badge>
-                        {userRole === 'admin' && assignment.status === 'pending' && (
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleApproveContent('assignments', assignment.id)}
-                            >
-                              <Check className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleRejectContent('assignments', assignment.id)}
-                            >
-                              <X className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                       <div className="flex items-center gap-2">
+                         <Badge variant={
+                           assignment.status === 'approved' ? 'default' :
+                           assignment.status === 'pending' ? 'secondary' : 'destructive'
+                         }>
+                           {assignment.status === 'approved' ? 'Aprovado' :
+                            assignment.status === 'pending' ? 'Pendente' : 'Rejeitado'}
+                         </Badge>
+                         {userRole === 'admin' && (
+                           <div className="flex gap-1">
+                             {assignment.status === 'pending' && (
+                               <>
+                                 <Button
+                                   size="sm"
+                                   variant="ghost"
+                                   onClick={() => handleApproveContent('assignments', assignment.id)}
+                                 >
+                                   <Check className="h-4 w-4 text-green-600" />
+                                 </Button>
+                                 <Button
+                                   size="sm"
+                                   variant="ghost"
+                                   onClick={() => handleRejectContent('assignments', assignment.id)}
+                                 >
+                                   <X className="h-4 w-4 text-red-600" />
+                                 </Button>
+                               </>
+                             )}
+                             <Button
+                               size="sm"
+                               variant="ghost"
+                               onClick={() => openEditAssignment(assignment)}
+                               title="Editar Atividade"
+                             >
+                               <Edit className="h-4 w-4" />
+                             </Button>
+                             <AlertDialog>
+                               <AlertDialogTrigger asChild>
+                                 <Button
+                                   size="sm"
+                                   variant="ghost"
+                                   title="Excluir Atividade"
+                                 >
+                                   <Trash2 className="h-4 w-4 text-red-600" />
+                                 </Button>
+                               </AlertDialogTrigger>
+                               <AlertDialogContent>
+                                 <AlertDialogHeader>
+                                   <AlertDialogTitle>Excluir Atividade</AlertDialogTitle>
+                                   <AlertDialogDescription>
+                                     Tem certeza que deseja excluir esta atividade? Esta ação não pode ser desfeita.
+                                   </AlertDialogDescription>
+                                 </AlertDialogHeader>
+                                 <AlertDialogFooter>
+                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                   <AlertDialogAction onClick={() => handleDeleteAssignment(assignment.id)}>
+                                     Excluir
+                                   </AlertDialogAction>
+                                 </AlertDialogFooter>
+                               </AlertDialogContent>
+                             </AlertDialog>
+                           </div>
+                         )}
+                       </div>
                     </div>
                   </CardHeader>
                 </Card>
