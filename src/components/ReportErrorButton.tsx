@@ -74,7 +74,7 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] max-w-md mx-4 sm:mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bug className="w-5 h-5 text-destructive" />
