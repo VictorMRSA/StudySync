@@ -129,6 +129,50 @@ export type Database = {
         }
         Relationships: []
       }
+      error_reports: {
+        Row: {
+          area: string
+          created_at: string
+          description: string
+          id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string | null
+          technical_details: Json | null
+          user_email: string
+        }
+        Insert: {
+          area?: string
+          created_at?: string
+          description: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          technical_details?: Json | null
+          user_email: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          description?: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          technical_details?: Json | null
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           all_day: boolean
@@ -252,6 +296,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_admin: boolean | null
           updated_at: string
           username: string
         }
@@ -261,6 +306,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          is_admin?: boolean | null
           updated_at?: string
           username: string
         }
@@ -270,6 +316,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
           updated_at?: string
           username?: string
         }
@@ -315,6 +362,10 @@ export type Database = {
       }
       is_member: {
         Args: { _class_id: string }
+        Returns: boolean
+      }
+      is_user_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
     }
