@@ -139,6 +139,7 @@ export type Database = {
           resolved_by: string | null
           status: string | null
           technical_details: Json | null
+          updated_at: string | null
           user_email: string
         }
         Insert: {
@@ -150,6 +151,7 @@ export type Database = {
           resolved_by?: string | null
           status?: string | null
           technical_details?: Json | null
+          updated_at?: string | null
           user_email: string
         }
         Update: {
@@ -161,6 +163,7 @@ export type Database = {
           resolved_by?: string | null
           status?: string | null
           technical_details?: Json | null
+          updated_at?: string | null
           user_email?: string
         }
         Relationships: [
