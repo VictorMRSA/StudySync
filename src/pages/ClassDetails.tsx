@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +31,11 @@ interface Member {
   user_id: string;
   role: 'admin' | 'member';
   joined_at: string;
+  profiles?: {
+    username: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  };
 }
 
 interface Material {
@@ -130,7 +135,7 @@ const ClassDetails = () => {
       if (memberError) throw memberError;
       setUserRole(memberData.role);
 
-      // Fetch all members using RPC (bypasses RLS restrictions)
+      // Fetch all members with profile data using RPC
       const { data: membersData, error: membersError } = await supabase
         .rpc("get_class_members", { _class_id: id });
 
@@ -144,7 +149,24 @@ const ClassDetails = () => {
           .eq("user_id", currentUserId);
         setMembers(fallbackData || []);
       } else {
-        setMembers(membersData || []);
+        // Buscar dados de perfil para cada membro
+        if (membersData && membersData.length > 0) {
+          const memberIds = membersData.map(m => m.user_id);
+          const { data: profilesData } = await supabase
+            .from("profiles")
+            .select("id, username, full_name, avatar_url")
+            .in("id", memberIds);
+
+          // Combinar dados de membros com perfis
+          const membersWithProfiles = membersData.map(member => ({
+            ...member,
+            profiles: profilesData?.find(profile => profile.id === member.user_id)
+          }));
+          
+          setMembers(membersWithProfiles);
+        } else {
+          setMembers([]);
+        }
       }
 
       // Fetch materials
@@ -937,12 +959,27 @@ const ClassDetails = () => {
                   <CardContent className="flex items-center justify-between p-4">
                     <div className="flex items-center gap-3">
                       <Avatar>
+                        {member.profiles?.avatar_url && (
+                          <AvatarImage 
+                            src={member.profiles.avatar_url} 
+                            alt={member.profiles.full_name || member.profiles.username || "Avatar"} 
+                          />
+                        )}
                         <AvatarFallback>
-                          {member.user_id.substring(0, 2).toUpperCase()}
+                          {member.profiles?.full_name 
+                            ? member.profiles.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                            : member.profiles?.username?.substring(0, 2).toUpperCase() 
+                            || member.user_id.substring(0, 2).toUpperCase()
+                          }
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">Usuário {member.user_id.substring(0, 8)}</p>
+                        <p className="font-medium">
+                          {member.profiles?.full_name || member.profiles?.username || `Usuário ${member.user_id.substring(0, 8)}`}
+                        </p>
+                        {member.profiles?.username && member.profiles?.full_name && (
+                          <p className="text-sm text-muted-foreground">@{member.profiles.username}</p>
+                        )}
                         <p className="text-sm text-muted-foreground">
                           Entrou em {format(new Date(member.joined_at), 'dd/MM/yyyy', { locale: ptBR })}
                         </p>
