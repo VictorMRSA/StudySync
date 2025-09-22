@@ -141,6 +141,7 @@ export type Database = {
           technical_details: Json | null
           updated_at: string | null
           user_email: string
+          user_id: string | null
         }
         Insert: {
           area?: string
@@ -153,6 +154,7 @@ export type Database = {
           technical_details?: Json | null
           updated_at?: string | null
           user_email: string
+          user_id?: string | null
         }
         Update: {
           area?: string
@@ -165,6 +167,7 @@ export type Database = {
           technical_details?: Json | null
           updated_at?: string | null
           user_email?: string
+          user_id?: string | null
         }
         Relationships: [
           {

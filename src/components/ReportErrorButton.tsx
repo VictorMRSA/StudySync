@@ -18,22 +18,35 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
   const [isOpen, setIsOpen] = useState(false);
   const [errorDescription, setErrorDescription] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Auto-fill user email when component loads
+  // Auto-fill user email and check authentication when component loads
   useEffect(() => {
-    const getUserEmail = async () => {
+    const getUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
+      if (user?.email && user?.id) {
         setUserEmail(user.email);
+        setUserId(user.id);
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
       }
     };
     
-    getUserEmail();
+    getUserData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verify user is authenticated
+    if (!isAuthenticated || !userId) {
+      toast.error("Você precisa estar logado para reportar erros.");
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -48,30 +61,80 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
         }
       };
 
-      // Save to database
+      // Save to database with proper user validation
       const { error } = await supabase
         .from('error_reports')
         .insert({
-          user_email: userEmail || 'anônimo',
+          user_id: userId,
+          user_email: userEmail,
           area,
           description: errorDescription,
           technical_details: technicalDetails,
           status: 'novo'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
       toast.success("Erro reportado com sucesso! Obrigado pelo feedback.");
       setIsOpen(false);
       setErrorDescription("");
-      setUserEmail("");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending report:', error);
-      toast.error("Erro ao enviar report. Tente novamente.");
+      if (error.message?.includes('new row violates row-level security')) {
+        toast.error("Erro de autenticação. Faça login novamente.");
+      } else {
+        toast.error("Erro ao enviar report. Tente novamente.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Show login required message if user is not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className={`text-muted-foreground hover:text-foreground ${className}`}
+          >
+            <Bug className="w-4 h-4 mr-2" />
+            Reportar Erro
+          </Button>
+        </DialogTrigger>
+        
+        <DialogContent className="w-[95vw] max-w-md mx-4 sm:mx-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bug className="w-5 h-5 text-destructive" />
+              Login Necessário
+            </DialogTitle>
+            <DialogDescription>
+              Você precisa estar logado para reportar erros. Isso garante a segurança e autenticidade dos reports.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
+              Fechar
+            </Button>
+            <Button onClick={() => window.location.href = '/auth'}>
+              Fazer Login
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -105,9 +168,13 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
               type="email"
               placeholder="seu@email.com"
               value={userEmail}
-              onChange={(e) => setUserEmail(e.target.value)}
+              disabled={true}
+              className="bg-muted"
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Email do usuário autenticado (não pode ser alterado)
+            </p>
           </div>
           
           <div className="space-y-2">
