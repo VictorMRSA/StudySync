@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
+import ReportErrorButton from "@/components/ReportErrorButton";
 import { 
   ArrowLeft, 
-  Camera, 
+  Camera,
   Save, 
   User as UserIcon,
   Mail,
@@ -438,6 +439,11 @@ const Profile = () => {
             </CardContent>
           </Card>
         </div>
+      </div>
+      
+      {/* Report Error Button */}
+      <div className="flex justify-center mt-8">
+        <ReportErrorButton area="Perfil" />
       </div>
     </div>
   );

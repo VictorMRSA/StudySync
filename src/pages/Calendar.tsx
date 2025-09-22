@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar as CalendarIcon, Clock, Plus, Filter, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import ReportErrorButton from "@/components/ReportErrorButton";
 
 const Calendar = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -376,6 +377,11 @@ const Calendar = () => {
             </div>
           </div>
         </Card>
+      </div>
+      
+      {/* Report Error Button */}
+      <div className="flex justify-center mt-8">
+        <ReportErrorButton area="Calendário" />
       </div>
     </div>
   );

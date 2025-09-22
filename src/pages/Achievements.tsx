@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReportErrorButton from "@/components/ReportErrorButton";
 import { 
   Trophy, 
   Flame, 
@@ -387,6 +388,11 @@ const Achievements = () => {
             </div>
           </div>
         </Card>
+      </div>
+      
+      {/* Report Error Button */}
+      <div className="flex justify-center mt-8">
+        <ReportErrorButton area="Conquistas" />
       </div>
     </div>
   );

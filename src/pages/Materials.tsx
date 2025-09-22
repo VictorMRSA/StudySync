@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ReportErrorButton from "@/components/ReportErrorButton";
 import { 
   Upload, 
   FileText, 
@@ -312,6 +313,11 @@ const Materials = () => {
             </div>
           </Card>
         )}
+      </div>
+      
+      {/* Report Error Button */}
+      <div className="flex justify-center mt-8">
+        <ReportErrorButton area="Materiais" />
       </div>
     </div>
   );

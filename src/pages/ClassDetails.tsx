@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowLeft, Users, BookOpen, Calendar, Settings, Plus, Check, X, Crown, UserX } from "lucide-react";
+import ReportErrorButton from "@/components/ReportErrorButton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -656,6 +657,11 @@ const ClassDetails = () => {
             </TabsContent>
           )}
         </Tabs>
+      </div>
+      
+      {/* Report Error Button */}
+      <div className="flex justify-center mt-8">
+        <ReportErrorButton area="Detalhes da Classe" />
       </div>
     </div>
   );

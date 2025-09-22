@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
+import ReportErrorButton from "@/components/ReportErrorButton";
 import { 
-  Users, 
+  Users,
   BookOpen, 
   Calendar, 
   Plus, 
@@ -596,6 +597,11 @@ const Classes = () => {
             </div>
           </div>
         </div>
+      </div>
+      
+      {/* Report Error Button */}
+      <div className="flex justify-center mt-8">
+        <ReportErrorButton area="Classes" />
       </div>
     </div>
   );

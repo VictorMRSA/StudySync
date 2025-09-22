@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast, toast } from "@/hooks/use-toast";
 import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock, Calendar, Award, Trash2 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
+import ReportErrorButton from "@/components/ReportErrorButton";
 
 interface DashboardProps {
   onTabChange?: (tab: string) => void;
@@ -419,6 +420,11 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
             </Button>
           </div>
         </Card>
+      </div>
+      
+      {/* Report Error Button */}
+      <div className="flex justify-center mt-8">
+        <ReportErrorButton area="Dashboard" />
       </div>
     </div>
   );
