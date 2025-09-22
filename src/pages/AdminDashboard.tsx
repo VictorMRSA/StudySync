@@ -45,6 +45,7 @@ const AdminDashboard = () => {
     pendingReports: 0
   });
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -52,6 +53,14 @@ const AdminDashboard = () => {
 
   const loadData = async () => {
     try {
+      setConnectionError(false);
+      
+      // Verificar conexão e autenticação
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+
       // Load error reports
       const { data: reports, error: reportsError } = await supabase
         .from('error_reports')
@@ -93,11 +102,20 @@ const AdminDashboard = () => {
         });
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading admin data:', error);
+      setConnectionError(true);
+      
+      let errorMessage = "Erro ao carregar dados administrativos";
+      if (error?.message?.includes('Failed to fetch')) {
+        errorMessage = "Erro de conexão com o servidor. Verifique sua internet.";
+      } else if (error?.message?.includes('não autenticado')) {
+        errorMessage = "Faça login como administrador para acessar esta página.";
+      }
+      
       toast({
         title: "Erro",
-        description: "Erro ao carregar dados administrativos",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -107,15 +125,30 @@ const AdminDashboard = () => {
 
   const updateReportStatus = async (reportId: string, newStatus: string) => {
     try {
+      // Verificar se o usuário está autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Usuário não autenticado",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('error_reports')
         .update({ 
           status: newStatus,
-          resolved_at: newStatus === 'resolvido' ? new Date().toISOString() : null
+          resolved_at: newStatus === 'resolvido' ? new Date().toISOString() : null,
+          resolved_by: newStatus === 'resolvido' ? user.id : null
         })
         .eq('id', reportId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
       setErrorReports(prev => 
         prev.map(report => 
@@ -125,16 +158,27 @@ const AdminDashboard = () => {
         )
       );
 
+      // Recarregar stats após atualização
+      await loadData();
+
       toast({
         title: "Sucesso",
-        description: `Report marcado como ${newStatus}`,
+        description: `Report marcado como ${getStatusLabel(newStatus)}`,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating report status:', error);
+      let errorMessage = "Erro ao atualizar status do report";
+      
+      if (error?.message?.includes('Failed to fetch')) {
+        errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
+      } else if (error?.message?.includes('row-level security')) {
+        errorMessage = "Sem permissão para atualizar este report.";
+      }
+      
       toast({
         title: "Erro",
-        description: "Erro ao atualizar status do report",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -170,6 +214,25 @@ const AdminDashboard = () => {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center">Carregando dados administrativos...</div>
+      </div>
+    );
+  }
+
+  if (connectionError) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Erro de Conexão</h2>
+            <p className="text-muted-foreground mb-4">
+              Não foi possível conectar ao servidor. Verifique sua conexão com a internet.
+            </p>
+            <Button onClick={loadData} variant="outline">
+              Tentar Novamente
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
