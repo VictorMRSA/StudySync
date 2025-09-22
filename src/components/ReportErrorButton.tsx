@@ -87,13 +87,14 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Seu Email (opcional)</Label>
+            <Label htmlFor="email">Seu Email *</Label>
             <Input
               id="email"
               type="email"
               placeholder="seu@email.com"
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
+              required
             />
           </div>
           
@@ -132,7 +133,7 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting || !errorDescription.trim()}>
+            <Button type="submit" disabled={isSubmitting || !errorDescription.trim() || !userEmail.trim()}>
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
