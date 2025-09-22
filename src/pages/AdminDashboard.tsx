@@ -136,24 +136,22 @@ const AdminDashboard = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from('error_reports')
-        .update({ 
-          status: newStatus,
-          resolved_at: newStatus === 'resolvido' ? new Date().toISOString() : null,
-          resolved_by: newStatus === 'resolvido' ? user.id : null
-        })
-        .eq('id', reportId);
+      const { data, error } = await supabase.rpc('mark_error_report_status', {
+        report_id: reportId,
+        new_status: newStatus,
+      });
 
       if (error) {
-        console.error('Database error:', error);
+        console.error('RPC error:', error);
         throw error;
       }
+
+      const updated = Array.isArray(data) && data.length > 0 ? data[0] : null;
 
       setErrorReports(prev => 
         prev.map(report => 
           report.id === reportId 
-            ? { ...report, status: newStatus }
+            ? { ...report, status: updated?.status ?? newStatus }
             : report
         )
       );
@@ -172,8 +170,8 @@ const AdminDashboard = () => {
       
       if (error?.message?.includes('Failed to fetch')) {
         errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
-      } else if (error?.message?.includes('row-level security')) {
-        errorMessage = "Sem permissão para atualizar este report.";
+      } else if (String(error?.message || '').toLowerCase().includes('not authorized')) {
+        errorMessage = "Sem permissão. É necessário ser administrador.";
       }
       
       toast({

@@ -378,6 +378,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      mark_error_report_status: {
+        Args: { new_status: string; report_id: string }
+        Returns: {
+          id: string
+          resolved_at: string
+          resolved_by: string
+          status: string
+        }[]
+      }
     }
     Enums: {
       assignment_type: "exam" | "homework" | "project"
