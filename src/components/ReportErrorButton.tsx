@@ -13,7 +13,7 @@ interface ReportErrorButtonProps {
   className?: string;
 }
 
-const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErrorButtonProps) => {
+export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErrorButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [errorDescription, setErrorDescription] = useState("");
   const [userEmail, setUserEmail] = useState("");
