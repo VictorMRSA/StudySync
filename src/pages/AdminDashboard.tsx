@@ -266,11 +266,11 @@ const AdminDashboard = () => {
                     </div>
                   ) : (
                     errorReports.map((report) => (
-                      <Card key={report.id} className="border-l-4 border-l-primary">
+                       <Card key={report.id} className="border-l-4 border-l-primary">
                         <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                            <div className="space-y-1 flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <Badge variant={getStatusColor(report.status)}>
                                   {getStatusLabel(report.status)}
                                 </Badge>
@@ -278,19 +278,26 @@ const AdminDashboard = () => {
                                   Área: {report.area}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                {report.user_email}
-                                <Calendar className="h-4 w-4 ml-2" />
-                                {new Date(report.created_at).toLocaleString('pt-BR')}
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-2">
+                                  <Mail className="h-4 w-4 flex-shrink-0" />
+                                  <span className="truncate">{report.user_email}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 flex-shrink-0" />
+                                  <span className="whitespace-nowrap">
+                                    {new Date(report.created_at).toLocaleString('pt-BR')}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                               {report.status === 'novo' && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => updateReportStatus(report.id, 'em_analise')}
+                                  className="w-full sm:w-auto"
                                 >
                                   <Clock className="h-4 w-4 mr-1" />
                                   Analisar
@@ -299,8 +306,9 @@ const AdminDashboard = () => {
                               {report.status !== 'resolvido' && (
                                 <Button
                                   size="sm"
-                                  variant="outline"
+                                  variant="default"
                                   onClick={() => updateReportStatus(report.id, 'resolvido')}
+                                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
                                 >
                                   <CheckCircle className="h-4 w-4 mr-1" />
                                   Resolver
