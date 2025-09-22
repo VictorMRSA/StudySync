@@ -175,19 +175,19 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-primary">Dashboard Administrativo</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Dashboard Administrativo</h1>
           <p className="text-muted-foreground">Gerencie reports e monitore o sistema</p>
         </div>
-        <Button onClick={loadData} variant="outline">
+        <Button onClick={loadData} variant="outline" className="w-full sm:w-auto">
           Atualizar Dados
         </Button>
       </div>
 
       {/* System Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
@@ -257,8 +257,8 @@ const AdminDashboard = () => {
                 Gerencie e acompanhe os reports enviados pelos usuários
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[600px]">
+            <CardContent className="p-4 sm:p-6">
+              <ScrollArea className="h-[400px] sm:h-[600px]">
                 <div className="space-y-4">
                   {errorReports.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -317,18 +317,18 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent className="pt-0">
+                        <CardContent className="pt-0 px-3 sm:px-6">
                           <div className="space-y-3">
                             <div>
-                              <h4 className="font-medium mb-1">Descrição:</h4>
-                              <p className="text-sm text-muted-foreground bg-muted p-3 rounded">
+                              <h4 className="font-medium mb-1 text-sm sm:text-base">Descrição:</h4>
+                              <p className="text-sm text-muted-foreground bg-muted p-2 sm:p-3 rounded break-words">
                                 {report.description}
                               </p>
                             </div>
                             {report.technical_details && (
                               <div>
-                                <h4 className="font-medium mb-1">Detalhes Técnicos:</h4>
-                                <pre className="text-xs bg-muted p-3 rounded overflow-auto max-h-32">
+                                <h4 className="font-medium mb-1 text-sm sm:text-base">Detalhes Técnicos:</h4>
+                                <pre className="text-xs bg-muted p-2 sm:p-3 rounded overflow-x-auto max-h-32 break-all whitespace-pre-wrap">
                                   {JSON.stringify(report.technical_details, null, 2)}
                                 </pre>
                               </div>
