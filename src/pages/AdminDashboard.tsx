@@ -125,9 +125,12 @@ const AdminDashboard = () => {
 
   const updateReportStatus = async (reportId: string, newStatus: string) => {
     try {
+      console.log('Updating report status:', { reportId, newStatus });
+      
       // Verificar se o usuário está autenticado
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('User not authenticated');
         toast({
           title: "Erro",
           description: "Usuário não autenticado",
@@ -136,28 +139,58 @@ const AdminDashboard = () => {
         return;
       }
 
-      const { data, error } = await supabase.rpc('mark_error_report_status', {
-        report_id: reportId,
-        new_status: newStatus,
-      });
+      console.log('User authenticated:', user.id);
+
+      // Verificar se é admin
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_user_admin');
+      if (adminError) {
+        console.error('Error checking admin status:', adminError);
+        throw adminError;
+      }
+      
+      if (!isAdmin) {
+        console.log('User is not admin');
+        toast({
+          title: "Erro",
+          description: "Acesso negado. Apenas administradores podem atualizar reports.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('User is admin, proceeding with update');
+
+      // Usar a abordagem direta novamente mas com verificação de admin
+      const { data, error } = await supabase
+        .from('error_reports')
+        .update({ 
+          status: newStatus,
+          resolved_at: newStatus === 'resolvido' ? new Date().toISOString() : null,
+          resolved_by: newStatus === 'resolvido' ? user.id : null
+        })
+        .eq('id', reportId)
+        .select();
 
       if (error) {
-        console.error('RPC error:', error);
+        console.error('Database error:', error);
         throw error;
       }
 
-      const updated = Array.isArray(data) && data.length > 0 ? data[0] : null;
+      console.log('Update successful:', data);
 
       setErrorReports(prev => 
         prev.map(report => 
           report.id === reportId 
-            ? { ...report, status: updated?.status ?? newStatus }
+            ? { ...report, status: newStatus }
             : report
         )
       );
 
-      // Recarregar stats após atualização
-      await loadData();
+      // Atualizar estatísticas
+      setSystemStats(prev => ({
+        ...prev,
+        pendingReports: prev.pendingReports - (newStatus === 'resolvido' ? 1 : 0)
+      }));
 
       toast({
         title: "Sucesso",
@@ -170,8 +203,10 @@ const AdminDashboard = () => {
       
       if (error?.message?.includes('Failed to fetch')) {
         errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
-      } else if (String(error?.message || '').toLowerCase().includes('not authorized')) {
-        errorMessage = "Sem permissão. É necessário ser administrador.";
+      } else if (error?.message?.includes('row-level security') || error?.message?.includes('policy')) {
+        errorMessage = "Erro de permissão. Verifique se você é administrador.";
+      } else if (error?.code === 'PGRST116') {
+        errorMessage = "Report não encontrado ou sem permissão para alterá-lo.";
       }
       
       toast({
