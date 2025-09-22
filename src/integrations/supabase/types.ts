@@ -327,6 +327,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_admin_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          pending_reports: number
+          total_classes: number
+          total_profiles: number
+          total_reports: number
+          total_users: number
+        }[]
+      }
       get_class_by_invite: {
         Args: { invite_code: string }
         Returns: {

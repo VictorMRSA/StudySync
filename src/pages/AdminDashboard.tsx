@@ -29,6 +29,7 @@ interface ErrorReport {
 
 interface SystemStats {
   totalUsers: number;
+  totalProfiles: number;
   totalClasses: number;
   totalReports: number;
   pendingReports: number;
@@ -38,6 +39,7 @@ const AdminDashboard = () => {
   const [errorReports, setErrorReports] = useState<ErrorReport[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats>({
     totalUsers: 0,
+    totalProfiles: 0,
     totalClasses: 0,
     totalReports: 0,
     pendingReports: 0
@@ -59,20 +61,37 @@ const AdminDashboard = () => {
       if (reportsError) throw reportsError;
       setErrorReports(reports || []);
 
-      // Load system statistics
-      const [usersRes, classesRes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('classes').select('id', { count: 'exact', head: true })
-      ]);
+      // Load system statistics using admin function
+      const { data: stats, error: statsError } = await supabase
+        .rpc('get_admin_stats');
 
-      const pendingReports = reports?.filter(r => r.status === 'novo').length || 0;
+      if (statsError) {
+        console.error('Error loading stats:', statsError);
+        // Fallback to manual counting if admin function fails
+        const [usersRes, classesRes] = await Promise.all([
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
+          supabase.from('classes').select('id', { count: 'exact', head: true })
+        ]);
 
-      setSystemStats({
-        totalUsers: usersRes.count || 0,
-        totalClasses: classesRes.count || 0,
-        totalReports: reports?.length || 0,
-        pendingReports
-      });
+        const pendingReports = reports?.filter(r => r.status === 'novo').length || 0;
+
+        setSystemStats({
+          totalUsers: usersRes.count || 0,
+          totalProfiles: usersRes.count || 0,
+          totalClasses: classesRes.count || 0,
+          totalReports: reports?.length || 0,
+          pendingReports
+        });
+      } else if (stats && stats.length > 0) {
+        const stat = stats[0];
+        setSystemStats({
+          totalUsers: stat.total_users || 0,
+          totalProfiles: stat.total_profiles || 0,
+          totalClasses: stat.total_classes || 0,
+          totalReports: stat.total_reports || 0,
+          pendingReports: stat.pending_reports || 0
+        });
+      }
 
     } catch (error) {
       console.error('Error loading admin data:', error);
@@ -168,7 +187,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* System Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
@@ -176,6 +195,9 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{systemStats.totalUsers}</div>
+            <p className="text-xs text-muted-foreground">
+              {systemStats.totalProfiles} com perfil
+            </p>
           </CardContent>
         </Card>
 
