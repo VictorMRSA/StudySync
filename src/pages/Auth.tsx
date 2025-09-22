@@ -15,9 +15,45 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isConfirmingEmail, setIsConfirmingEmail] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if this is a redirect from email confirmation
+    const handleEmailConfirmation = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+
+      if (type === 'signup' && accessToken && refreshToken) {
+        setIsConfirmingEmail(true);
+        try {
+          // Set the session from the tokens received
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) throw error;
+          
+          if (data.session?.user) {
+            toast.success("Email confirmado! Bem-vindo!");
+            // Clear the hash from URL
+            window.history.replaceState(null, '', window.location.pathname);
+            navigate("/");
+            return;
+          }
+        } catch (error: any) {
+          toast.error("Erro ao confirmar email: " + error.message);
+          setIsConfirmingEmail(false);
+        }
+      }
+    };
+
+    // Handle email confirmation first
+    handleEmailConfirmation();
+
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -29,9 +65,11 @@ const Auth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUser(session.user);
+        setIsConfirmingEmail(false);
         navigate("/");
       } else {
         setUser(null);
+        setIsConfirmingEmail(false);
       }
     });
 
@@ -72,7 +110,7 @@ const Auth = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth#signup-confirmation`,
           data: {
             username: username,
             full_name: fullName
@@ -94,6 +132,24 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  // Show confirmation message if confirming email
+  if (isConfirmingEmail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-primary">Study Sync</CardTitle>
+            <CardDescription>Confirmando seu email...</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Aguarde enquanto confirmamos seu email e fazemos login automaticamente.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20 p-4">
