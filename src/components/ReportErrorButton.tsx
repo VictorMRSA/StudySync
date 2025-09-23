@@ -25,12 +25,23 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
   // Auto-fill user email and check authentication when component loads
   useEffect(() => {
     const getUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email && user?.id) {
-        setUserEmail(user.email);
-        setUserId(user.id);
-        setIsAuthenticated(true);
-      } else {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error('Auth error:', error);
+          setIsAuthenticated(false);
+          return;
+        }
+        
+        if (user?.email && user?.id) {
+          setUserEmail(user.email);
+          setUserId(user.id);
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Error getting user data:', error);
         setIsAuthenticated(false);
       }
     };
@@ -41,15 +52,17 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Verify user is authenticated
-    if (!isAuthenticated || !userId) {
-      toast.error("Você precisa estar logado para reportar erros.");
-      return;
-    }
-    
     setIsSubmitting(true);
 
     try {
+      // Re-verify authentication before submitting
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user?.id) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        setIsAuthenticated(false);
+        return;
+      }
       // Collect technical details
       const technicalDetails = {
         url: window.location.href,
@@ -65,8 +78,8 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
       const { error } = await supabase
         .from('error_reports')
         .insert({
-          user_id: userId,
-          user_email: userEmail,
+          user_id: user.id,
+          user_email: user.email,
           area,
           description: errorDescription,
           technical_details: technicalDetails,
