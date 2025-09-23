@@ -126,7 +126,7 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
           </Button>
         </DialogTrigger>
         
-        <DialogContent className="w-[95vw] max-w-sm mx-2 sm:max-w-md sm:mx-4 lg:max-w-lg">
+        <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] max-h-[90vh] mx-2 overflow-y-auto sm:w-[90vw] sm:max-w-lg sm:h-auto sm:max-h-[85vh] lg:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bug className="w-5 h-5 text-destructive" />
@@ -167,7 +167,7 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="w-[95vw] max-w-sm mx-2 sm:max-w-md sm:mx-4 lg:max-w-lg">
+      <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] max-h-[90vh] mx-2 overflow-y-auto sm:w-[90vw] sm:max-w-lg sm:h-auto sm:max-h-[85vh] lg:max-w-xl">
         <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bug className="w-5 h-5 text-destructive" />
@@ -178,16 +178,16 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto">
           <div className="space-y-2">
-            <Label htmlFor="email">Seu Email *</Label>
+            <Label htmlFor="email" className="text-sm font-medium">Seu Email *</Label>
             <Input
               id="email"
               type="email"
               placeholder="seu@email.com"
               value={userEmail}
               disabled={true}
-              className="bg-muted"
+              className="bg-muted text-sm"
               required
             />
             <p className="text-xs text-muted-foreground">
@@ -196,33 +196,33 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="description">Descrição do Erro *</Label>
+            <Label htmlFor="description" className="text-sm font-medium">Descrição do Problema *</Label>
             <Textarea
               id="description"
-              placeholder="Descreva o que aconteceu, o que você esperava que acontecesse, e quais passos levaram ao erro..."
+              placeholder="Descreva o que aconteceu, o que você esperava que acontecesse, e quais passos levaram ao problema..."
               value={errorDescription}
               onChange={(e) => setErrorDescription(e.target.value)}
               required
-              rows={3}
-              className="min-h-[80px] sm:min-h-[100px] text-sm"
+              rows={4}
+              className="min-h-[100px] text-sm resize-none"
             />
           </div>
           
-          <Card className="bg-muted/50">
-            <CardHeader className="pb-1 sm:pb-2">
-              <CardTitle className="text-xs sm:text-sm">Informações Técnicas</CardTitle>
+          <Card className="bg-muted/50 border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium">Informações Técnicas</CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-xs text-muted-foreground space-y-1">
+            <CardContent className="pt-0 text-xs">
+              <div className="text-muted-foreground space-y-1 max-h-[120px] overflow-y-auto">
                 <p><strong>Área:</strong> {area}</p>
-                <p className="break-all"><strong>URL:</strong> {window.location.href}</p>
+                <p className="break-all"><strong>URL:</strong> <span className="text-xs">{window.location.href}</span></p>
                 <p className="break-words"><strong>Navegador:</strong> {navigator.userAgent.split(' ').slice(-2).join(' ')}</p>
                 <p><strong>Data:</strong> {new Date().toLocaleString('pt-BR')}</p>
               </div>
             </CardContent>
           </Card>
           
-          <div className="flex flex-col sm:flex-row justify-end gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end mt-4 pt-2 border-t">
             <Button
               type="button"
               variant="outline"
