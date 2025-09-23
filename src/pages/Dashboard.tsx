@@ -337,10 +337,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
             <Button 
               variant="gamified" 
               className="h-20 flex-col gap-2"
-              onClick={() => toast({
-                title: "🚧 Em Construção",
-                description: "Esta funcionalidade está sendo desenvolvida!",
-              })}
+              onClick={() => onTabChange?.("classes")}
             >
               <Users className="w-6 h-6" />
               <span className="text-sm">Criar Turma</span>
@@ -348,16 +345,13 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
             <Button 
               variant="success" 
               className="h-20 flex-col gap-2"
-              onClick={() => toast({
-                title: "🚧 Em Construção", 
-                description: "Esta funcionalidade está sendo desenvolvida!",
-              })}
+              onClick={() => onTabChange?.("materials")}
             >
               <BookOpen className="w-6 h-6" />
               <span className="text-sm">Upload Material</span>
             </Button>
             <Button 
-              variant="outline" 
+              variant="secondary" 
               className="h-20 flex-col gap-2"
               onClick={() => onTabChange?.("calendar")}
             >
@@ -374,7 +368,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
             </Button>
             <Dialog open={isGoalModalOpen} onOpenChange={setIsGoalModalOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="h-20 flex-col gap-2">
+                <Button variant="streak" className="h-20 flex-col gap-2">
                   <Target className="w-6 h-6" />
                   <span className="text-sm">Adicionar Meta</span>
                 </Button>
@@ -440,7 +434,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
               </DialogContent>
             </Dialog>
             <Button 
-              variant="outline" 
+              variant="gamified" 
               className="h-20 flex-col gap-2"
               onClick={() => onTabChange?.("calendar")}
             >
