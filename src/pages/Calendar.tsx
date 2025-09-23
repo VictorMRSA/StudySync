@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, Clock, Plus, Filter, AlertCircle } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Plus, Filter, AlertCircle, Edit2, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,8 +29,20 @@ interface Event {
 const Calendar = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    start_date: "",
+    start_time: "",
+    end_date: "",
+    end_time: "",
+    all_day: false,
+    priority: 3
+  });
+  const [editEvent, setEditEvent] = useState({
     title: "",
     description: "",
     start_date: "",
@@ -86,6 +98,201 @@ const Calendar = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    setEditEvent({
+      title: event.title,
+      description: event.description || "",
+      start_date: event.start_date.split('T')[0],
+      start_time: event.all_day ? "" : event.start_date.split('T')[1]?.split(':').slice(0, 2).join(':') || "",
+      end_date: event.end_date ? event.end_date.split('T')[0] : "",
+      end_time: event.all_day || !event.end_date ? "" : event.end_date.split('T')[1]?.split(':').slice(0, 2).join(':') || "",
+      all_day: event.all_day,
+      priority: event.priority
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para deletar eventos.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting event:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao deletar evento.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Evento deletado!",
+        description: "Seu evento foi removido com sucesso.",
+        variant: "default"
+      });
+
+      fetchEvents();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao deletar evento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateEvent = async () => {
+    if (!editingEvent || !editEvent.title || !editEvent.start_date) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha o título e a data.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Executar validações lógicas para edição
+    if (!validateEditEventData()) {
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para editar eventos.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      let startDateTime = editEvent.start_date;
+      let endDateTime = editEvent.end_date || editEvent.start_date;
+
+      if (!editEvent.all_day) {
+        if (editEvent.start_time) {
+          startDateTime = `${editEvent.start_date}T${editEvent.start_time}:00`;
+        }
+        if (editEvent.end_time) {
+          endDateTime = `${editEvent.end_date || editEvent.start_date}T${editEvent.end_time}:00`;
+        }
+      }
+
+      const { error } = await supabase
+        .from('events')
+        .update({
+          title: editEvent.title,
+          description: editEvent.description || null,
+          start_date: startDateTime,
+          end_date: endDateTime !== startDateTime ? endDateTime : null,
+          all_day: editEvent.all_day,
+          priority: editEvent.priority,
+        })
+        .eq('id', editingEvent.id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error updating event:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao atualizar evento.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Evento atualizado!",
+        description: "Seu evento foi salvo com sucesso.",
+        variant: "default"
+      });
+
+      setEditingEvent(null);
+      setEditEvent({
+        title: "",
+        description: "",
+        start_date: "",
+        start_time: "",
+        end_date: "",
+        end_time: "",
+        all_day: false,
+        priority: 3
+      });
+      setIsEditDialogOpen(false);
+      fetchEvents();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar evento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const validateEditEventData = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(editEvent.start_date);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Validação 1: Data de início não pode ser no passado
+    if (startDate < today) {
+      toast({
+        title: "Erro de Validação",
+        description: "A data de início não pode ser anterior à data atual.",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    // Validação 2: Se há data de fim, não pode ser anterior à data de início
+    if (editEvent.end_date && editEvent.end_date < editEvent.start_date) {
+      toast({
+        title: "Erro de Validação",
+        description: "A data de fim não pode ser anterior à data de início.",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    // Validação 3: Para eventos não "dia inteiro", validar horários
+    if (!editEvent.all_day && editEvent.start_time && editEvent.end_time) {
+      const startDateTime = new Date(`${editEvent.start_date}T${editEvent.start_time}:00`);
+      const endDateTime = new Date(`${editEvent.end_date || editEvent.start_date}T${editEvent.end_time}:00`);
+      
+      if (endDateTime <= startDateTime) {
+        toast({
+          title: "Erro de Validação",
+          description: "O horário de fim deve ser posterior ao horário de início.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
+    
+    return true;
   };
 
   const validateEventData = () => {
@@ -425,6 +632,145 @@ const Calendar = () => {
                 </div>
               </DialogContent>
             </Dialog>
+            
+            {/* Edit Event Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Editar Evento</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-title">Título *</Label>
+                    <Input
+                      id="edit-title"
+                      placeholder="Ex: Prova de Física I"
+                      value={editEvent.title}
+                      onChange={(e) => setEditEvent({...editEvent, title: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-description">Descrição</Label>
+                    <Textarea
+                      id="edit-description"
+                      placeholder="Detalhes do evento..."
+                      value={editEvent.description}
+                      onChange={(e) => setEditEvent({...editEvent, description: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-priority">Grau de Importância *</Label>
+                    <Select value={editEvent.priority.toString()} onValueChange={(value) => setEditEvent({...editEvent, priority: parseInt(value)})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                       <SelectContent className="bg-card border-border shadow-lg z-50">
+                         <SelectItem value="1" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-destructive rounded-full" />
+                             <span>Muito Alta</span>
+                           </div>
+                         </SelectItem>
+                         <SelectItem value="2" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-orange-500 rounded-full" />
+                             <span>Alta</span>
+                           </div>
+                         </SelectItem>
+                         <SelectItem value="3" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+                             <span>Média</span>
+                           </div>
+                         </SelectItem>
+                         <SelectItem value="4" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-green-500 rounded-full" />
+                             <span>Baixa</span>
+                           </div>
+                         </SelectItem>
+                         <SelectItem value="5" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                             <span>Muito Baixa</span>
+                           </div>
+                         </SelectItem>
+                       </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="edit_all_day"
+                      checked={editEvent.all_day}
+                      onChange={(e) => setEditEvent({...editEvent, all_day: e.target.checked})}
+                      className="rounded"
+                    />
+                    <Label htmlFor="edit_all_day">Evento de dia inteiro</Label>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_start_date">Data de Início *</Label>
+                      <Input
+                        id="edit_start_date"
+                        type="date"
+                        value={editEvent.start_date}
+                        onChange={(e) => setEditEvent({...editEvent, start_date: e.target.value})}
+                      />
+                    </div>
+                    
+                    {!editEvent.all_day && (
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_start_time">Horário de Início</Label>
+                        <Input
+                          id="edit_start_time"
+                          type="time"
+                          value={editEvent.start_time}
+                          onChange={(e) => setEditEvent({...editEvent, start_time: e.target.value})}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {!editEvent.all_day && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_end_date">Data de Fim</Label>
+                        <Input
+                          id="edit_end_date"
+                          type="date"
+                          value={editEvent.end_date}
+                          onChange={(e) => setEditEvent({...editEvent, end_date: e.target.value})}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_end_time">Horário de Fim</Label>
+                        <Input
+                          id="edit_end_time"
+                          type="time"
+                          value={editEvent.end_time}
+                          onChange={(e) => setEditEvent({...editEvent, end_time: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button variant="gamified" onClick={handleUpdateEvent}>
+                      Salvar Alterações
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -538,49 +884,68 @@ const Calendar = () => {
                 {events.map((event) => {
                   const daysUntil = getDaysUntil(event.start_date);
                   return (
-                    <div
-                      key={event.id}
-                      className="p-4 rounded-lg border border-border bg-card hover:shadow-medium transition-smooth"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                           <div className="flex items-center gap-3">
-                             {getPriorityDot(event.priority)}
-                            <div>
-                              <h4 className="font-medium text-foreground">{event.title}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {formatEventDate(event.start_date, event.all_day)}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {event.description && (
-                            <p className="text-sm text-muted-foreground">{event.description}</p>
-                          )}
-                        </div>
-                        
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge className={`${getPriorityColor(event.priority)} cursor-default`}>
-                            {getPriorityLabel(event.priority)}
-                          </Badge>
-                          
-                          <div className={`text-sm font-medium ${
-                            daysUntil <= 0
-                              ? "text-destructive" 
-                              : daysUntil <= 3 
-                              ? "text-destructive" 
-                              : daysUntil <= 7 
-                              ? "text-warning" 
-                              : "text-muted-foreground"
-                          }`}>
-                            {daysUntil < 0 ? "Passou" :
-                             daysUntil === 0 ? "Hoje" : 
-                             daysUntil === 1 ? "Amanhã" : 
-                             `${daysUntil} dias`}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                     <div
+                       key={event.id}
+                       className="p-4 rounded-lg border border-border bg-card hover:shadow-medium transition-smooth"
+                     >
+                       <div className="flex items-start justify-between gap-4">
+                         <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-3">
+                              {getPriorityDot(event.priority)}
+                             <div>
+                               <h4 className="font-medium text-foreground">{event.title}</h4>
+                               <p className="text-sm text-muted-foreground">
+                                 {formatEventDate(event.start_date, event.all_day)}
+                               </p>
+                             </div>
+                           </div>
+                           
+                           {event.description && (
+                             <p className="text-sm text-muted-foreground">{event.description}</p>
+                           )}
+                         </div>
+                         
+                         <div className="flex flex-col items-end gap-2">
+                           <div className="flex items-center gap-2">
+                             <Button 
+                               variant="ghost" 
+                               size="sm" 
+                               onClick={() => handleEditEvent(event)}
+                               className="h-8 w-8 p-0"
+                             >
+                               <Edit2 className="w-4 h-4" />
+                             </Button>
+                             <Button 
+                               variant="ghost" 
+                               size="sm" 
+                               onClick={() => handleDeleteEvent(event.id)}
+                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                             >
+                               <Trash2 className="w-4 h-4" />
+                             </Button>
+                           </div>
+                           
+                           <Badge className={`${getPriorityColor(event.priority)} cursor-default`}>
+                             {getPriorityLabel(event.priority)}
+                           </Badge>
+                           
+                           <div className={`text-sm font-medium ${
+                             daysUntil <= 0
+                               ? "text-destructive" 
+                               : daysUntil <= 3 
+                               ? "text-destructive" 
+                               : daysUntil <= 7 
+                               ? "text-warning" 
+                               : "text-muted-foreground"
+                           }`}>
+                             {daysUntil < 0 ? "Passou" :
+                              daysUntil === 0 ? "Hoje" : 
+                              daysUntil === 1 ? "Amanhã" : 
+                              `${daysUntil} dias`}
+                           </div>
+                         </div>
+                       </div>
+                     </div>
                   );
                 })}
               </div>
