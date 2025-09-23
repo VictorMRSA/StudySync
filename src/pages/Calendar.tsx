@@ -404,6 +404,42 @@ const Calendar = () => {
             <CalendarComponent 
               mode="single"
               className="w-full"
+              modifiers={{
+                eventDay: events.map(event => new Date(event.start_date))
+              }}
+              modifiersClassNames={{
+                eventDay: "relative"
+              }}
+              components={{
+                DayContent: ({ date }) => {
+                  const dateStr = date.toISOString().split('T')[0];
+                  const dayEvents = events.filter(event => 
+                    event.start_date.split('T')[0] === dateStr
+                  );
+                  
+                  return (
+                    <div className="relative w-full h-full flex flex-col items-center justify-center">
+                      <span>{date.getDate()}</span>
+                      {dayEvents.length > 0 && (
+                        <div className="absolute bottom-0 flex gap-0.5">
+                          {dayEvents.slice(0, 3).map((event, index) => (
+                            <div
+                              key={event.id}
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                getPriorityColor(event.priority).split(' ')[0]
+                              }`}
+                              title={event.title}
+                            />
+                          ))}
+                          {dayEvents.length > 3 && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+              }}
             />
             
             <div className="space-y-2 text-xs mt-4">
