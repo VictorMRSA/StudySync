@@ -116,17 +116,18 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={`text-muted-foreground hover:text-foreground ${className}`}
-          >
-            <Bug className="w-4 h-4 mr-2" />
-            Reportar Erro
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className={`text-muted-foreground hover:text-foreground text-xs sm:text-sm ${className}`}
+        >
+          <Bug className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+          <span className="hidden xs:inline">Reportar Erro</span>
+          <span className="xs:hidden">Erro</span>
           </Button>
         </DialogTrigger>
         
-        <DialogContent className="w-[95vw] max-w-md mx-4 sm:mx-auto">
+        <DialogContent className="w-[95vw] max-w-sm mx-2 sm:max-w-md sm:mx-4 lg:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bug className="w-5 h-5 text-destructive" />
@@ -160,14 +161,15 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
         <Button 
           variant="outline" 
           size="sm" 
-          className={`text-muted-foreground hover:text-foreground ${className}`}
+          className={`text-muted-foreground hover:text-foreground text-xs sm:text-sm ${className}`}
         >
-          <Bug className="w-4 h-4 mr-2" />
-          Reportar Erro
+          <Bug className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+          <span className="hidden xs:inline">Reportar Erro</span>
+          <span className="xs:hidden">Erro</span>
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="w-[95vw] max-w-md mx-4 sm:mx-auto">
+      <DialogContent className="w-[95vw] max-w-sm mx-2 sm:max-w-md sm:mx-4 lg:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bug className="w-5 h-5 text-destructive" />
@@ -178,7 +180,7 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Seu Email *</Label>
             <Input
@@ -203,34 +205,36 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
               value={errorDescription}
               onChange={(e) => setErrorDescription(e.target.value)}
               required
-              rows={4}
+              rows={3}
+              className="min-h-[80px] sm:min-h-[100px] text-sm"
             />
           </div>
           
           <Card className="bg-muted/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Informações Técnicas</CardTitle>
+            <CardHeader className="pb-1 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm">Informações Técnicas</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="text-xs text-muted-foreground space-y-1">
                 <p><strong>Área:</strong> {area}</p>
-                <p><strong>URL:</strong> {window.location.href}</p>
-                <p><strong>Navegador:</strong> {navigator.userAgent.split(' ').slice(-2).join(' ')}</p>
+                <p className="break-all"><strong>URL:</strong> {window.location.href}</p>
+                <p className="break-words"><strong>Navegador:</strong> {navigator.userAgent.split(' ').slice(-2).join(' ')}</p>
                 <p><strong>Data:</strong> {new Date().toLocaleString('pt-BR')}</p>
               </div>
             </CardContent>
           </Card>
           
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col sm:flex-row justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsOpen(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting || !errorDescription.trim()}>
+            <Button type="submit" disabled={isSubmitting || !errorDescription.trim()} className="w-full sm:w-auto">
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
