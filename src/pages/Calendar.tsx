@@ -88,6 +88,51 @@ const Calendar = () => {
     }
   };
 
+  const validateEventData = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(newEvent.start_date);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Validação 1: Data de início não pode ser no passado
+    if (startDate < today) {
+      toast({
+        title: "Erro de Validação",
+        description: "A data de início não pode ser anterior à data atual.",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    // Validação 2: Se há data de fim, não pode ser anterior à data de início
+    if (newEvent.end_date && newEvent.end_date < newEvent.start_date) {
+      toast({
+        title: "Erro de Validação",
+        description: "A data de fim não pode ser anterior à data de início.",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    // Validação 3: Para eventos não "dia inteiro", validar horários
+    if (!newEvent.all_day && newEvent.start_time && newEvent.end_time) {
+      const startDateTime = new Date(`${newEvent.start_date}T${newEvent.start_time}:00`);
+      const endDateTime = new Date(`${newEvent.end_date || newEvent.start_date}T${newEvent.end_time}:00`);
+      
+      if (endDateTime <= startDateTime) {
+        toast({
+          title: "Erro de Validação",
+          description: "O horário de fim deve ser posterior ao horário de início.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   const handleCreateEvent = async () => {
     if (!newEvent.title || !newEvent.start_date) {
       toast({
@@ -95,6 +140,11 @@ const Calendar = () => {
         description: "Por favor, preencha o título e a data.",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Executar validações lógicas
+    if (!validateEventData()) {
       return;
     }
 
