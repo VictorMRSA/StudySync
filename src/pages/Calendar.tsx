@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, Clock, Plus, Filter, AlertCircle, Star } from "lucide-react";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Calendar as CalendarIcon, Clock, Plus, Filter, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,14 +193,8 @@ const Calendar = () => {
     }
   };
 
-  const getPriorityStars = (priority: number) => {
-    const starCount = 6 - priority; // Inverte para que 1 = 5 estrelas
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star 
-        key={i} 
-        className={`w-3 h-3 ${i < starCount ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-      />
-    ));
+  const getPriorityDot = (priority: number) => {
+    return <div className={`w-3 h-3 rounded-full ${getPriorityColor(priority).replace('bg-', 'bg-').split(' ')[0]}`} />;
   };
 
   const getDaysUntil = (dateString: string) => {
@@ -275,13 +270,38 @@ const Calendar = () => {
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">⭐⭐⭐⭐⭐ Muito Alta</SelectItem>
-                        <SelectItem value="2">⭐⭐⭐⭐ Alta</SelectItem>
-                        <SelectItem value="3">⭐⭐⭐ Média</SelectItem>
-                        <SelectItem value="4">⭐⭐ Baixa</SelectItem>
-                        <SelectItem value="5">⭐ Muito Baixa</SelectItem>
-                      </SelectContent>
+                       <SelectContent className="bg-card border-border shadow-lg z-50">
+                         <SelectItem value="1" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-destructive rounded-full" />
+                             <span>Muito Alta</span>
+                           </div>
+                         </SelectItem>
+                         <SelectItem value="2" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-orange-500 rounded-full" />
+                             <span>Alta</span>
+                           </div>
+                         </SelectItem>
+                         <SelectItem value="3" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+                             <span>Média</span>
+                           </div>
+                         </SelectItem>
+                         <SelectItem value="4" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-green-500 rounded-full" />
+                             <span>Baixa</span>
+                           </div>
+                         </SelectItem>
+                         <SelectItem value="5" className="bg-card hover:bg-accent focus:bg-accent">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                             <span>Muito Baixa</span>
+                           </div>
+                         </SelectItem>
+                       </SelectContent>
                     </Select>
                   </div>
                   
@@ -381,7 +401,12 @@ const Calendar = () => {
               <h3 className="font-semibold">Calendário</h3>
             </div>
             
-            <div className="space-y-2 text-xs">
+            <CalendarComponent 
+              mode="single"
+              className="w-full"
+            />
+            
+            <div className="space-y-2 text-xs mt-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-destructive rounded-full" />
                 <span>Muito Alta</span>
@@ -433,10 +458,8 @@ const Calendar = () => {
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1">
-                              {getPriorityStars(event.priority)}
-                            </div>
+                           <div className="flex items-center gap-3">
+                             {getPriorityDot(event.priority)}
                             <div>
                               <h4 className="font-medium text-foreground">{event.title}</h4>
                               <p className="text-sm text-muted-foreground">
@@ -451,7 +474,7 @@ const Calendar = () => {
                         </div>
                         
                         <div className="flex flex-col items-end gap-2">
-                          <Badge className={getPriorityColor(event.priority)}>
+                          <Badge className={`${getPriorityColor(event.priority)} cursor-default`}>
                             {getPriorityLabel(event.priority)}
                           </Badge>
                           
