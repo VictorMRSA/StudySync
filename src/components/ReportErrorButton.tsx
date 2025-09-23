@@ -122,8 +122,8 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
           className={`text-muted-foreground hover:text-foreground text-xs sm:text-sm ${className}`}
         >
           <Bug className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="hidden xs:inline">Reportar Erro</span>
-          <span className="xs:hidden">Erro</span>
+          <span className="hidden xs:inline">Reportar Problema</span>
+          <span className="xs:hidden">Problema</span>
           </Button>
         </DialogTrigger>
         
@@ -164,19 +164,19 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
           className={`text-muted-foreground hover:text-foreground text-xs sm:text-sm ${className}`}
         >
           <Bug className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="hidden xs:inline">Reportar Erro</span>
-          <span className="xs:hidden">Erro</span>
+          <span className="hidden xs:inline">Reportar Problema</span>
+          <span className="xs:hidden">Problema</span>
         </Button>
       </DialogTrigger>
       
       <DialogContent className="w-[95vw] max-w-sm mx-2 sm:max-w-md sm:mx-4 lg:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bug className="w-5 h-5 text-destructive" />
-            Reportar Erro
+            <DialogTitle className="flex items-center gap-2">
+              <Bug className="w-5 h-5 text-destructive" />
+              Reportar Problema
           </DialogTitle>
           <DialogDescription>
-            Encontrou um problema na área "{area}"? Nos ajude a melhorar relatando o erro.
+            Encontrou um problema na área "{area}"? Nos ajude a melhorar relatando o problema.
           </DialogDescription>
         </DialogHeader>
         
