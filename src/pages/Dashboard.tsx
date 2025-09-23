@@ -22,6 +22,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [goalTitle, setGoalTitle] = useState("");
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const streakDays = 7;
   const currentXP = 1250;
@@ -46,6 +47,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
   useEffect(() => {
     if (user) {
       fetchGoals();
+      fetchProfile();
     }
   }, [user]);
 
@@ -76,6 +78,26 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
         description: "Não foi possível carregar suas metas.",
         variant: "destructive"
       });
+    }
+  };
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching profile:", error);
+      } else {
+        setProfile(profileData);
+      }
+    } catch (error: any) {
+      console.error("Error fetching profile:", error);
     }
   };
 
@@ -164,9 +186,11 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-foreground">
               {(() => {
+                // Primeiro tenta pegar do profile.username, depois do full_name, depois do email
+                const profileName = profile?.username;
                 const fullName = user?.user_metadata?.full_name;
                 const firstName = fullName ? fullName.split(' ')[0] : null;
-                const fallbackName = firstName || user?.email?.split('@')[0];
+                const fallbackName = profileName || firstName || user?.email?.split('@')[0];
                 return fallbackName ? `Olá, ${fallbackName}!` : 'Olá';
               })()} <span className="text-primary">👋</span>
             </h1>
