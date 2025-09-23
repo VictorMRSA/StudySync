@@ -300,21 +300,11 @@ const Classes = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-primary mb-2">Minhas Turmas</h1>
-            <p className="text-muted-foreground text-lg">
-              Gerencie seus estudos e colabore com seus colegas
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-            title="Sair"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-primary mb-2">Minhas Turmas</h1>
+          <p className="text-muted-foreground text-lg">
+            Gerencie seus estudos e colabore com seus colegas
+          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
