@@ -122,8 +122,8 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
           className={`text-muted-foreground hover:text-foreground text-xs sm:text-sm ${className}`}
         >
           <Bug className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="hidden xs:inline">Reportar Problema</span>
-          <span className="xs:hidden">Problema</span>
+          <span className="hidden sm:inline">Reportar Problema</span>
+          <span className="sm:hidden">Problema</span>
           </Button>
         </DialogTrigger>
         
@@ -164,8 +164,8 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
           className={`text-muted-foreground hover:text-foreground text-xs sm:text-sm ${className}`}
         >
           <Bug className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="hidden xs:inline">Reportar Problema</span>
-          <span className="xs:hidden">Problema</span>
+          <span className="hidden sm:inline">Reportar Problema</span>
+          <span className="sm:hidden">Problema</span>
         </Button>
       </DialogTrigger>
       
