@@ -63,6 +63,11 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
         setIsAuthenticated(false);
         return;
       }
+      // Update state with current authenticated user
+      setUserId(user.id);
+      setUserEmail(user.email ?? '');
+      setIsAuthenticated(true);
+
       // Collect technical details
       const technicalDetails = {
         url: window.location.href,
@@ -79,7 +84,7 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
         .from('error_reports')
         .insert({
           user_id: user.id,
-          user_email: user.email,
+          user_email: (user.email || '').trim().toLowerCase(),
           area,
           description: errorDescription,
           technical_details: technicalDetails,
@@ -96,16 +101,16 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
       setErrorDescription("");
     } catch (error: any) {
       console.error('Error sending report:', error);
-      if (error.message?.includes('new row violates row-level security')) {
+      const msg = typeof error?.message === 'string' ? error.message : JSON.stringify(error);
+      if (msg?.includes('row-level security') || msg?.includes('JWT') || msg?.includes('auth')) {
         toast.error("Erro de autenticação. Faça login novamente.");
       } else {
-        toast.error("Erro ao enviar report. Tente novamente.");
+        toast.error(`Erro ao enviar report: ${msg}`);
       }
     } finally {
       setIsSubmitting(false);
     }
   };
-
   // Show login required message if user is not authenticated
   if (!isAuthenticated) {
     return (
@@ -225,7 +230,7 @@ export const ReportErrorButton = ({ area = "Geral", className = "" }: ReportErro
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting || !errorDescription.trim() || !userEmail.trim()}>
+            <Button type="submit" disabled={isSubmitting || !errorDescription.trim()}>
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
