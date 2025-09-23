@@ -6,126 +6,221 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, Clock, Plus, Filter, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { Calendar as CalendarIcon, Clock, Plus, Filter, AlertCircle, Star } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import ReportErrorButton from "@/components/ReportErrorButton";
 
+interface Event {
+  id: string;
+  title: string;
+  description: string | null;
+  start_date: string;
+  end_date: string | null;
+  all_day: boolean;
+  user_id: string;
+  priority: number;
+  created_at: string;
+  updated_at: string;
+}
+
 const Calendar = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [events, setEvents] = useState([
-    {
-      id: 1,
-      title: "Prova de Física I",
-      subject: "Física I",
-      date: "2024-01-15",
-      time: "14:00",
-      type: "exam",
-      daysLeft: 3,
-      description: "Mecânica clássica e leis de Newton"
-    },
-    {
-      id: 2,
-      title: "Entrega da Lista de Cálculo",
-      subject: "Cálculo I", 
-      date: "2024-01-17",
-      time: "23:59",
-      type: "assignment",
-      daysLeft: 5,
-      description: "Exercícios sobre limites e continuidade"
-    },
-    {
-      id: 3,
-      title: "Apresentação do Projeto",
-      subject: "Programação",
-      date: "2024-01-24",
-      time: "10:00",
-      type: "presentation",
-      daysLeft: 12,
-      description: "Sistema de gerenciamento acadêmico"
-    },
-    {
-      id: 4,
-      title: "Aula de Laboratório",
-      subject: "Química Geral",
-      date: "2024-01-16",
-      time: "16:00",
-      type: "class",
-      daysLeft: 4,
-      description: "Experimento: reações ácido-base"
-    }
-  ]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [newEvent, setNewEvent] = useState({
     title: "",
-    subject: "",
-    date: "",
-    time: "",
-    type: "",
-    description: ""
+    description: "",
+    start_date: "",
+    start_time: "",
+    end_date: "",
+    end_time: "",
+    all_day: false,
+    priority: 3
   });
   const { toast } = useToast();
 
-  const handleCreateEvent = () => {
-    if (!newEvent.title || !newEvent.date || !newEvent.time || !newEvent.type) {
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para ver seus eventos.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('priority', { ascending: true })
+        .order('start_date', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching events:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar eventos.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error:', error);
       toast({
         title: "Erro",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        description: "Erro ao carregar eventos.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    if (!newEvent.title || !newEvent.start_date) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha o título e a data.",
         variant: "destructive"
       });
       return;
     }
 
-    const eventDate = new Date(newEvent.date);
-    const today = new Date();
-    const daysLeft = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para criar eventos.",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    const event = {
-      id: events.length + 1,
-      ...newEvent,
-      daysLeft
-    };
+      let startDateTime = newEvent.start_date;
+      let endDateTime = newEvent.end_date || newEvent.start_date;
 
-    setEvents([...events, event]);
-    setNewEvent({
-      title: "",
-      subject: "",
-      date: "",
-      time: "",
-      type: "",
-      description: ""
-    });
-    setIsDialogOpen(false);
+      if (!newEvent.all_day) {
+        if (newEvent.start_time) {
+          startDateTime = `${newEvent.start_date}T${newEvent.start_time}:00`;
+        }
+        if (newEvent.end_time) {
+          endDateTime = `${newEvent.end_date || newEvent.start_date}T${newEvent.end_time}:00`;
+        }
+      }
 
-    toast({
-      title: "Evento criado!",
-      description: "Seu novo evento foi adicionado ao calendário.",
-      variant: "default"
-    });
+      const { error } = await supabase
+        .from('events')
+        .insert([{
+          title: newEvent.title,
+          description: newEvent.description || null,
+          start_date: startDateTime,
+          end_date: endDateTime !== startDateTime ? endDateTime : null,
+          all_day: newEvent.all_day,
+          priority: newEvent.priority,
+          user_id: user.id
+        }]);
+
+      if (error) {
+        console.error('Error creating event:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao criar evento.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Evento criado!",
+        description: "Seu evento foi salvo com sucesso.",
+        variant: "default"
+      });
+
+      setNewEvent({
+        title: "",
+        description: "",
+        start_date: "",
+        start_time: "",
+        end_date: "",
+        end_time: "",
+        all_day: false,
+        priority: 3
+      });
+      setIsDialogOpen(false);
+      fetchEvents();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao criar evento.",
+        variant: "destructive"
+      });
+    }
   };
-  
 
-  const getEventTypeColor = (type: string) => {
-    switch (type) {
-      case "exam": return "bg-destructive text-destructive-foreground";
-      case "assignment": return "bg-warning text-warning-foreground";
-      case "presentation": return "bg-accent text-accent-foreground";
-      case "class": return "bg-primary text-primary-foreground";
+  const getPriorityColor = (priority: number) => {
+    switch (priority) {
+      case 1: return "bg-destructive text-destructive-foreground";
+      case 2: return "bg-orange-500 text-white";
+      case 3: return "bg-yellow-500 text-black";
+      case 4: return "bg-green-500 text-white";
+      case 5: return "bg-blue-500 text-white";
       default: return "bg-secondary text-secondary-foreground";
     }
   };
 
-  const getEventTypeIcon = (type: string) => {
-    switch (type) {
-      case "exam": return "📝";
-      case "assignment": return "📋";
-      case "presentation": return "🎤";
-      case "class": return "📚";
-      default: return "📅";
+  const getPriorityLabel = (priority: number) => {
+    switch (priority) {
+      case 1: return "Muito Alta";
+      case 2: return "Alta";
+      case 3: return "Média";
+      case 4: return "Baixa";
+      case 5: return "Muito Baixa";
+      default: return "Média";
     }
   };
 
-  const urgentEvents = events.filter(event => event.daysLeft <= 5);
+  const getPriorityStars = (priority: number) => {
+    const starCount = 6 - priority; // Inverte para que 1 = 5 estrelas
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star 
+        key={i} 
+        className={`w-3 h-3 ${i < starCount ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+      />
+    ));
+  };
+
+  const getDaysUntil = (dateString: string) => {
+    const eventDate = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    const diffTime = eventDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const formatEventDate = (dateString: string, allDay: boolean) => {
+    const date = new Date(dateString);
+    if (allDay) {
+      return date.toLocaleDateString('pt-BR');
+    }
+    return `${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
+  const urgentEvents = events.filter(event => getDaysUntil(event.start_date) <= 5 && getDaysUntil(event.start_date) >= 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
@@ -165,53 +260,6 @@ const Calendar = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="subject">Matéria</Label>
-                    <Input
-                      id="subject"
-                      placeholder="Ex: Física I"
-                      value={newEvent.subject}
-                      onChange={(e) => setNewEvent({...newEvent, subject: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="date">Data *</Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={newEvent.date}
-                        onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="time">Horário *</Label>
-                      <Input
-                        id="time"
-                        type="time"
-                        value={newEvent.time}
-                        onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="type">Tipo *</Label>
-                    <Select value={newEvent.type} onValueChange={(value) => setNewEvent({...newEvent, type: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo do evento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="exam">Prova</SelectItem>
-                        <SelectItem value="assignment">Entrega</SelectItem>
-                        <SelectItem value="presentation">Apresentação</SelectItem>
-                        <SelectItem value="class">Aula</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
                     <Label htmlFor="description">Descrição</Label>
                     <Textarea
                       id="description"
@@ -220,6 +268,81 @@ const Calendar = () => {
                       onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="priority">Grau de Importância *</Label>
+                    <Select value={newEvent.priority.toString()} onValueChange={(value) => setNewEvent({...newEvent, priority: parseInt(value)})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">⭐⭐⭐⭐⭐ Muito Alta</SelectItem>
+                        <SelectItem value="2">⭐⭐⭐⭐ Alta</SelectItem>
+                        <SelectItem value="3">⭐⭐⭐ Média</SelectItem>
+                        <SelectItem value="4">⭐⭐ Baixa</SelectItem>
+                        <SelectItem value="5">⭐ Muito Baixa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="all_day"
+                      checked={newEvent.all_day}
+                      onChange={(e) => setNewEvent({...newEvent, all_day: e.target.checked})}
+                      className="rounded"
+                    />
+                    <Label htmlFor="all_day">Evento de dia inteiro</Label>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="start_date">Data de Início *</Label>
+                      <Input
+                        id="start_date"
+                        type="date"
+                        value={newEvent.start_date}
+                        onChange={(e) => setNewEvent({...newEvent, start_date: e.target.value})}
+                      />
+                    </div>
+                    
+                    {!newEvent.all_day && (
+                      <div className="space-y-2">
+                        <Label htmlFor="start_time">Horário de Início</Label>
+                        <Input
+                          id="start_time"
+                          type="time"
+                          value={newEvent.start_time}
+                          onChange={(e) => setNewEvent({...newEvent, start_time: e.target.value})}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {!newEvent.all_day && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="end_date">Data de Fim</Label>
+                        <Input
+                          id="end_date"
+                          type="date"
+                          value={newEvent.end_date}
+                          onChange={(e) => setNewEvent({...newEvent, end_date: e.target.value})}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="end_time">Horário de Fim</Label>
+                        <Input
+                          id="end_time"
+                          type="time"
+                          value={newEvent.end_time}
+                          onChange={(e) => setNewEvent({...newEvent, end_time: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="flex justify-end gap-3 pt-4">
                     <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -255,41 +378,29 @@ const Calendar = () => {
           <Card className="lg:col-span-1 p-6 shadow-medium">
             <div className="flex items-center gap-2 mb-4">
               <CalendarIcon className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold">Janeiro 2024</h3>
+              <h3 className="font-semibold">Calendário</h3>
             </div>
             
-            {/* Simple calendar grid */}
-            <div className="grid grid-cols-7 gap-1 text-center text-sm">
-              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
-                <div key={day} className="p-2 font-medium text-muted-foreground">
-                  {day}
-                </div>
-              ))}
-              
-              {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                <div
-                  key={day}
-                  className={`p-2 rounded-lg cursor-pointer transition-smooth ${
-                    day === 12 
-                      ? "bg-primary text-primary-foreground shadow-soft" 
-                      : day === 15 || day === 17 || day === 24
-                      ? "bg-destructive/20 text-destructive font-medium"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-4 space-y-2 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-primary rounded-full" />
-                <span>Hoje</span>
-              </div>
+            <div className="space-y-2 text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-destructive rounded-full" />
-                <span>Eventos importantes</span>
+                <span>Muito Alta</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-orange-500 rounded-full" />
+                <span>Alta</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+                <span>Média</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full" />
+                <span>Baixa</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                <span>Muito Baixa</span>
               </div>
             </div>
           </Card>
@@ -303,60 +414,68 @@ const Calendar = () => {
               </Badge>
             </div>
             
-            <div className="space-y-4">
-              {events.map((event) => (
-                <div
-                  key={event.id}
-                  className="p-4 rounded-lg border border-border bg-card hover:shadow-medium transition-smooth"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{getEventTypeIcon(event.type)}</span>
-                        <div>
-                          <h4 className="font-medium text-foreground">{event.title}</h4>
-                          <p className="text-sm text-muted-foreground">{event.subject}</p>
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Carregando eventos...</p>
+              </div>
+            ) : events.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Nenhum evento encontrado. Crie seu primeiro evento!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {events.map((event) => {
+                  const daysUntil = getDaysUntil(event.start_date);
+                  return (
+                    <div
+                      key={event.id}
+                      className="p-4 rounded-lg border border-border bg-card hover:shadow-medium transition-smooth"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                              {getPriorityStars(event.priority)}
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-foreground">{event.title}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {formatEventDate(event.start_date, event.all_day)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {event.description && (
+                            <p className="text-sm text-muted-foreground">{event.description}</p>
+                          )}
                         </div>
-                      </div>
-                      
-                      <p className="text-sm text-muted-foreground">{event.description}</p>
-                      
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="w-4 h-4" />
-                          <span>{new Date(event.date).toLocaleDateString('pt-BR')}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{event.time}</span>
+                        
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge className={getPriorityColor(event.priority)}>
+                            {getPriorityLabel(event.priority)}
+                          </Badge>
+                          
+                          <div className={`text-sm font-medium ${
+                            daysUntil <= 0
+                              ? "text-destructive" 
+                              : daysUntil <= 3 
+                              ? "text-destructive" 
+                              : daysUntil <= 7 
+                              ? "text-warning" 
+                              : "text-muted-foreground"
+                          }`}>
+                            {daysUntil < 0 ? "Passou" :
+                             daysUntil === 0 ? "Hoje" : 
+                             daysUntil === 1 ? "Amanhã" : 
+                             `${daysUntil} dias`}
+                          </div>
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="flex flex-col items-end gap-2">
-                      <Badge className={getEventTypeColor(event.type)}>
-                        {event.type === "exam" && "Prova"}
-                        {event.type === "assignment" && "Entrega"}
-                        {event.type === "presentation" && "Apresentação"}
-                        {event.type === "class" && "Aula"}
-                      </Badge>
-                      
-                      <div className={`text-sm font-medium ${
-                        event.daysLeft <= 3 
-                          ? "text-destructive" 
-                          : event.daysLeft <= 7 
-                          ? "text-warning" 
-                          : "text-muted-foreground"
-                      }`}>
-                        {event.daysLeft === 0 ? "Hoje" : 
-                         event.daysLeft === 1 ? "Amanhã" : 
-                         `${event.daysLeft} dias`}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
         </div>
 
@@ -369,7 +488,7 @@ const Calendar = () => {
             <div className="space-y-2">
               <h3 className="font-semibold text-foreground">Sugestão de Cronograma Inteligente</h3>
               <p className="text-muted-foreground">
-                Com base nos seus prazos, recomendamos dedicar 2h diárias para Física I e 1h para Cálculo I nos próximos dias.
+                Organize seus estudos com base nos eventos mais importantes e urgentes.
               </p>
               <Button variant="success" size="sm" className="mt-3">
                 Ver Plano Completo

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Calendar from "./pages/Calendar";
 import ClassDetails from "./pages/ClassDetails";
 import JoinClass from "./pages/JoinClass";
 import NotFound from "./pages/NotFound";
@@ -20,6 +21,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/calendar" element={<Calendar />} />
           <Route path="/class/:id" element={<ClassDetails />} />
           <Route path="/join/:inviteCode" element={<JoinClass />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
