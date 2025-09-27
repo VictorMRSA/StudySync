@@ -42,7 +42,7 @@ serve(async (req) => {
     ];
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
@@ -68,11 +68,18 @@ serve(async (req) => {
 
     const data = await response.json();
     
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    // Tentar extrair o texto de forma robusta
+    const parts = data?.candidates?.[0]?.content?.parts ?? [];
+    const botResponse = parts
+      .map((p: { text?: string }) => p?.text ?? '')
+      .filter((t: string) => t && t.trim().length > 0)
+      .join('\n')
+      .trim();
+
+    if (!botResponse) {
+      console.error('Resposta inválida da API Gemini - payload:', JSON.stringify(data));
       throw new Error('Resposta inválida da API Gemini');
     }
-
-    const botResponse = data.candidates[0].content.parts[0].text;
 
     return new Response(
       JSON.stringify({ 
