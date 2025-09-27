@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Home, Users, Calendar, BookOpen, Trophy, User, Menu, X, Shield } from "lucide-react";
+import { Home, Users, Calendar, BookOpen, Trophy, User, Menu, X, Shield, Brain } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -19,6 +19,7 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
     { id: "classes", label: "Turmas", icon: Users },
     { id: "calendar", label: "Calendário", icon: Calendar },
     { id: "materials", label: "Materiais", icon: BookOpen },
+    { id: "ai-assistant", label: "IA Assistente", icon: Brain },
     { id: "achievements", label: "Conquistas", icon: Trophy },
     { id: "profile", label: "Perfil", icon: User },
   ];
