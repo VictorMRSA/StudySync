@@ -67,7 +67,7 @@ serve(async (req) => {
 
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
@@ -86,9 +86,17 @@ serve(async (req) => {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('Erro da API Gemini:', error);
-      throw new Error(`Erro da API Gemini: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Erro da API Gemini:', errorText);
+      let errMsg = `Erro da API Gemini (${response.status})`;
+      try {
+        const j = JSON.parse(errorText);
+        errMsg = j?.error?.message || errMsg;
+      } catch {}
+      return new Response(
+        JSON.stringify({ success: false, error: errMsg, status: response.status }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const data = await response.json();
