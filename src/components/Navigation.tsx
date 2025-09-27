@@ -37,6 +37,11 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
     if (item.isRoute && item.route) {
       navigate(item.route);
     } else {
+      // For non-route items, navigate to Index with tab query param
+      const target = `/?tab=${item.id}`;
+      if (location.pathname !== '/' || new URLSearchParams(location.search).get('tab') !== item.id) {
+        navigate(target);
+      }
       onTabChange(item.id);
     }
     setIsMobileMenuOpen(false);
@@ -46,7 +51,12 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
     if (item.isRoute && item.route) {
       return location.pathname === item.route;
     }
-    return activeTab === item.id;
+    // Active if on Index with matching tab param
+    if (location.pathname === '/') {
+      const tab = new URLSearchParams(location.search).get('tab') || 'dashboard';
+      return tab === item.id;
+    }
+    return false;
   };
 
   return (
