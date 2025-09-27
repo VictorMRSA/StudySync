@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Home, Users, Calendar, BookOpen, Trophy, User, Menu, X, Shield, Brain } from "lucide-react";
 import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAdmin } from "@/hooks/useAdmin";
 
@@ -13,22 +14,40 @@ interface NavigationProps {
 const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAdmin } = useAdmin();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const baseNavItems = [
-    { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "classes", label: "Turmas", icon: Users },
-    { id: "calendar", label: "Calendário", icon: Calendar },
-    { id: "materials", label: "Materiais", icon: BookOpen },
-    { id: "ai-assistant", label: "IA Assistente", icon: Brain },
-    { id: "achievements", label: "Conquistas", icon: Trophy },
-    { id: "profile", label: "Perfil", icon: User },
+    { id: "dashboard", label: "Dashboard", icon: Home, isRoute: false },
+    { id: "classes", label: "Turmas", icon: Users, isRoute: false },
+    { id: "calendar", label: "Calendário", icon: Calendar, isRoute: false },
+    { id: "materials", label: "Materiais", icon: BookOpen, isRoute: false },
+    { id: "ai-assistant", label: "IA Assistente", icon: Brain, isRoute: true, route: "/ai-assistant" },
+    { id: "achievements", label: "Conquistas", icon: Trophy, isRoute: false },
+    { id: "profile", label: "Perfil", icon: User, isRoute: false },
   ];
 
   const adminNavItems = [
-    { id: "admin", label: "Admin", icon: Shield },
+    { id: "admin", label: "Admin", icon: Shield, isRoute: false },
   ];
 
   const navItems = isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
+
+  const handleNavigation = (item: any) => {
+    if (item.isRoute && item.route) {
+      navigate(item.route);
+    } else {
+      onTabChange(item.id);
+    }
+    setIsMobileMenuOpen(false);
+  };
+
+  const isItemActive = (item: any) => {
+    if (item.isRoute && item.route) {
+      return location.pathname === item.route;
+    }
+    return activeTab === item.id;
+  };
 
   return (
     <>
@@ -64,12 +83,9 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
                 return (
                   <Button
                     key={item.id}
-                    variant={activeTab === item.id ? "default" : "ghost"}
+                    variant={isItemActive(item) ? "default" : "ghost"}
                     className="w-full justify-start gap-3"
-                    onClick={() => {
-                      onTabChange(item.id);
-                      setIsMobileMenuOpen(false);
-                    }}
+                    onClick={() => handleNavigation(item)}
                   >
                     <Icon className="w-5 h-5" />
                     {item.label}
@@ -101,12 +117,12 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
               return (
                 <Button
                   key={item.id}
-                  variant={activeTab === item.id ? "default" : "ghost"}
+                  variant={isItemActive(item) ? "default" : "ghost"}
                   className={cn(
                     "w-full justify-start gap-3 h-12",
-                    activeTab === item.id && "shadow-medium"
+                    isItemActive(item) && "shadow-medium"
                   )}
-                  onClick={() => onTabChange(item.id)}
+                  onClick={() => handleNavigation(item)}
                 >
                   <Icon className="w-5 h-5" />
                   {item.label}
@@ -141,9 +157,9 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
                 size="sm"
                 className={cn(
                   "flex-col gap-1 h-12 px-2",
-                  activeTab === item.id && "text-primary"
+                  isItemActive(item) && "text-primary"
                 )}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => handleNavigation(item)}
               >
                 <Icon className="w-4 h-4" />
                 <span className="text-xs">{item.label}</span>
