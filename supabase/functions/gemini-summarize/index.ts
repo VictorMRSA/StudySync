@@ -32,14 +32,23 @@ serve(async (req) => {
         prompt = `Extraia e liste os pontos-chave mais importantes do seguinte conteúdo:\n\n${content}`;
         break;
       case 'perguntas':
-        prompt = `Com base no seguinte conteúdo, gere 5 perguntas de estudo relevantes:\n\n${content}`;
+        prompt = `Com base no seguinte conteúdo, gere 5-8 perguntas de estudo relevantes com diferentes níveis de dificuldade:\n\n${content}`;
+        break;
+      case 'conceitos':
+        prompt = `Identifique e explique os conceitos principais apresentados no seguinte conteúdo educacional:\n\n${content}`;
+        break;
+      case 'glossario':
+        prompt = `Crie um glossário com os termos técnicos e importantes do seguinte conteúdo, com definições claras:\n\n${content}`;
+        break;
+      case 'mapa-mental':
+        prompt = `Crie um mapa mental estruturado em formato de texto do seguinte conteúdo, organizando hierarquicamente os temas principais e subtemas:\n\n${content}`;
         break;
       default:
         prompt = `Analise o seguinte conteúdo educacional:\n\n${content}`;
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
