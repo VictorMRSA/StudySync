@@ -368,6 +368,27 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_error_reports_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          area: string
+          created_at: string
+          description: string
+          id: string
+          resolved_at: string
+          status: string
+          technical_details: Json
+        }[]
+      }
+      get_error_reports_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          pending_reports: number
+          reports_by_area: Json
+          resolved_reports: number
+          total_reports: number
+        }[]
+      }
       get_member_counts: {
         Args: { _class_ids: string[] }
         Returns: {
@@ -405,6 +426,15 @@ export type Database = {
           role: Database["public"]["Enums"]["class_role"]
           user_id: string
         }
+      }
+      update_error_report_status_admin: {
+        Args: { _new_status: string; _report_id: string }
+        Returns: {
+          id: string
+          resolved_at: string
+          resolved_by: string
+          status: string
+        }[]
       }
     }
     Enums: {
