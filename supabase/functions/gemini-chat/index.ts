@@ -24,7 +24,31 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    // Preparar o histórico da conversa
+    const userMessage = typeof message === 'string' ? message.trim() : '';
+    if (!userMessage) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Mensagem inválida' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Preparar o histórico da conversa (aceitando vários formatos)
+    const mappedHistory: ChatMessage[] = Array.isArray(history)
+      ? history
+          .map((h: any) => {
+            const role: 'user' | 'model' = h?.role === 'assistant' || h?.role === 'model' ? 'model' : 'user';
+            const text: string =
+              typeof h?.content === 'string'
+                ? h.content
+                : typeof h?.parts?.[0]?.text === 'string'
+                ? h.parts[0].text
+                : '';
+            const t = String(text ?? '').trim();
+            return t ? ({ role, parts: [{ text: t }] } as ChatMessage) : undefined;
+          })
+          .filter((m: any): m is ChatMessage => Boolean(m))
+      : [];
+
     const contents: ChatMessage[] = [
       {
         role: 'user',
@@ -34,12 +58,13 @@ serve(async (req) => {
         role: 'model',
         parts: [{ text: 'Olá! Sou seu assistente educacional. Estou aqui para ajudá-lo com seus estudos. Como posso auxiliá-lo hoje?' }]
       },
-      ...history,
+      ...mappedHistory,
       {
         role: 'user',
-        parts: [{ text: message }]
+        parts: [{ text: userMessage }]
       }
     ];
+
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
@@ -93,13 +118,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Erro no gemini-chat:', error);
+    const msg = error instanceof Error ? error.message : 'Erro interno do servidor';
+    const status = msg.includes('Mensagem inválida') ? 400 : 500;
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Erro interno do servidor',
+        error: msg,
         success: false 
       }),
       {
-        status: 500,
+        status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
