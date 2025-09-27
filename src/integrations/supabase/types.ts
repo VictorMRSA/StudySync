@@ -408,15 +408,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      mark_error_report_status: {
-        Args: { new_status: string; report_id: string }
-        Returns: {
-          id: string
-          resolved_at: string
-          resolved_by: string
-          status: string
-        }[]
-      }
       promote_member_to_admin: {
         Args: { _member_id: string }
         Returns: {
