@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_summaries: {
+        Row: {
+          content: string
+          created_at: string | null
+          generated_by: string | null
+          id: string
+          material_id: string | null
+          summary_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          material_id?: string | null
+          summary_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          material_id?: string | null
+          summary_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_summaries_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
           approved_at: string | null
@@ -256,9 +294,12 @@ export type Database = {
           created_at: string
           description: string | null
           file_name: string | null
+          file_size: string | null
+          file_type: string | null
           file_url: string | null
           id: string
           status: Database["public"]["Enums"]["content_status"]
+          tags: string[] | null
           title: string
           uploaded_by: string
         }
@@ -269,9 +310,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           file_name?: string | null
+          file_size?: string | null
+          file_type?: string | null
           file_url?: string | null
           id?: string
           status?: Database["public"]["Enums"]["content_status"]
+          tags?: string[] | null
           title: string
           uploaded_by: string
         }
@@ -282,9 +326,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           file_name?: string | null
+          file_size?: string | null
+          file_type?: string | null
           file_url?: string | null
           id?: string
           status?: Database["public"]["Enums"]["content_status"]
+          tags?: string[] | null
           title?: string
           uploaded_by?: string
         }

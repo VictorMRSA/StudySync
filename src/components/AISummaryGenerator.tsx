@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Loader2, Sparkles, Upload } from 'lucide-react';
+import { FileText, Loader2, Sparkles, Upload, Save } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const AISummaryGenerator: React.FC = () => {
   const [content, setContent] = useState('');
@@ -15,7 +17,31 @@ const AISummaryGenerator: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentFileName, setCurrentFileName] = useState('');
   const [inputMode, setInputMode] = useState<'upload' | 'text'>('upload');
+  const [materialTitle, setMaterialTitle] = useState('');
+  const [userClasses, setUserClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    loadUserClasses();
+  }, []);
+
+  const loadUserClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setUserClasses(data || []);
+      if (data && data.length > 0) {
+        setSelectedClassId(data[0].id);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar turmas:', error);
+    }
+  };
 
   const handleDocumentParsed = (parsedContent: string, fileName: string) => {
     setContent(parsedContent);
@@ -55,7 +81,7 @@ const AISummaryGenerator: React.FC = () => {
         setResult(data.result);
         toast({
           title: 'Sucesso',
-          description: 'Análise gerada com sucesso!'
+          description: 'Análise gerada com sucesso! Salve em Materiais para compartilhar.'
         });
       } else {
         throw new Error(data.error || 'Erro desconhecido');
@@ -72,11 +98,71 @@ const AISummaryGenerator: React.FC = () => {
     }
   };
 
+  const saveToMaterials = async () => {
+    if (!result || !materialTitle.trim() || !selectedClassId) {
+      toast({
+        title: 'Erro',
+        description: 'Preencha o título e selecione uma turma antes de salvar.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // Create material
+      const { data: material, error: materialError } = await supabase
+        .from('materials')
+        .insert({
+          class_id: selectedClassId,
+          title: materialTitle,
+          description: `Resumo de IA gerado: ${summaryType}`,
+          uploaded_by: user.id,
+          file_type: currentFileName ? currentFileName.split('.').pop()?.toUpperCase() : 'TEXT',
+          file_name: currentFileName || 'Texto manual',
+          status: 'approved'
+        })
+        .select()
+        .single();
+
+      if (materialError) throw materialError;
+
+      // Save AI summary
+      const { error: summaryError } = await supabase
+        .from('ai_summaries')
+        .insert({
+          material_id: material.id,
+          summary_type: summaryType,
+          content: result,
+          generated_by: user.id
+        });
+
+      if (summaryError) throw summaryError;
+
+      toast({
+        title: 'Salvo com sucesso!',
+        description: 'O resumo foi adicionado aos materiais da turma.'
+      });
+
+      clearAll();
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar o material. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const clearAll = () => {
     setContent('');
     setResult('');
     setSummaryType('resumo');
     setCurrentFileName('');
+    setMaterialTitle('');
   };
 
   return (
@@ -201,9 +287,49 @@ const AISummaryGenerator: React.FC = () => {
           <CardHeader>
             <CardTitle className="text-lg">Resultado da Análise</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="bg-muted/50 rounded-lg p-4">
               <pre className="whitespace-pre-wrap text-sm">{result}</pre>
+            </div>
+
+            {/* Save to Materials Section */}
+            <div className="border-t pt-4 space-y-4">
+              <h4 className="font-semibold text-sm">Salvar em Materiais</h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="material-title">Título do Material</Label>
+                <Input
+                  id="material-title"
+                  placeholder="Ex: Resumo de Algoritmos - Aula 1"
+                  value={materialTitle}
+                  onChange={(e) => setMaterialTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="class-select">Turma</Label>
+                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                  <SelectTrigger id="class-select">
+                    <SelectValue placeholder="Selecione uma turma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userClasses.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button 
+                onClick={saveToMaterials} 
+                className="w-full"
+                variant="gamified"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar nos Materiais
+              </Button>
             </div>
           </CardContent>
         </Card>
