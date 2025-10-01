@@ -32,6 +32,8 @@ const Materials = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
+  const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -88,6 +90,11 @@ const Materials = () => {
       });
       setSummaryDialogOpen(true);
     }
+  };
+
+  const viewMaterial = (material: any) => {
+    setSelectedMaterial(material);
+    setMaterialDialogOpen(true);
   };
 
   const subjects = ["Todos"];
@@ -203,18 +210,32 @@ const Materials = () => {
                     </p>
                   )}
 
-                  {/* AI Summary Badge */}
-                  {material.hasAISummary && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-gradient-to-r from-accent/10 to-primary/10 border-accent/20 hover:border-accent/40"
-                      onClick={() => viewSummary(material)}
-                    >
-                      <Zap className="w-4 h-4 mr-2 text-accent" />
-                      <span className="text-xs font-medium">Ver Resumo IA</span>
-                    </Button>
-                  )}
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    {material.file_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => viewMaterial(material)}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        <span className="text-xs font-medium">Visualizar Material</span>
+                      </Button>
+                    )}
+                    
+                    {material.hasAISummary && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full bg-gradient-to-r from-accent/10 to-primary/10 border-accent/20 hover:border-accent/40"
+                        onClick={() => viewSummary(material)}
+                      >
+                        <Zap className="w-4 h-4 mr-2 text-accent" />
+                        <span className="text-xs font-medium">Resumo por IA disponível</span>
+                      </Button>
+                    )}
+                  </div>
 
                   {/* Author */}
                   <div className="flex items-center gap-2 pt-2 border-t">
@@ -262,13 +283,44 @@ const Materials = () => {
         <ReportErrorButton area="Materiais" />
       </div>
 
-      {/* Summary Dialog */}
+      {/* Material Content Dialog */}
+      <Dialog open={materialDialogOpen} onOpenChange={setMaterialDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Material Original - {selectedMaterial?.title}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedMaterial && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">
+                  {selectedMaterial.file_type || 'TEXTO'}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  {selectedMaterial.file_name}
+                </span>
+              </div>
+              
+              <div className="bg-muted/50 rounded-lg p-6 border">
+                <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
+                  {selectedMaterial.file_url || 'Conteúdo não disponível'}
+                </pre>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Summary Dialog */}
       <Dialog open={summaryDialogOpen} onOpenChange={setSummaryDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-accent" />
-              Resumo de IA - {selectedSummary?.material?.title}
+              {selectedSummary?.material?.title}.txt
             </DialogTitle>
           </DialogHeader>
           
@@ -276,18 +328,22 @@ const Materials = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">
-                  {selectedSummary.summary.summary_type}
+                  Tipo: {selectedSummary.summary.summary_type}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
                   Gerado em {new Date(selectedSummary.summary.created_at).toLocaleDateString('pt-BR')}
                 </span>
               </div>
               
-              <div className="bg-muted/50 rounded-lg p-4">
-                <pre className="whitespace-pre-wrap text-sm font-sans">
+              <div className="bg-slate-900 text-slate-100 rounded-lg p-6 border border-slate-700">
+                <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
                   {selectedSummary.summary.content}
                 </pre>
               </div>
+              
+              <p className="text-xs text-muted-foreground italic">
+                * Em breve este arquivo terá formatação aprimorada
+              </p>
             </div>
           )}
         </DialogContent>

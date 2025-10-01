@@ -112,7 +112,7 @@ const AISummaryGenerator: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Create material
+      // Create material (save original content in file_url)
       const { data: material, error: materialError } = await supabase
         .from('materials')
         .insert({
@@ -122,6 +122,7 @@ const AISummaryGenerator: React.FC = () => {
           uploaded_by: user.id,
           file_type: currentFileName ? currentFileName.split('.').pop()?.toUpperCase() : 'TEXT',
           file_name: currentFileName || 'Texto manual',
+          file_url: content, // Save original parsed document content
           status: 'approved'
         })
         .select()
