@@ -6,11 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, MessageCircle, FileText, Sparkles } from 'lucide-react';
 
 const AIAssistant: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('ai-assistant');
+  const activeTab = 'ai-assistant';
+  const handleTabChange = () => {};
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
       
       {/* Main content with proper spacing for navigation */}
       <div className="lg:ml-64 pt-16 lg:pt-0 pb-16 lg:pb-0">

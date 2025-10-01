@@ -22,7 +22,8 @@ import {
   Share2,
   MoreVertical,
   Zap
-} from "lucide-react";
+ } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Materials = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,6 +33,7 @@ const Materials = () => {
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadMaterials();
@@ -43,11 +45,7 @@ const Materials = () => {
       
       const { data: materialsData, error: materialsError } = await supabase
         .from('materials')
-        .select(`
-          *,
-          profiles!materials_uploaded_by_fkey (username),
-          classes (name)
-        `)
+        .select('*')
         .eq('status', 'approved')
         .order('created_at', { ascending: false });
 
@@ -117,7 +115,7 @@ const Materials = () => {
             <p className="text-muted-foreground">Biblioteca colaborativa de materiais de estudo</p>
           </div>
           
-          <Button variant="gamified" size="lg" className="shadow-medium">
+          <Button variant="gamified" size="lg" className="shadow-medium" onClick={() => navigate('/ai-assistant')}>
             <Upload className="w-5 h-5" />
             Enviar Material
           </Button>
@@ -250,7 +248,7 @@ const Materials = () => {
                   Tente ajustar os filtros ou termos de busca, ou seja o primeiro a compartilhar um material!
                 </p>
               </div>
-              <Button variant="gamified">
+              <Button variant="gamified" onClick={() => navigate('/ai-assistant')}>
                 <Upload className="w-4 h-4" />
                 Enviar Primeiro Material
               </Button>
