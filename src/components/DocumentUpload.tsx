@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Upload, FileText, File, Loader2, X, Download } from 'lucide-react';
-// Note: document parsing will be implemented with proper file handling
+import { supabase } from '@/integrations/supabase/client';
 
 interface UploadedFile {
   file: File;
@@ -84,9 +84,6 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
     setParsing(uploadedFile.id);
     
     try {
-      // Create a temporary file path for parsing
-      const tempPath = `temp://${uploadedFile.file.name}`;
-      
       // For text files, read directly
       if (uploadedFile.file.type === 'text/plain' || uploadedFile.file.name.endsWith('.txt')) {
         const content = await uploadedFile.file.text();
@@ -102,21 +99,32 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
           description: `${uploadedFile.file.name} foi processado com sucesso.`
         });
       } else {
-        // For other formats, we would need to implement file upload to a temporary location
-        // and then use document__parse_document
-        // For now, we'll simulate the parsing
-        const content = `Conteúdo simulado do documento ${uploadedFile.file.name}.\n\nEste é um exemplo de como o conteúdo seria extraído do documento após o parsing.`;
+        // For binary files (PDF, Word, etc.), we need to parse them
+        // Create FormData to send the file
+        const formData = new FormData();
+        formData.append('file', uploadedFile.file);
         
-        setUploadedFiles(prev => prev.map(f => 
-          f.id === uploadedFile.id 
-            ? { ...f, parsed: true, content }
-            : f
-        ));
-        
-        toast({
-          title: 'Documento processado',
-          description: `${uploadedFile.file.name} foi processado com sucesso.`
+        // Call edge function to parse the document
+        const { data, error } = await supabase.functions.invoke('parse-document', {
+          body: formData
         });
+        
+        if (error) throw error;
+        
+        if (data.success && data.content) {
+          setUploadedFiles(prev => prev.map(f => 
+            f.id === uploadedFile.id 
+              ? { ...f, parsed: true, content: data.content }
+              : f
+          ));
+          
+          toast({
+            title: 'Documento processado',
+            description: `${uploadedFile.file.name} foi processado com sucesso.`
+          });
+        } else {
+          throw new Error(data.error || 'Erro ao processar documento');
+        }
       }
     } catch (error) {
       console.error('Erro ao processar documento:', error);
