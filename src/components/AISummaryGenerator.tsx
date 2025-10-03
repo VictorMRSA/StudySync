@@ -352,7 +352,7 @@ const AISummaryGenerator: React.FC = () => {
             <CardTitle className="text-lg">Resultado da Análise</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-muted/50 rounded-lg p-4">
+            <div className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto">
               <pre className="whitespace-pre-wrap text-sm">{result}</pre>
             </div>
 
