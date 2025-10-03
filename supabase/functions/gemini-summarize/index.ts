@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { content, type = 'resumo' } = await req.json();
+    const { content, type = 'resumo', feedback } = await req.json();
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     
     if (!GEMINI_API_KEY) {
@@ -23,28 +23,33 @@ serve(async (req) => {
       throw new Error('Conteúdo é obrigatório');
     }
 
+    // Add feedback context if provided
+    const feedbackContext = feedback 
+      ? `\n\nFEEDBACK DO USUÁRIO SOBRE ANÁLISE ANTERIOR:\n"${feedback}"\n\nPor favor, considere este feedback e melhore a análise focando nos pontos mencionados pelo usuário.\n\n`
+      : '';
+    
     let prompt = '';
     switch (type) {
       case 'resumo':
-        prompt = `Faça um resumo claro e conciso do seguinte conteúdo educacional. Destaque os pontos principais e conceitos importantes:\n\n${content}`;
+        prompt = `Faça um resumo claro e conciso do seguinte conteúdo educacional. Destaque os pontos principais e conceitos importantes:${feedbackContext}\n${content}`;
         break;
       case 'pontos-chave':
-        prompt = `Extraia e liste os pontos-chave mais importantes do seguinte conteúdo:\n\n${content}`;
+        prompt = `Extraia e liste os pontos-chave mais importantes do seguinte conteúdo:${feedbackContext}\n${content}`;
         break;
       case 'perguntas':
-        prompt = `Com base no seguinte conteúdo, gere 5-8 perguntas de estudo relevantes com diferentes níveis de dificuldade:\n\n${content}`;
+        prompt = `Com base no seguinte conteúdo, gere 5-8 perguntas de estudo relevantes com diferentes níveis de dificuldade:${feedbackContext}\n${content}`;
         break;
       case 'conceitos':
-        prompt = `Identifique e explique os conceitos principais apresentados no seguinte conteúdo educacional:\n\n${content}`;
+        prompt = `Identifique e explique os conceitos principais apresentados no seguinte conteúdo educacional:${feedbackContext}\n${content}`;
         break;
       case 'glossario':
-        prompt = `Crie um glossário com os termos técnicos e importantes do seguinte conteúdo, com definições claras:\n\n${content}`;
+        prompt = `Crie um glossário com os termos técnicos e importantes do seguinte conteúdo, com definições claras:${feedbackContext}\n${content}`;
         break;
       case 'mapa-mental':
-        prompt = `Crie um mapa mental estruturado em formato de texto do seguinte conteúdo, organizando hierarquicamente os temas principais e subtemas:\n\n${content}`;
+        prompt = `Crie um mapa mental estruturado em formato de texto do seguinte conteúdo, organizando hierarquicamente os temas principais e subtemas:${feedbackContext}\n${content}`;
         break;
       default:
-        prompt = `Analise o seguinte conteúdo educacional:\n\n${content}`;
+        prompt = `Analise o seguinte conteúdo educacional:${feedbackContext}\n${content}`;
     }
 
     const response = await fetch(

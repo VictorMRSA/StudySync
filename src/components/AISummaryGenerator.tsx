@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Loader2, Sparkles, Upload, Save } from 'lucide-react';
+import { FileText, Loader2, Sparkles, Upload, Save, MessageSquare, RefreshCw } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,9 @@ const AISummaryGenerator: React.FC = () => {
   const [materialTitle, setMaterialTitle] = useState('');
   const [userClasses, setUserClasses] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState('');
+  const [savedSummaryId, setSavedSummaryId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const [showFeedback, setShowFeedback] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,7 +55,7 @@ const AISummaryGenerator: React.FC = () => {
     });
   };
 
-  const generateSummary = async () => {
+  const generateSummary = async (userFeedback?: string) => {
     if (!content.trim()) {
       toast({
         title: 'Erro',
@@ -68,17 +71,25 @@ const AISummaryGenerator: React.FC = () => {
     setResult('');
 
     try {
+      const requestBody: any = {
+        content: content.trim(),
+        type: summaryType
+      };
+
+      if (userFeedback) {
+        requestBody.feedback = userFeedback;
+      }
+
       const { data, error } = await supabase.functions.invoke('gemini-summarize', {
-        body: {
-          content: content.trim(),
-          type: summaryType
-        }
+        body: requestBody
       });
 
       if (error) throw error;
 
       if (data.success) {
         setResult(data.result);
+        setShowFeedback(false);
+        setFeedback('');
         toast({
           title: 'Sucesso',
           description: 'Análise gerada com sucesso! Salve em Materiais para compartilhar.'
@@ -131,16 +142,20 @@ const AISummaryGenerator: React.FC = () => {
       if (materialError) throw materialError;
 
       // Save AI summary
-      const { error: summaryError } = await supabase
+      const { data: summaryData, error: summaryError } = await supabase
         .from('ai_summaries')
         .insert({
           material_id: material.id,
           summary_type: summaryType,
           content: result,
           generated_by: user.id
-        });
+        })
+        .select()
+        .single();
 
       if (summaryError) throw summaryError;
+
+      setSavedSummaryId(summaryData.id);
 
       toast({
         title: 'Salvo com sucesso!',
@@ -158,12 +173,60 @@ const AISummaryGenerator: React.FC = () => {
     }
   };
 
+  const submitFeedback = async () => {
+    if (!feedback.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Por favor, escreva seu feedback',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      if (savedSummaryId) {
+        // Save feedback to database
+        const { error } = await supabase
+          .from('ai_summaries')
+          .update({ user_feedback: feedback })
+          .eq('id', savedSummaryId);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: 'Feedback enviado',
+        description: 'Obrigado pelo seu feedback! Vou considerar na próxima análise.'
+      });
+
+      setShowFeedback(false);
+    } catch (error) {
+      console.error('Erro ao salvar feedback:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível salvar o feedback',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const redoAnalysis = () => {
+    if (feedback.trim()) {
+      generateSummary(feedback);
+    } else {
+      generateSummary();
+    }
+  };
+
   const clearAll = () => {
     setContent('');
     setResult('');
     setSummaryType('resumo');
     setCurrentFileName('');
     setMaterialTitle('');
+    setFeedback('');
+    setShowFeedback(false);
+    setSavedSummaryId(null);
   };
 
   return (
@@ -259,7 +322,7 @@ const AISummaryGenerator: React.FC = () => {
           
           <div className="flex gap-2">
             <Button 
-              onClick={generateSummary} 
+              onClick={() => generateSummary()} 
               disabled={!content.trim() || isLoading}
               className="flex-1"
             >
@@ -292,6 +355,61 @@ const AISummaryGenerator: React.FC = () => {
             <div className="bg-muted/50 rounded-lg p-4">
               <pre className="whitespace-pre-wrap text-sm">{result}</pre>
             </div>
+
+            {/* Feedback and Redo Analysis Buttons */}
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowFeedback(!showFeedback)}
+                variant="outline"
+                className="flex-1"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                {showFeedback ? 'Cancelar Feedback' : 'Dar Feedback'}
+              </Button>
+              
+              <Button 
+                onClick={redoAnalysis}
+                variant="outline"
+                disabled={isLoading}
+                className="flex-1"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Refazendo...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refazer Análise
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {showFeedback && (
+              <Card>
+                <CardContent className="pt-4 space-y-3">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      O que você acha da análise? Como posso melhorar?
+                    </label>
+                    <Textarea
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      placeholder="Ex: Gostaria de mais detalhes sobre..., Poderia focar menos em..., etc."
+                      rows={4}
+                    />
+                  </div>
+                  <Button 
+                    onClick={submitFeedback}
+                    className="w-full"
+                  >
+                    Enviar Feedback
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Save to Materials Section */}
             <div className="border-t pt-4 space-y-4">

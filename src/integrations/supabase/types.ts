@@ -23,6 +23,7 @@ export type Database = {
           material_id: string | null
           summary_type: string
           updated_at: string | null
+          user_feedback: string | null
         }
         Insert: {
           content: string
@@ -32,6 +33,7 @@ export type Database = {
           material_id?: string | null
           summary_type: string
           updated_at?: string | null
+          user_feedback?: string | null
         }
         Update: {
           content?: string
@@ -41,6 +43,7 @@ export type Database = {
           material_id?: string | null
           summary_type?: string
           updated_at?: string | null
+          user_feedback?: string | null
         }
         Relationships: [
           {
