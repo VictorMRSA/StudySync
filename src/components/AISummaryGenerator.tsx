@@ -348,20 +348,13 @@ const AISummaryGenerator: React.FC = () => {
       
       {result && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <CardTitle className="text-lg">Resultado da Análise</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto">
-              <pre className="whitespace-pre-wrap text-sm">{result}</pre>
-            </div>
-
-            {/* Feedback and Redo Analysis Buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <Button 
                 onClick={() => setShowFeedback(!showFeedback)}
                 variant="outline"
-                className="flex-1"
+                className="flex-1 sm:flex-none"
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
                 {showFeedback ? 'Cancelar Feedback' : 'Dar Feedback'}
@@ -371,7 +364,7 @@ const AISummaryGenerator: React.FC = () => {
                 onClick={redoAnalysis}
                 variant="outline"
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 sm:flex-none"
               >
                 {isLoading ? (
                   <>
@@ -386,6 +379,13 @@ const AISummaryGenerator: React.FC = () => {
                 )}
               </Button>
             </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-2">
+              <pre className="whitespace-pre-wrap text-sm">{result}</pre>
+            </div>
+
+            {/* Feedback and Redo Analysis Buttons */}
 
             {showFeedback && (
               <Card>
