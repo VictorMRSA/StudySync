@@ -382,7 +382,7 @@ const AISummaryGenerator: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="max-h-[65vh] md:max-h-[70vh] overflow-auto bg-muted/50 rounded-lg p-4 pr-6">
+            <div className="max-h-[70dvh] md:max-h-[70vh] overflow-auto bg-muted/50 rounded-lg p-4 pr-6">
               <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed overflow-x-auto">{result}</pre>
             </div>
 

@@ -68,7 +68,7 @@ serve(async (req) => {
             temperature: 0.3,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 8192,
           }
         }),
       }
