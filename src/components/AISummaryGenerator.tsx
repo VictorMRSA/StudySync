@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Loader2, Sparkles, Upload, Save, MessageSquare, RefreshCw } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
@@ -382,9 +382,9 @@ const AISummaryGenerator: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ScrollArea className="h-96 md:h-[60vh] bg-muted/50 rounded-lg p-4 pr-2">
-              <pre className="whitespace-pre-wrap break-words text-sm">{result}</pre>
-            </ScrollArea>
+            <div className="max-h-[65vh] md:max-h-[70vh] overflow-auto bg-muted/50 rounded-lg p-4 pr-6">
+              <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed overflow-x-auto">{result}</pre>
+            </div>
 
             {/* Feedback and Redo Analysis Buttons */}
 
