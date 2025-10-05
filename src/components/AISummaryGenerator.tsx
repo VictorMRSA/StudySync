@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Loader2, Sparkles, Upload, Save, MessageSquare, RefreshCw } from 'lucide-react';
+import { FileText, Loader2, Sparkles, Upload, Save, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,8 +22,7 @@ const AISummaryGenerator: React.FC = () => {
   const [userClasses, setUserClasses] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [savedSummaryId, setSavedSummaryId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState('');
-  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackGiven, setFeedbackGiven] = useState<'like' | 'dislike' | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -89,8 +88,7 @@ const AISummaryGenerator: React.FC = () => {
 
       if (data.success) {
         setResult(data.result);
-        setShowFeedback(false);
-        setFeedback('');
+        setFeedbackGiven(null);
         toast({
           title: 'Sucesso',
           description: 'Análise gerada com sucesso! Salve em Materiais para compartilhar.'
@@ -174,33 +172,36 @@ const AISummaryGenerator: React.FC = () => {
     }
   };
 
-  const submitFeedback = async () => {
-    if (!feedback.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Por favor, escreva seu feedback',
-        variant: 'destructive'
-      });
-      return;
-    }
-
+  const handleFeedback = async (type: 'like' | 'dislike') => {
+    setFeedbackGiven(type);
+    
     try {
       if (savedSummaryId) {
-        // Save feedback to database
+        const feedbackText = type === 'like' 
+          ? 'Análise aprovada pelo usuário' 
+          : 'Usuário solicitou melhoria na análise';
+        
         const { error } = await supabase
           .from('ai_summaries')
-          .update({ user_feedback: feedback })
+          .update({ user_feedback: feedbackText })
           .eq('id', savedSummaryId);
 
         if (error) throw error;
       }
 
       toast({
-        title: 'Feedback enviado',
-        description: 'Obrigado pelo seu feedback! Vou considerar na próxima análise.'
+        title: type === 'like' ? '👍 Ótimo!' : '👎 Entendido',
+        description: type === 'like' 
+          ? 'Que bom que a análise foi útil!' 
+          : 'Vou melhorar na próxima análise.'
       });
 
-      setShowFeedback(false);
+      // Se for dislike, refaz automaticamente considerando o feedback
+      if (type === 'dislike') {
+        setTimeout(() => {
+          generateSummary('O usuário não gostou da análise anterior. Por favor, melhore fornecendo mais detalhes, sendo mais específico e focando nos aspectos mais importantes do conteúdo.');
+        }, 1500);
+      }
     } catch (error) {
       console.error('Erro ao salvar feedback:', error);
       toast({
@@ -211,22 +212,13 @@ const AISummaryGenerator: React.FC = () => {
     }
   };
 
-  const redoAnalysis = () => {
-    if (feedback.trim()) {
-      generateSummary(feedback);
-    } else {
-      generateSummary();
-    }
-  };
-
   const clearAll = () => {
     setContent('');
     setResult('');
     setSummaryType('resumo');
     setCurrentFileName('');
     setMaterialTitle('');
-    setFeedback('');
-    setShowFeedback(false);
+    setFeedbackGiven(null);
     setSavedSummaryId(null);
   };
 
@@ -351,33 +343,26 @@ const AISummaryGenerator: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <CardTitle className="text-lg">Resultado da Análise</CardTitle>
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex gap-2 w-full sm:w-auto items-center">
+              <span className="text-sm text-muted-foreground hidden sm:inline">Esta análise foi útil?</span>
               <Button 
-                onClick={() => setShowFeedback(!showFeedback)}
-                variant="outline"
-                className="flex-1 sm:flex-none"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                {showFeedback ? 'Cancelar Feedback' : 'Dar Feedback'}
-              </Button>
-              
-              <Button 
-                onClick={redoAnalysis}
-                variant="outline"
+                onClick={() => handleFeedback('like')}
+                variant={feedbackGiven === 'like' ? 'default' : 'outline'}
+                size="sm"
                 disabled={isLoading}
                 className="flex-1 sm:flex-none"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Refazendo...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refazer Análise
-                  </>
-                )}
+                <ThumbsUp className="h-4 w-4" />
+              </Button>
+              
+              <Button 
+                onClick={() => handleFeedback('dislike')}
+                variant={feedbackGiven === 'dislike' ? 'default' : 'outline'}
+                size="sm"
+                disabled={isLoading}
+                className="flex-1 sm:flex-none"
+              >
+                <ThumbsDown className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
@@ -385,32 +370,6 @@ const AISummaryGenerator: React.FC = () => {
             <div className="max-h-[70dvh] md:max-h-[70vh] overflow-auto bg-muted/50 rounded-lg p-4 pr-6">
               <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed overflow-x-auto">{result}</pre>
             </div>
-
-            {/* Feedback and Redo Analysis Buttons */}
-
-            {showFeedback && (
-              <Card>
-                <CardContent className="pt-4 space-y-3">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      O que você acha da análise? Como posso melhorar?
-                    </label>
-                    <Textarea
-                      value={feedback}
-                      onChange={(e) => setFeedback(e.target.value)}
-                      placeholder="Ex: Gostaria de mais detalhes sobre..., Poderia focar menos em..., etc."
-                      rows={4}
-                    />
-                  </div>
-                  <Button 
-                    onClick={submitFeedback}
-                    className="w-full"
-                  >
-                    Enviar Feedback
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Save to Materials Section */}
             <div className="border-t pt-4 space-y-4">
