@@ -17,6 +17,11 @@
     /* Popover surface - dropdowns, popovers */
     --popover: 0 0% 100%;
     --popover-foreground: 215 28% 17%;
+    
+    /* Gestalt spacing tokens - proximity principle */
+    --spacing-related: 1rem;      /* gap-4 - elementos relacionados */
+    --spacing-section: 1.5rem;    /* gap-6 - seções diferentes */
+    --spacing-major: 2rem;        /* gap-8 - divisões principais */
 
     /* Primary - Deep academic blue */
     --primary: 214 88% 35%;

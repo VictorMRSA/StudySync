@@ -300,13 +300,15 @@ const Classes = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">Minhas Turmas</h1>
+        {/* Gestalt: Hierarchy - Clear visual hierarchy in header */}
+        <div className="mb-8 space-y-3">
+          <h1 className="text-4xl font-bold text-foreground">Minhas Turmas</h1>
           <p className="text-muted-foreground text-lg">
             Gerencie seus estudos e colabore com seus colegas
           </p>
         </div>
 
+        {/* Gestalt: Proximity - Action buttons grouped */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
             <DialogTrigger asChild>
@@ -449,14 +451,15 @@ const Classes = () => {
           </Dialog>
         </div>
 
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        {/* Gestalt: Figure-ground - Clear search input with icon */}
+        <div className="mb-8">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
             <Input
               placeholder="Pesquisar turmas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-11 h-12"
             />
           </div>
         </div>
@@ -495,6 +498,7 @@ const Classes = () => {
             )}
           </div>
         ) : (
+          // Gestalt: Symmetry - Balanced grid layout
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {filteredClasses.map((classItem) => (
               <Card key={classItem.id} className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">

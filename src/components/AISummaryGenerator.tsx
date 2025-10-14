@@ -284,22 +284,30 @@ const AISummaryGenerator: React.FC = () => {
         </Card>
       )}
 
-      {/* Analysis Configuration */}
-      <Card>
+      {/* Analysis Configuration - Gestalt: Closure with clear boundaries */}
+      <Card className="shadow-medium border-l-4 border-primary">
         <CardHeader>
-          <CardTitle className="text-lg">Configuração da Análise</CardTitle>
-          {currentFileName && (
-            <p className="text-sm text-muted-foreground">
-              Documento carregado: <span className="font-medium">{currentFileName}</span>
-            </p>
-          )}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">Configuração da Análise</CardTitle>
+              {currentFileName && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Documento: <span className="font-medium">{currentFileName}</span>
+                </p>
+              )}
+            </div>
+          </div>
         </CardHeader>
         
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Tipo de Análise:</label>
+        <CardContent className="space-y-6">
+          {/* Gestalt: Proximity - Related controls grouped */}
+          <div className="space-y-3 p-4 rounded-lg bg-muted/30">
+            <Label htmlFor="analysis-type" className="text-sm font-medium">Tipo de Análise:</Label>
             <Select value={summaryType} onValueChange={setSummaryType}>
-              <SelectTrigger>
+              <SelectTrigger id="analysis-type">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -313,26 +321,30 @@ const AISummaryGenerator: React.FC = () => {
             </Select>
           </div>
           
-          <div className="flex gap-2">
+          {/* Gestalt: Proximity - Action buttons grouped */}
+          <div className="flex gap-3">
             <Button 
               onClick={() => generateSummary()} 
               disabled={!content.trim() || isLoading}
               className="flex-1"
+              variant="gamified"
+              size="lg"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                   Analisando...
                 </>
               ) : (
                 <>
-                  <FileText className="h-4 w-4 mr-2" />
+                  <Sparkles className="h-5 w-5 mr-2" />
                   Gerar Análise
                 </>
               )}
             </Button>
             
-            <Button variant="outline" onClick={clearAll}>
+            <Button variant="outline" onClick={clearAll} size="lg">
+              <RefreshCw className="h-4 w-4 mr-2" />
               Limpar
             </Button>
           </div>
@@ -340,30 +352,39 @@ const AISummaryGenerator: React.FC = () => {
       </Card>
       
       {result && (
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <CardTitle className="text-lg">Resultado da Análise</CardTitle>
-            <div className="flex gap-2 w-full sm:w-auto items-center">
-              <span className="text-sm text-muted-foreground hidden sm:inline">Esta análise foi útil?</span>
-              <Button 
-                onClick={() => handleFeedback('like')}
-                variant={feedbackGiven === 'like' ? 'default' : 'outline'}
-                size="sm"
-                disabled={isLoading}
-                className="flex-1 sm:flex-none"
-              >
-                <ThumbsUp className="h-4 w-4" />
-              </Button>
+        <Card className="shadow-medium border-l-4 border-success">
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-success/10">
+                  <Sparkles className="w-5 h-5 text-success" />
+                </div>
+                <CardTitle className="text-xl">Resultado da Análise</CardTitle>
+              </div>
               
-              <Button 
-                onClick={() => handleFeedback('dislike')}
-                variant={feedbackGiven === 'dislike' ? 'default' : 'outline'}
-                size="sm"
-                disabled={isLoading}
-                className="flex-1 sm:flex-none"
-              >
-                <ThumbsDown className="h-4 w-4" />
-              </Button>
+              {/* Gestalt: Proximity - Feedback buttons grouped with label */}
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                <span className="text-sm font-medium text-muted-foreground">Esta análise foi útil?</span>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => handleFeedback('like')}
+                    variant={feedbackGiven === 'like' ? 'success' : 'outline'}
+                    size="sm"
+                    disabled={isLoading}
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => handleFeedback('dislike')}
+                    variant={feedbackGiven === 'dislike' ? 'destructive' : 'outline'}
+                    size="sm"
+                    disabled={isLoading}
+                  >
+                    <ThumbsDown className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -371,42 +392,51 @@ const AISummaryGenerator: React.FC = () => {
               <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed overflow-x-auto">{result}</pre>
             </div>
 
-            {/* Save to Materials Section */}
-            <div className="border-t pt-4 space-y-4">
-              <h4 className="font-semibold text-sm">Salvar em Materiais</h4>
-              
-              <div className="space-y-2">
-                <Label htmlFor="material-title">Título do Material</Label>
-                <Input
-                  id="material-title"
-                  placeholder="Ex: Resumo de Algoritmos - Aula 1"
-                  value={materialTitle}
-                  onChange={(e) => setMaterialTitle(e.target.value)}
-                />
+            {/* Save to Materials Section - Gestalt: Closure with clear grouping */}
+            <div className="border-t pt-6 space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Save className="w-5 h-5 text-primary" />
+                </div>
+                <h4 className="font-semibold text-lg">Salvar em Materiais</h4>
               </div>
+              
+              {/* Gestalt: Proximity - Form fields grouped */}
+              <div className="space-y-4 p-4 rounded-lg bg-muted/30">
+                <div className="space-y-2">
+                  <Label htmlFor="material-title">Título do Material</Label>
+                  <Input
+                    id="material-title"
+                    placeholder="Ex: Resumo de Algoritmos - Aula 1"
+                    value={materialTitle}
+                    onChange={(e) => setMaterialTitle(e.target.value)}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="class-select">Turma</Label>
-                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger id="class-select">
-                    <SelectValue placeholder="Selecione uma turma" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {userClasses.map((cls) => (
-                      <SelectItem key={cls.id} value={cls.id}>
-                        {cls.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label htmlFor="class-select">Turma</Label>
+                  <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                    <SelectTrigger id="class-select">
+                      <SelectValue placeholder="Selecione uma turma" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userClasses.map((cls) => (
+                        <SelectItem key={cls.id} value={cls.id}>
+                          {cls.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <Button 
                 onClick={saveToMaterials} 
                 className="w-full"
                 variant="gamified"
+                size="lg"
               >
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-5 w-5 mr-2" />
                 Salvar nos Materiais
               </Button>
             </div>

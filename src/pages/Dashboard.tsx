@@ -181,12 +181,11 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header with greeting and streak */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-foreground">
+        {/* Header with greeting - Gestalt: Proximity principle */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold text-foreground">
               {(() => {
-                // Primeiro tenta pegar do profile.username, depois do full_name, depois do email
                 const profileName = profile?.username;
                 const fullName = user?.user_metadata?.full_name;
                 const firstName = fullName ? fullName.split(' ')[0] : null;
@@ -194,55 +193,66 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                 return fallbackName ? `Olá, ${fallbackName}!` : 'Olá';
               })()} <span className="text-primary">👋</span>
             </h1>
-            <p className="text-muted-foreground">Vamos continuar sua jornada de estudos</p>
+            <p className="text-muted-foreground text-lg">Vamos continuar sua jornada de estudos</p>
           </div>
           
-          <div className="flex items-center gap-4">
-            <Card className="p-4 bg-gradient-streak shadow-medium border-0">
-              <div className="flex items-center gap-3 text-streak-foreground">
-                <Flame className="w-6 h-6 animate-bounce-subtle" />
+          {/* Gestalt: Proximity - Gamification metrics grouped together */}
+          <Card className="p-6 bg-gradient-to-r from-streak/10 to-xp/10 shadow-medium border-l-4 border-primary">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-streak">
+                  <Flame className="w-6 h-6 text-streak-foreground animate-bounce-subtle" />
+                </div>
                 <div>
-                  <div className="text-lg font-bold">{streakDays} dias</div>
-                  <div className="text-xs opacity-90">Sequência ativa</div>
+                  <div className="text-2xl font-bold text-foreground">{streakDays}</div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Dias de sequência</div>
                 </div>
               </div>
-            </Card>
-            
-            <Card className="p-4 bg-gradient-xp shadow-medium border-0">
-              <div className="flex items-center gap-3 text-xp-foreground">
-                <Zap className="w-6 h-6" />
+              
+              <div className="h-12 w-px bg-border" />
+              
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-xp">
+                  <Zap className="w-6 h-6 text-xp-foreground" />
+                </div>
                 <div>
-                  <div className="text-lg font-bold">{currentXP} XP</div>
-                  <div className="text-xs opacity-90">Nível 5</div>
+                  <div className="text-2xl font-bold text-foreground">{currentXP} XP</div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Nível 5</div>
                 </div>
               </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         </div>
 
-        {/* XP Progress Bar */}
-        <Card className="p-6 shadow-medium">
-          <div className="space-y-3">
+        {/* XP Progress Bar - Gestalt: Closure principle with clear boundaries */}
+        <Card className="p-6 shadow-medium border-l-4 border-xp">
+          <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-foreground">Progresso para o próximo nível</h3>
-              <Badge variant="outline" className="bg-xp-light text-xp">
+              <div className="flex items-center gap-3">
+                <Award className="w-5 h-5 text-xp" />
+                <h3 className="text-xl font-semibold text-foreground">Progresso para o próximo nível</h3>
+              </div>
+              <Badge variant="outline" className="bg-xp/10 text-xp border-xp">
                 {nextLevelXP - currentXP} XP restantes
               </Badge>
             </div>
-            <Progress value={progressPercentage} className="h-3" />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Nível 5</span>
-              <span>Nível 6</span>
+            <Progress value={progressPercentage} className="h-4" />
+            <div className="flex justify-between text-sm font-medium">
+              <span className="text-muted-foreground">Nível 5</span>
+              <span className="text-primary">Nível 6</span>
             </div>
           </div>
         </Card>
 
+        {/* Gestalt: Symmetry - Balanced 3-column grid with consistent spacing */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Today's Goals */}
-          <Card className="p-6 shadow-medium">
-            <div className="flex items-center gap-2 mb-4">
-              <Target className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold">Metas de Hoje</h3>
+          {/* Today's Goals - Gestalt: Similarity with consistent styling */}
+          <Card className="p-6 shadow-medium border-l-4 border-primary">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Target className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold">Metas de Hoje</h3>
             </div>
             <ScrollArea className="h-64">
               <div className="space-y-3 pr-4">
@@ -283,11 +293,13 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
             </ScrollArea>
           </Card>
 
-          {/* Upcoming Deadlines */}
-          <Card className="p-6 shadow-medium">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-5 h-5 text-warning" />
-              <h3 className="font-semibold">Próximos Prazos</h3>
+          {/* Upcoming Deadlines - Gestalt: Similarity with consistent styling */}
+          <Card className="p-6 shadow-medium border-l-4 border-warning">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-warning/10">
+                <Clock className="w-5 h-5 text-warning" />
+              </div>
+              <h3 className="text-lg font-semibold">Próximos Prazos</h3>
             </div>
             <div className="space-y-3">
               {upcomingDeadlines.map((deadline, index) => (
@@ -307,11 +319,13 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
             </div>
           </Card>
 
-          {/* Recent Activity */}
-          <Card className="p-6 shadow-medium">
-            <div className="flex items-center gap-2 mb-4">
-              <Trophy className="w-5 h-5 text-accent" />
-              <h3 className="font-semibold">Atividade Recente</h3>
+          {/* Recent Activity - Gestalt: Similarity with consistent styling */}
+          <Card className="p-6 shadow-medium border-l-4 border-success">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-success/10">
+                <Trophy className="w-5 h-5 text-success" />
+              </div>
+              <h3 className="text-lg font-semibold">Atividade Recente</h3>
             </div>
             <div className="space-y-3">
               {recentActivity.map((activity, index) => (
@@ -330,9 +344,9 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
           </Card>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Gestalt: Proximity and Symmetry in action grid */}
         <Card className="p-6 shadow-medium">
-          <h3 className="font-semibold mb-4">Ações Rápidas</h3>
+          <h3 className="text-xl font-semibold mb-6">Ações Rápidas</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <Button 
               variant="gamified" 
