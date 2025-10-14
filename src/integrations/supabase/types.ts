@@ -105,6 +105,69 @@ export type Database = {
           },
         ]
       }
+      badges: {
+        Row: {
+          created_at: string
+          description: string
+          icon_url: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          icon_url?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      challenge_scores: {
+        Row: {
+          challenge_id: string
+          completed_at: string
+          id: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string
+          id?: string
+          score: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string
+          id?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_scores_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "class_weekly_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_members: {
         Row: {
           class_id: string
@@ -130,6 +193,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "class_members_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_weekly_challenges: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          questions: Json
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          questions: Json
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          questions?: Json
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_weekly_challenges_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
@@ -169,6 +267,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      daily_goals: {
+        Row: {
+          completed: boolean
+          created_at: string
+          goal_date: string
+          goal_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          goal_date?: string
+          goal_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          goal_date?: string
+          goal_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       error_reports: {
         Row: {
@@ -259,6 +392,41 @@ export type Database = {
         }
         Relationships: []
       }
+      focus_sessions: {
+        Row: {
+          completed: boolean
+          created_at: string
+          duration_minutes: number
+          id: string
+          plant_stage: number
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          duration_minutes: number
+          id?: string
+          plant_stage?: number
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          plant_stage?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "focus_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           completed: boolean
@@ -289,6 +457,42 @@ export type Database = {
         }
         Relationships: []
       }
+      material_votes: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_votes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           approved_at: string | null
@@ -305,6 +509,7 @@ export type Database = {
           tags: string[] | null
           title: string
           uploaded_by: string
+          upvotes: number
         }
         Insert: {
           approved_at?: string | null
@@ -321,6 +526,7 @@ export type Database = {
           tags?: string[] | null
           title: string
           uploaded_by: string
+          upvotes?: number
         }
         Update: {
           approved_at?: string | null
@@ -337,6 +543,7 @@ export type Database = {
           tags?: string[] | null
           title?: string
           uploaded_by?: string
+          upvotes?: number
         }
         Relationships: [
           {
@@ -353,9 +560,14 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          current_level: number
+          experience_points: number
           full_name: string | null
           id: string
           is_admin: boolean | null
+          last_activity_date: string | null
+          next_level_xp: number
+          streak_days: number
           updated_at: string
           username: string
         }
@@ -363,9 +575,14 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          current_level?: number
+          experience_points?: number
           full_name?: string | null
           id: string
           is_admin?: boolean | null
+          last_activity_date?: string | null
+          next_level_xp?: number
+          streak_days?: number
           updated_at?: string
           username: string
         }
@@ -373,13 +590,99 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          current_level?: number
+          experience_points?: number
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          last_activity_date?: string | null
+          next_level_xp?: number
+          streak_days?: number
           updated_at?: string
           username?: string
         }
         Relationships: []
+      }
+      quiz_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string | null
+          score: number
+          time_taken_seconds: number | null
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id?: string | null
+          score: number
+          time_taken_seconds?: number | null
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string | null
+          score?: number
+          time_taken_seconds?: number | null
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_sessions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -445,6 +748,10 @@ export type Database = {
           class_id: string
           member_count: number
         }[]
+      }
+      has_badge: {
+        Args: { p_badge_id: string; p_user_id: string }
+        Returns: boolean
       }
       is_admin: {
         Args: { _class_id: string }

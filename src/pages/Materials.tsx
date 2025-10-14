@@ -21,7 +21,10 @@ import {
   Star,
   Share2,
   MoreVertical,
-  Zap
+  Zap,
+  Brain,
+  Sparkles,
+  ThumbsUp
  } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -34,11 +37,13 @@ const Materials = () => {
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
+  const [votedMaterials, setVotedMaterials] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     loadMaterials();
+    loadVotes();
   }, []);
 
   const loadMaterials = async () => {
@@ -95,6 +100,61 @@ const Materials = () => {
   const viewMaterial = (material: any) => {
     setSelectedMaterial(material);
     setMaterialDialogOpen(true);
+  };
+
+  const loadVotes = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: votes } = await supabase
+        .from('material_votes')
+        .select('material_id')
+        .eq('user_id', user.id);
+
+      if (votes) {
+        setVotedMaterials(new Set(votes.map(v => v.material_id)));
+      }
+    } catch (error) {
+      console.error('Error loading votes:', error);
+    }
+  };
+
+  const toggleVote = async (materialId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: 'Faça login para votar', variant: 'destructive' });
+        return;
+      }
+
+      const hasVoted = votedMaterials.has(materialId);
+
+      if (hasVoted) {
+        await supabase
+          .from('material_votes')
+          .delete()
+          .eq('material_id', materialId)
+          .eq('user_id', user.id);
+
+        setVotedMaterials(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(materialId);
+          return newSet;
+        });
+      } else {
+        await supabase
+          .from('material_votes')
+          .insert({ material_id: materialId, user_id: user.id });
+
+        setVotedMaterials(prev => new Set(prev).add(materialId));
+      }
+
+      await loadMaterials();
+    } catch (error) {
+      console.error('Error toggling vote:', error);
+      toast({ title: 'Erro ao votar', variant: 'destructive' });
+    }
   };
 
   const subjects = ["Todos"];
@@ -235,9 +295,28 @@ const Materials = () => {
                         <span className="text-xs font-medium">Resumo por IA disponível</span>
                       </Button>
                     )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/quiz/${material.id}`)}
+                      >
+                        <Brain className="w-4 h-4 mr-1" />
+                        <span className="text-xs">Quiz</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/flashcards/${material.id}`)}
+                      >
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        <span className="text-xs">Flashcards</span>
+                      </Button>
+                    </div>
                   </div>
 
-                  {/* Author */}
+                  {/* Author and Upvotes */}
                   <div className="flex items-center gap-2 pt-2 border-t">
                     <Avatar className="w-6 h-6">
                       <AvatarFallback className="text-xs bg-gradient-primary text-primary-foreground">
@@ -249,6 +328,15 @@ const Materials = () => {
                         Por {material.profiles?.username || 'Usuário'} • {new Date(material.created_at).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
+                    <Button
+                      variant={votedMaterials.has(material.id) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleVote(material.id)}
+                      className="gap-1"
+                    >
+                      <ThumbsUp className="w-3 h-3" />
+                      <span className="text-xs">{material.upvotes || 0}</span>
+                    </Button>
                   </div>
                 </div>
               </Card>
