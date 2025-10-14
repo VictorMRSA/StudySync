@@ -191,20 +191,20 @@ const Achievements = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
+        {/* Header - Hierarquia */}
         <div className="text-center space-y-4">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
-              <Trophy className="w-8 h-8 text-warning" />
+            <h1 className="text-4xl font-bold text-foreground flex items-center justify-center gap-3">
+              <Trophy className="w-10 h-10 text-warning" />
               Conquistas
             </h1>
-            <p className="text-muted-foreground">Acompanhe seu progresso e desbloqueie novas conquistas</p>
+            <p className="text-base text-muted-foreground">Acompanhe seu progresso e desbloqueie novas conquistas</p>
           </div>
         </div>
 
-        {/* Stats Overview */}
+        {/* Stats Overview - Proximidade (gap-4) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-4 shadow-soft">
+          <Card className="p-4 shadow-soft border-l-4 border-primary">
             <div className="space-y-2 text-center">
               <div className="w-10 h-10 mx-auto rounded-full bg-gradient-primary flex items-center justify-center">
                 <Trophy className="w-5 h-5 text-primary-foreground" />
@@ -214,7 +214,7 @@ const Achievements = () => {
             </div>
           </Card>
           
-          <Card className="p-4 shadow-soft">
+          <Card className="p-4 shadow-soft border-l-4 border-xp">
             <div className="space-y-2 text-center">
               <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-r from-accent to-primary flex items-center justify-center">
                 <Zap className="w-5 h-5 text-primary-foreground" />
@@ -224,7 +224,7 @@ const Achievements = () => {
             </div>
           </Card>
           
-          <Card className="p-4 shadow-soft">
+          <Card className="p-4 shadow-soft border-l-4 border-warning">
             <div className="space-y-2 text-center">
               <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-r from-warning to-success flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-primary-foreground" />
@@ -234,7 +234,7 @@ const Achievements = () => {
             </div>
           </Card>
           
-          <Card className="p-4 shadow-soft">
+          <Card className="p-4 shadow-soft border-l-4 border-success">
             <div className="space-y-2 text-center">
               <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-r from-success to-accent flex items-center justify-center">
                 <Target className="w-5 h-5 text-primary-foreground" />
@@ -263,9 +263,9 @@ const Achievements = () => {
           </div>
         </Card>
 
-        {/* Category Filters */}
-        <Card className="p-4 shadow-medium">
-          <div className="flex flex-wrap gap-2">
+        {/* Category Filters - Proximidade (gap-3) */}
+        <Card className="p-4 shadow-medium border-l-4 border-muted">
+          <div className="flex flex-wrap gap-3">
             {categories.map((category) => {
               const Icon = category.icon;
               return (
@@ -284,15 +284,22 @@ const Achievements = () => {
           </div>
         </Card>
 
-        {/* Achievements Grid */}
+        {/* Achievements Grid - Simetria (grid 3 cols) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAchievements.map((achievement) => (
+          {filteredAchievements.map((achievement) => {
+            const getBorderColor = () => {
+              if (achievement.unlocked) return "border-success";
+              if (achievement.progress > 50) return "border-warning";
+              return "border-muted";
+            };
+            
+            return (
             <Card 
               key={achievement.id} 
-              className={`p-6 shadow-medium transition-smooth ${
+              className={`p-6 shadow-soft transition-smooth border-l-4 ${getBorderColor()} ${
                 achievement.unlocked 
-                  ? "bg-gradient-to-br from-success/5 to-accent/5 border-success/20 shadow-soft" 
-                  : "hover:shadow-large"
+                  ? "bg-gradient-to-br from-success/5 to-accent/5" 
+                  : ""
               }`}
             >
               <div className="space-y-4">
@@ -371,7 +378,8 @@ const Achievements = () => {
                 </div>
               </div>
             </Card>
-          ))}
+            );
+          })}
         </div>
 
         {/* Motivational Card */}

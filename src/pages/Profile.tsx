@@ -341,8 +341,8 @@ const Profile = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-primary">Meu Perfil</h1>
-            <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
+            <h1 className="text-4xl font-bold text-primary">Meu Perfil</h1>
+            <p className="text-base text-muted-foreground">Gerencie suas informações pessoais</p>
           </div>
           <Button
             variant="ghost"
@@ -356,8 +356,8 @@ const Profile = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Avatar Section */}
-          <Card>
+          {/* Avatar Section - Fechamento com border-l */}
+          <Card className="shadow-soft border-l-4 border-accent">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Camera className="h-5 w-5" />
@@ -408,8 +408,8 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Profile Information */}
-          <Card>
+          {/* Profile Information - Fechamento com border-l */}
+          <Card className="shadow-soft border-l-4 border-primary">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5" />
@@ -470,8 +470,8 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Change Password */}
-          <Card>
+          {/* Change Password - Fechamento com border-l */}
+          <Card className="shadow-soft border-l-4 border-warning">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />

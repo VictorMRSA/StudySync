@@ -115,11 +115,11 @@ const Materials = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-              <BookOpen className="w-8 h-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground flex items-center gap-3">
+              <BookOpen className="w-10 h-10 text-primary" />
               Materiais
             </h1>
-            <p className="text-muted-foreground">Biblioteca colaborativa de materiais de estudo</p>
+            <p className="text-base text-muted-foreground">Biblioteca colaborativa de materiais de estudo</p>
           </div>
           
           <Button variant="gamified" size="lg" className="shadow-medium" onClick={() => navigate('/ai-assistant')}>
@@ -128,9 +128,9 @@ const Materials = () => {
           </Button>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Proximidade (gap-4) */}
         <div className="grid grid-cols-2 gap-4">
-          <Card className="p-4 shadow-soft">
+          <Card className="p-4 shadow-soft border-l-4 border-primary">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary" />
@@ -140,7 +140,7 @@ const Materials = () => {
             </div>
           </Card>
           
-          <Card className="p-4 shadow-soft">
+          <Card className="p-4 shadow-soft border-l-4 border-accent">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-accent" />
@@ -151,15 +151,15 @@ const Materials = () => {
           </Card>
         </div>
 
-        {/* Search */}
-        <Card className="p-6 shadow-medium">
+        {/* Search - Figura-fundo */}
+        <Card className="p-6 shadow-medium border-l-4 border-muted bg-card">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               placeholder="Buscar materiais por título..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 bg-background focus-visible:ring-2 focus-visible:ring-primary"
             />
           </div>
         </Card>
@@ -172,7 +172,7 @@ const Materials = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredMaterials.map((material) => (
-              <Card key={material.id} className="p-6 shadow-medium hover:shadow-large transition-smooth group">
+              <Card key={material.id} className="p-6 shadow-soft border-l-4 border-primary group">
                 <div className="space-y-4">
                   {/* Header */}
                   <div className="flex items-start justify-between">

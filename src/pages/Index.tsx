@@ -139,7 +139,7 @@ const Index = () => {
           </div>
           
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 px-2">
-            <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+            <Card className="group border-l-4 border-primary">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
                   <div className="bg-gradient-primary p-2 rounded-lg">
@@ -155,7 +155,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+            <Card className="group border-l-4 border-success">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
                   <div className="bg-gradient-success p-2 rounded-lg">
@@ -171,7 +171,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+            <Card className="group border-l-4 border-streak">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
                   <div className="bg-gradient-streak p-2 rounded-lg">
@@ -187,7 +187,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+            <Card className="group border-l-4 border-xp">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
                   <div className="bg-gradient-xp p-2 rounded-lg">
@@ -203,10 +203,10 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+            <Card className="group border-l-4 border-primary">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="bg-gradient-gamified p-2 rounded-lg">
+                  <div className="bg-gradient-primary p-2 rounded-lg">
                     <Trophy className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <CardTitle className="text-lg">Sistema de Conquistas</CardTitle>
@@ -219,7 +219,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+            <Card className="group border-l-4 border-accent">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
                   <div className="bg-gradient-to-r from-primary to-secondary p-2 rounded-lg">
@@ -247,23 +247,23 @@ const Index = () => {
             </h2>
           </div>
           
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 px-2">
-            <div className="text-center">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 px-2">
+            <Card className="p-6 text-center shadow-soft border-l-4 border-success">
               <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">98%</div>
               <div className="text-xs sm:text-sm text-muted-foreground">Satisfação dos usuários</div>
-            </div>
-            <div className="text-center">
+            </Card>
+            <Card className="p-6 text-center shadow-soft border-l-4 border-primary">
               <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">25k+</div>
               <div className="text-xs sm:text-sm text-muted-foreground">Estudantes ativos</div>
-            </div>
-            <div className="text-center">
+            </Card>
+            <Card className="p-6 text-center shadow-soft border-l-4 border-accent">
               <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">1.5M+</div>
               <div className="text-xs sm:text-sm text-muted-foreground">Materiais compartilhados</div>
-            </div>
-            <div className="text-center">
+            </Card>
+            <Card className="p-6 text-center shadow-soft border-l-4 border-xp">
               <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">500+</div>
               <div className="text-xs sm:text-sm text-muted-foreground">Instituições parceiras</div>
-            </div>
+            </Card>
           </div>
         </div>
       </div>

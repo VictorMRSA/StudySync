@@ -477,13 +477,14 @@ const Calendar = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
+        {/* Header - Hierarquia */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-foreground">Calendário Acadêmico</h1>
-            <p className="text-muted-foreground">Organize seus compromissos e nunca perca um prazo</p>
+            <h1 className="text-4xl font-bold text-foreground">Calendário Acadêmico</h1>
+            <p className="text-base text-muted-foreground">Organize seus compromissos e nunca perca um prazo</p>
           </div>
           
+          {/* Proximidade - botões relacionados agrupados */}
           <div className="flex gap-3">
             <Button variant="outline" size="lg">
               <Filter className="w-5 h-5" />
