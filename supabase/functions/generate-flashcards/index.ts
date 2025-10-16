@@ -12,23 +12,36 @@ serve(async (req) => {
   }
 
   try {
-    const { content } = await req.json();
+    const { content, title } = await req.json();
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
     if (!GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    const prompt = `Crie 8 pares de flashcards (termo e definição) a partir do seguinte texto:
+    console.log('Generating flashcards for:', title);
+
+    const prompt = `Você está criando flashcards de estudo sobre "${title}".
+
+Com base EXCLUSIVAMENTE no seguinte conteúdo, crie 8 pares de flashcards:
 
 ${content}
 
-IMPORTANTE: Retorne APENAS um JSON válido neste formato exato, sem markdown ou texto adicional:
+REGRAS OBRIGATÓRIAS:
+1. Cada TERMO deve ser uma palavra-chave, conceito ou pergunta curta do conteúdo
+2. Cada DEFINIÇÃO deve ser a explicação, resposta ou descrição correspondente
+3. Os pares devem ser CLARAMENTE relacionados entre si
+4. Extraia apenas informações que EXISTEM no texto acima
+5. Não invente termos ou definições
+6. Os flashcards devem cobrir diferentes partes do conteúdo
+7. TERMO e DEFINIÇÃO devem formar um par lógico para jogo da memória
+
+Retorne APENAS um JSON válido neste formato exato, sem markdown:
 {
   "flashcards": [
     {
-      "term": "Termo-chave",
-      "definition": "Definição clara e concisa"
+      "term": "Conceito/Palavra-chave do conteúdo",
+      "definition": "Sua explicação/descrição correspondente"
     }
   ]
 }`;

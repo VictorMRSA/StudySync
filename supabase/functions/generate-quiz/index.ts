@@ -12,29 +12,40 @@ serve(async (req) => {
   }
 
   try {
-    const { content } = await req.json();
+    const { content, title } = await req.json();
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
     if (!GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    const prompt = `Crie 5 perguntas de múltipla escolha com 4 opções cada (apenas 1 correta) sobre o seguinte texto:
+    console.log('Generating quiz for:', title);
+
+    const prompt = `Você é um professor criando um quiz sobre "${title}".
+
+Com base EXCLUSIVAMENTE no seguinte conteúdo, crie 5 perguntas de múltipla escolha:
 
 ${content}
 
-IMPORTANTE: Retorne APENAS um JSON válido neste formato exato, sem markdown ou texto adicional:
+REGRAS OBRIGATÓRIAS:
+1. As perguntas DEVEM ser sobre o conteúdo fornecido acima
+2. Cada pergunta deve ter 4 opções (apenas 1 correta)
+3. As perguntas devem cobrir diferentes partes do conteúdo
+4. Não invente informações que não estão no texto
+5. Faça perguntas específicas, não genéricas
+
+Retorne APENAS um JSON válido neste formato exato, sem markdown:
 {
   "questions": [
     {
-      "question": "Pergunta aqui?",
+      "question": "Pergunta específica sobre o conteúdo?",
       "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
       "correctAnswer": 0
     }
   ]
 }
 
-O índice correctAnswer deve ser de 0 a 3, indicando qual opção é a correta.`;
+O índice correctAnswer deve ser de 0 a 3.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,

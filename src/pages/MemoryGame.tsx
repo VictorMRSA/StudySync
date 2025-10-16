@@ -64,8 +64,21 @@ export default function MemoryGame() {
         return;
       }
 
+      // Buscar resumos do material para mais contexto
+      const { data: summaries } = await supabase
+        .from('ai_summaries')
+        .select('content')
+        .eq('material_id', materialId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const content = summaries?.[0]?.content || material.description || material.title;
+
       const { data, error } = await supabase.functions.invoke('generate-flashcards', {
-        body: { content: material.description || material.title }
+        body: { 
+          content,
+          title: material.title 
+        }
       });
 
       if (error) throw error;
