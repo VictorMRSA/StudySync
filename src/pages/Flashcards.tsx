@@ -130,7 +130,7 @@ export default function Flashcards() {
               transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
             }}
           >
-            <div className="absolute inset-0 backface-hidden p-12 flex flex-col items-center justify-center">
+            <div className="absolute inset-0 backface-hidden bg-card rounded-lg p-12 flex flex-col items-center justify-center">
               <p className="text-sm text-muted-foreground mb-4">Termo</p>
               <h2 className="text-4xl font-bold text-center">{card.term}</h2>
               <p className="text-sm text-muted-foreground mt-8">
@@ -139,7 +139,7 @@ export default function Flashcards() {
             </div>
             
             <div 
-              className="absolute inset-0 backface-hidden p-12 flex flex-col items-center justify-center"
+              className="absolute inset-0 backface-hidden bg-card rounded-lg p-12 flex flex-col items-center justify-center"
               style={{ transform: 'rotateY(180deg)' }}
             >
               <p className="text-sm text-muted-foreground mb-4">Definição</p>
