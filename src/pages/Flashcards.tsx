@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SimpleNavigation } from '@/components/SimpleNavigation';
 import { toast } from '@/hooks/use-toast';
-import { RotateCcw, Play } from 'lucide-react';
+import { RotateCcw, Play, BookOpen } from 'lucide-react';
 
 interface Flashcard {
   term: string;
@@ -139,12 +139,13 @@ export default function Flashcards() {
             </div>
             
             <div 
-              className="absolute inset-0 backface-hidden bg-card rounded-lg p-12 flex flex-col items-center justify-center"
+              className="absolute inset-0 backface-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5 rounded-lg p-12 flex flex-col items-center justify-center overflow-hidden"
               style={{ transform: 'rotateY(180deg)' }}
             >
-              <p className="text-sm text-muted-foreground mb-4">Definição</p>
-              <p className="text-2xl text-center">{card.definition}</p>
-              <p className="text-sm text-muted-foreground mt-8">
+              <BookOpen className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 text-primary/5 pointer-events-none" />
+              <p className="text-sm text-muted-foreground mb-4 relative z-10">Definição</p>
+              <p className="text-2xl text-center relative z-10">{card.definition}</p>
+              <p className="text-sm text-muted-foreground mt-8 relative z-10">
                 Clique para voltar ao termo
               </p>
             </div>
