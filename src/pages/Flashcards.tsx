@@ -39,8 +39,22 @@ export default function Flashcards() {
         return;
       }
 
+      // Buscar resumo da IA se existir
+      const { data: summaries } = await supabase
+        .from('ai_summaries')
+        .select('*')
+        .eq('material_id', materialId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      // Priorizar: resumo da IA > texto completo > descrição > título
+      const content = summaries?.[0]?.content || material.file_url || material.description || material.title;
+
       const { data, error } = await supabase.functions.invoke('generate-flashcards', {
-        body: { content: material.description || material.title }
+        body: { 
+          content: content,
+          title: material.title 
+        }
       });
 
       if (error) throw error;
