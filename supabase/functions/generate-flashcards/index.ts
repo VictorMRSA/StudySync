@@ -23,25 +23,58 @@ serve(async (req) => {
 
     const prompt = `Você está criando flashcards de estudo sobre "${title}".
 
-Com base EXCLUSIVAMENTE no seguinte conteúdo, crie 8 pares de flashcards:
+Ao gerar flashcards, seu objetivo principal é criar pares 'Termo/Definição' semanticamente precisos.
+
+## A REGRA CENTRAL: "O que é?"
+
+- O TERMO deve ser um conceito-chave (substantivo, nome próprio, processo)
+- A DEFINIÇÃO deve responder de forma concisa e direta: "O que é [Termo]?" ou "O que significa [Termo]?"
+
+## A REGRA DE OURO: Evite Confusões Semânticas
+
+### ❌ NÃO CONFUNDA DEFINIÇÃO COM EXEMPLO/CONSEQUÊNCIA:
+
+Forma Incorreta:
+Termo: Gêmeos Idênticos
+Definição: Podem ter fenótipos diferentes devido ao ambiente.
+(Isso é uma consequência, não a definição)
+
+Forma Correta:
+Termo: Gêmeos Idênticos
+Definição: Indivíduos originados de um único zigoto, que compartilham o mesmo genótipo (DNA).
+
+### ❌ NÃO CONFUNDA DEFINIÇÃO COM RELAÇÃO:
+
+Forma Incorreta:
+Termo: Dogma Central
+Definição: É contestado pela epigenética sobre o determinismo genético.
+(Isso é uma relação, não a definição)
+
+Forma Correta:
+Termo: Dogma Central
+Definição: O princípio do fluxo da informação genética: DNA → RNA → Proteína.
+
+## INSTRUÇÕES:
+
+Com base EXCLUSIVAMENTE no seguinte conteúdo, crie 6-8 pares de flashcards:
 
 ${content}
 
 REGRAS OBRIGATÓRIAS:
-1. Cada TERMO deve ser uma palavra-chave, conceito ou pergunta curta do conteúdo
-2. Cada DEFINIÇÃO deve ser a explicação, resposta ou descrição correspondente
-3. Os pares devem ser CLARAMENTE relacionados entre si
-4. Extraia apenas informações que EXISTEM no texto acima
-5. Não invente termos ou definições
-6. Os flashcards devem cobrir diferentes partes do conteúdo
-7. TERMO e DEFINIÇÃO devem formar um par lógico para jogo da memória
+1. Selecione os substantivos e conceitos MAIS IMPORTANTES do texto
+2. Para cada conceito, extraia apenas sua DEFINIÇÃO FUNDAMENTAL
+3. Cada TERMO deve ser um conceito-chave (não uma pergunta)
+4. Cada DEFINIÇÃO deve responder "O que é?" de forma clara e concisa
+5. NÃO use exemplos, consequências ou relações como definições
+6. Extraia apenas informações que EXISTEM no texto
+7. É melhor ter MENOS flashcards corretos do que muitos confusos
 
 Retorne APENAS um JSON válido neste formato exato, sem markdown:
 {
   "flashcards": [
     {
-      "term": "Conceito/Palavra-chave do conteúdo",
-      "definition": "Sua explicação/descrição correspondente"
+      "term": "Conceito-Chave",
+      "definition": "O que é [Conceito-Chave]: explicação clara e concisa"
     }
   ]
 }`;
