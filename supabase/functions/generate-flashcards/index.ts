@@ -21,7 +21,14 @@ serve(async (req) => {
 
     console.log('Generating flashcards for:', title);
 
-    const prompt = `Você está criando flashcards de estudo sobre "${title}".
+    const prompt = `⚠️ AVISO CRÍTICO DE CHECAGEM DE INFORMAÇÕES ⚠️
+
+Você DEVE agir como um verificador de fatos rigoroso. 
+NUNCA invente, deduza ou infira informações que não estão EXPLICITAMENTE no texto fornecido.
+Se um conceito não estiver claramente definido no material, NÃO crie um flashcard sobre ele.
+É PREFERÍVEL ter 3 flashcards corretos do que 8 flashcards com informações inventadas.
+
+Você está criando flashcards de estudo sobre "${title}".
 
 Ao gerar flashcards, seu objetivo principal é criar pares 'Termo/Definição' semanticamente precisos.
 
@@ -69,6 +76,11 @@ REGRAS OBRIGATÓRIAS:
 6. Extraia apenas informações que EXISTEM no texto
 7. É melhor ter MENOS flashcards corretos do que muitos confusos
 
+VALIDAÇÃO FINAL:
+Antes de retornar os flashcards, revise cada um e pergunte-se:
+"Esta definição está LITERALMENTE no texto fornecido?"
+Se a resposta for não, remova o flashcard.
+
 Retorne APENAS um JSON válido neste formato exato, sem markdown:
 {
   "flashcards": [
@@ -87,7 +99,7 @@ Retorne APENAS um JSON válido neste formato exato, sem markdown:
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.7,
+            temperature: 0.5,
             maxOutputTokens: 2048,
           },
         }),

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { BookOpen, Home } from "lucide-react";
+import { BookOpen, Home, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export const SimpleNavigation = () => {
@@ -17,10 +17,16 @@ export const SimpleNavigation = () => {
           </h1>
         </div>
         
-        <Button variant="outline" onClick={() => navigate('/')}>
-          <Home className="h-4 w-4 mr-2" />
-          Voltar ao Início
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={() => navigate('/difficulties')}>
+            <TrendingDown className="h-4 w-4 mr-2" />
+            Minhas Dificuldades
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/')}>
+            <Home className="h-4 w-4 mr-2" />
+            Início
+          </Button>
+        </div>
       </div>
     </div>
   );

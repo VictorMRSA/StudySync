@@ -603,6 +603,44 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_question_results: {
+        Row: {
+          correct_answer: string
+          created_at: string | null
+          id: string
+          is_correct: boolean
+          question_text: string
+          quiz_session_id: string
+          user_answer: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string | null
+          id?: string
+          is_correct: boolean
+          question_text: string
+          quiz_session_id: string
+          user_answer: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string | null
+          id?: string
+          is_correct?: boolean
+          question_text?: string
+          quiz_session_id?: string
+          user_answer?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_question_results_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_sessions: {
         Row: {
           created_at: string
@@ -690,7 +728,7 @@ export type Database = {
     }
     Functions: {
       get_admin_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           pending_reports: number
           total_classes: number
@@ -722,7 +760,7 @@ export type Database = {
         }[]
       }
       get_error_reports_admin: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           area: string
           created_at: string
@@ -734,7 +772,7 @@ export type Database = {
         }[]
       }
       get_error_reports_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           pending_reports: number
           reports_by_area: Json
@@ -753,18 +791,9 @@ export type Database = {
         Args: { p_badge_id: string; p_user_id: string }
         Returns: boolean
       }
-      is_admin: {
-        Args: { _class_id: string }
-        Returns: boolean
-      }
-      is_member: {
-        Args: { _class_id: string }
-        Returns: boolean
-      }
-      is_user_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: { _class_id: string }; Returns: boolean }
+      is_member: { Args: { _class_id: string }; Returns: boolean }
+      is_user_admin: { Args: never; Returns: boolean }
       promote_member_to_admin: {
         Args: { _member_id: string }
         Returns: {
@@ -773,6 +802,12 @@ export type Database = {
           joined_at: string
           role: Database["public"]["Enums"]["class_role"]
           user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "class_members"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       update_error_report_status_admin: {

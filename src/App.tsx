@@ -14,6 +14,7 @@ import Flashcards from "./pages/Flashcards";
 import MemoryGame from "./pages/MemoryGame";
 import Journey from "./pages/Journey";
 import FocusMode from "./pages/FocusMode";
+import DifficultiesAnalysis from "./pages/DifficultiesAnalysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/memory-game/:materialId" element={<MemoryGame />} />
           <Route path="/journey" element={<Journey />} />
           <Route path="/focus" element={<FocusMode />} />
+          <Route path="/difficulties" element={<DifficultiesAnalysis />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

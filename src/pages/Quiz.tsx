@@ -28,6 +28,12 @@ export default function Quiz() {
   const [timeLeft, setTimeLeft] = useState(60);
   const [quizFinished, setQuizFinished] = useState(false);
   const [answers, setAnswers] = useState<boolean[]>([]);
+  const [detailedAnswers, setDetailedAnswers] = useState<Array<{
+    question: string;
+    userAnswer: string;
+    correctAnswer: string;
+    isCorrect: boolean;
+  }>>([]);
 
   useEffect(() => {
     loadQuiz();
@@ -95,9 +101,19 @@ export default function Quiz() {
     if (selectedAnswer !== null) return;
     
     setSelectedAnswer(optionIndex);
-    const isCorrect = optionIndex === questions[currentQuestion].correctAnswer;
+    const question = questions[currentQuestion];
+    const isCorrect = optionIndex === question.correctAnswer;
     
     setAnswers(prev => [...prev, isCorrect]);
+    
+    // Armazenar resposta detalhada para análise de dificuldades
+    setDetailedAnswers(prev => [...prev, {
+      question: question.question,
+      userAnswer: question.options[optionIndex],
+      correctAnswer: question.options[question.correctAnswer],
+      isCorrect
+    }]);
+    
     if (isCorrect) {
       setScore(prev => prev + 1);
     }
@@ -122,14 +138,37 @@ export default function Quiz() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        await supabase.from('quiz_sessions').insert({
-          user_id: user.id,
-          material_id: materialId,
-          score: finalScore,
-          total_questions: questions.length,
-          time_taken_seconds: 60 - timeLeft
-        });
+        // 1. Salvar sessão do quiz
+        const { data: session, error: sessionError } = await supabase
+          .from('quiz_sessions')
+          .insert({
+            user_id: user.id,
+            material_id: materialId,
+            score: finalScore,
+            total_questions: questions.length,
+            time_taken_seconds: 60 - timeLeft
+          })
+          .select()
+          .single();
 
+        if (sessionError) throw sessionError;
+
+        // 2. Salvar resultados detalhados das perguntas
+        if (session && detailedAnswers.length > 0) {
+          const questionResults = detailedAnswers.map(answer => ({
+            quiz_session_id: session.id,
+            question_text: answer.question,
+            user_answer: answer.userAnswer,
+            correct_answer: answer.correctAnswer,
+            is_correct: answer.isCorrect
+          }));
+
+          await supabase
+            .from('quiz_question_results')
+            .insert(questionResults);
+        }
+
+        // 3. XP e badges
         await addExperience(xpEarned + bonus, `Quiz completo: ${finalScore}/${questions.length}`);
 
         if (finalScore === questions.length) {
