@@ -454,8 +454,14 @@ const Calendar = () => {
     return <div className={`w-3 h-3 rounded-full ${getPriorityColor(priority).replace('bg-', 'bg-').split(' ')[0]}`} />;
   };
 
-  const getDaysUntil = (dateString: string) => {
-    const eventDate = new Date(dateString);
+  // Função auxiliar para criar Date local a partir de string YYYY-MM-DD
+  const createLocalDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('T')[0].split('-');
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  };
+
+  const getDaysUntil = (dateString: string, allDay: boolean = false) => {
+    const eventDate = allDay ? createLocalDate(dateString) : new Date(dateString);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     eventDate.setHours(0, 0, 0, 0);
@@ -465,14 +471,15 @@ const Calendar = () => {
   };
 
   const formatEventDate = (dateString: string, allDay: boolean) => {
-    const date = new Date(dateString);
     if (allDay) {
+      const date = createLocalDate(dateString);
       return date.toLocaleDateString('pt-BR');
     }
+    const date = new Date(dateString);
     return `${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
   };
 
-  const urgentEvents = events.filter(event => getDaysUntil(event.start_date) <= 5 && getDaysUntil(event.start_date) >= 0);
+  const urgentEvents = events.filter(event => getDaysUntil(event.start_date, event.all_day) <= 5 && getDaysUntil(event.start_date, event.all_day) >= 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
@@ -883,7 +890,7 @@ const Calendar = () => {
             ) : (
               <div className="space-y-4">
                 {events.map((event) => {
-                  const daysUntil = getDaysUntil(event.start_date);
+                  const daysUntil = getDaysUntil(event.start_date, event.all_day);
                   return (
                      <div
                        key={event.id}
