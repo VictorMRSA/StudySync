@@ -233,7 +233,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
               title: 'Material disponível',
               description: material.title,
               action: 'Ver Material',
-              link: '/materials',
+              link: 'materials',
               priority: 2
             });
           });
