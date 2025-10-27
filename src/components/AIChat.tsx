@@ -113,7 +113,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage }) => {
   };
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-[800px] flex flex-col">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5" />
