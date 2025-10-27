@@ -23,7 +23,7 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
     { id: "classes", label: "Turmas", icon: Users, isRoute: false },
     { id: "calendar", label: "Calendário", icon: Calendar, isRoute: false },
     { id: "materials", label: "Materiais", icon: BookOpen, isRoute: false },
-    { id: "ai-assistant", label: "IA Assistente", icon: Brain, isRoute: true, route: "/ai-assistant" },
+    { id: "ai-assistant", label: "IA Assistente", icon: Brain, isRoute: false },
     { id: "achievements", label: "Conquistas", icon: Trophy, isRoute: false },
     { id: "profile", label: "Perfil", icon: User, isRoute: false },
   ];

@@ -202,8 +202,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
               title: 'Revisar dificuldade',
               description: `Você errou: "${answer.question_text.substring(0, 60)}..."`,
               action: 'Estudar com IA',
-              link: '/ai-assistant',
-              state: { focusTopic: answer.question_text, errorRate: 'high' },
+              link: 'ai-assistant',
               priority: 1
             });
           }
@@ -430,8 +429,8 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                           variant="outline"
                           className="h-8 text-xs"
                           onClick={() => {
-                            if (rec.state) {
-                              navigate(rec.link, { state: rec.state });
+                            if (rec.link === '/ai-assistant') {
+                              onTabChange?.('ai-assistant');
                             } else if (rec.link.startsWith('/')) {
                               navigate(rec.link);
                             } else {

@@ -190,7 +190,7 @@ export default function DifficultiesAnalysis() {
                       )}
                     </div>
                     <Button
-                      onClick={() => navigate('/ai-assistant', { 
+                      onClick={() => navigate('/?tab=ai-assistant', { 
                         state: { 
                           focusTopic: difficulty.topic,
                           errorRate: difficulty.errorRate 

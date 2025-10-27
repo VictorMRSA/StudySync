@@ -8,7 +8,6 @@ import Auth from "./pages/Auth";
 import Calendar from "./pages/Calendar";
 import ClassDetails from "./pages/ClassDetails";
 import JoinClass from "./pages/JoinClass";
-import AIAssistant from "./pages/AIAssistant";
 import Quiz from "./pages/Quiz";
 import Flashcards from "./pages/Flashcards";
 import MemoryGame from "./pages/MemoryGame";
@@ -31,7 +30,6 @@ const App = () => (
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/class/:id" element={<ClassDetails />} />
           <Route path="/join/:inviteCode" element={<JoinClass />} />
-          <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/quiz/:materialId" element={<Quiz />} />
           <Route path="/flashcards/:materialId" element={<Flashcards />} />
           <Route path="/memory-game/:materialId" element={<MemoryGame />} />

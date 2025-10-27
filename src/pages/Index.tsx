@@ -13,6 +13,7 @@ import Materials from "./Materials";
 import Achievements from "./Achievements";
 import Profile from "./Profile";
 import AdminDashboard from "./AdminDashboard";
+import AIAssistantTab from "./AIAssistantTab";
 import { 
   GraduationCap, 
   Users, 
@@ -29,6 +30,7 @@ const Index = () => {
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [aiAssistantState, setAiAssistantState] = useState<{ focusTopic?: string; errorRate?: number }>({});
 
   useEffect(() => {
     // Check for existing session
@@ -48,8 +50,15 @@ const Index = () => {
     const tabParam = new URLSearchParams(location.search).get('tab');
     if (tabParam) {
       setActiveTab(tabParam);
+      // Se for ai-assistant e houver state, salvar
+      if (tabParam === 'ai-assistant' && location.state) {
+        const { focusTopic, errorRate } = location.state as any;
+        if (focusTopic || errorRate !== undefined) {
+          setAiAssistantState({ focusTopic, errorRate });
+        }
+      }
     }
-  }, [location.search]);
+  }, [location.search, location.state]);
 
   const handleGetStarted = () => {
     if (user) {
@@ -71,6 +80,8 @@ const Index = () => {
         return <Calendar />;
       case "materials":
         return <Materials />;
+      case "ai-assistant":
+        return <AIAssistantTab focusTopic={aiAssistantState.focusTopic} errorRate={aiAssistantState.errorRate} />;
       case "achievements":
         return <Achievements />;
       case "profile":
