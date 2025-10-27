@@ -126,8 +126,8 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage }) => {
         )}
       </CardHeader>
       
-      <CardContent className="flex-1 flex flex-col p-4">
-        <ScrollArea className="flex-1 pr-4">
+      <CardContent className="flex-1 flex flex-col p-4 overflow-hidden">
+        <ScrollArea className="flex-1 pr-4 overflow-auto">
           <div className="space-y-4">
             {messages.length === 0 && (
               <div className="text-center text-muted-foreground py-8">
@@ -151,7 +151,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage }) => {
                 )}
                 
                 <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  className={`max-w-[80%] rounded-lg px-4 py-2 overflow-hidden break-words ${
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground ml-auto'
                       : 'bg-muted'
