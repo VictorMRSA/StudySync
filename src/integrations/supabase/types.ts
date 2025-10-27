@@ -538,6 +538,7 @@ export type Database = {
           class_id: string
           created_at: string
           description: string | null
+          extracted_text: string | null
           file_name: string | null
           file_size: string | null
           file_type: string | null
@@ -555,6 +556,7 @@ export type Database = {
           class_id: string
           created_at?: string
           description?: string | null
+          extracted_text?: string | null
           file_name?: string | null
           file_size?: string | null
           file_type?: string | null
@@ -572,6 +574,7 @@ export type Database = {
           class_id?: string
           created_at?: string
           description?: string | null
+          extracted_text?: string | null
           file_name?: string | null
           file_size?: string | null
           file_type?: string | null
