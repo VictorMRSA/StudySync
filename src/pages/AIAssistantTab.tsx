@@ -5,22 +5,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, MessageCircle, FileText, Sparkles } from 'lucide-react';
 
 interface AIAssistantTabProps {
-  focusTopic?: string;
-  errorRate?: number;
   initialMessage?: string;
 }
 
-const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ focusTopic, errorRate, initialMessage: propInitialMessage }) => {
+const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ initialMessage: propInitialMessage }) => {
   const [initialMessage, setInitialMessage] = useState<string | undefined>(propInitialMessage);
 
   useEffect(() => {
     if (propInitialMessage) {
       setInitialMessage(propInitialMessage);
-    } else if (focusTopic && errorRate !== undefined) {
-      const message = `Preciso estudar sobre "${focusTopic}". Tive ${errorRate.toFixed(0)}% de erro nesse tópico nos meus quizzes. Pode me explicar de forma clara esse conceito e dar exemplos práticos para eu entender melhor?`;
-      setInitialMessage(message);
     }
-  }, [focusTopic, errorRate, propInitialMessage]);
+  }, [propInitialMessage]);
 
   return (
     <div className="container mx-auto px-4 py-6 lg:py-8">

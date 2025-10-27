@@ -79,7 +79,7 @@ serve(async (req) => {
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 2048,
           }
         }),
       }
@@ -101,6 +101,9 @@ serve(async (req) => {
 
     const data = await response.json();
     
+    // Verificar se a resposta atingiu o limite de tokens
+    const finishReason = data?.candidates?.[0]?.finishReason;
+    
     // Tentar extrair o texto de forma robusta
     const parts = data?.candidates?.[0]?.content?.parts ?? [];
     const botResponse = parts
@@ -111,12 +114,32 @@ serve(async (req) => {
 
     if (!botResponse) {
       console.error('Resposta inválida da API Gemini - payload:', JSON.stringify(data));
+      
+      // Se foi MAX_TOKENS mas não há conteúdo, retornar mensagem explicativa
+      if (finishReason === 'MAX_TOKENS') {
+        return new Response(
+          JSON.stringify({ 
+            response: 'Desculpe, a resposta ficou muito longa. Tente fazer uma pergunta mais específica ou divida em partes menores.',
+            success: true,
+            warning: 'MAX_TOKENS'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
       throw new Error('Resposta inválida da API Gemini');
     }
+    
+    // Se atingiu MAX_TOKENS, adicionar aviso
+    const responseWithWarning = finishReason === 'MAX_TOKENS' 
+      ? `${botResponse}\n\n[Nota: A resposta foi truncada por limite de tokens. Considere fazer uma pergunta mais específica.]`
+      : botResponse;
 
     return new Response(
       JSON.stringify({ 
-        response: botResponse,
+        response: responseWithWarning,
         success: true 
       }),
       {

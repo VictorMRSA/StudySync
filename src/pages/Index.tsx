@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,17 @@ const Index = () => {
     }
   }, [location.search, location.state]);
 
+  // Construir initialMessage a partir de focusTopic/errorRate ou usar diretamente
+  const computedInitialMessage = useMemo(() => {
+    if (aiAssistantState.initialMessage) {
+      return aiAssistantState.initialMessage;
+    }
+    if (aiAssistantState.focusTopic && aiAssistantState.errorRate !== undefined) {
+      return `Preciso estudar sobre "${aiAssistantState.focusTopic}". Tive ${aiAssistantState.errorRate.toFixed(0)}% de erro nesse tópico nos meus quizzes. Pode me explicar de forma clara esse conceito e dar exemplos práticos para eu entender melhor?`;
+    }
+    return undefined;
+  }, [aiAssistantState]);
+
   const handleGetStarted = () => {
     if (user) {
       // Redirect to classes page if user is logged in
@@ -85,7 +96,7 @@ const Index = () => {
       case "materials":
         return <Materials />;
       case "ai-assistant":
-        return <AIAssistantTab focusTopic={aiAssistantState.focusTopic} errorRate={aiAssistantState.errorRate} initialMessage={aiAssistantState.initialMessage} />;
+        return <AIAssistantTab initialMessage={computedInitialMessage} />;
       case "achievements":
         return <Achievements />;
       case "profile":
