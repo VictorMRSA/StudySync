@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SimpleNavigation } from '@/components/SimpleNavigation';
 import { toast } from '@/hooks/use-toast';
-import { RotateCcw, Play } from 'lucide-react';
+import { RotateCcw, Play, MessageCircle } from 'lucide-react';
 
 interface Flashcard {
   term: string;
@@ -175,6 +175,17 @@ export default function Flashcards() {
           </Button>
           <Button variant="outline" onClick={handleNext}>
             Próximo
+          </Button>
+          <Button
+            variant="gamified"
+            onClick={() => navigate('/?tab=ai-assistant', {
+              state: {
+                initialMessage: `Preciso de ajuda para entender melhor o conceito: "${card.term}". Você pode explicar de forma detalhada e com exemplos práticos?`
+              }
+            })}
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Estudar com IA
           </Button>
         </div>
       </div>

@@ -32,10 +32,12 @@ Você está criando flashcards de estudo sobre "${title}".
 
 Ao gerar flashcards, seu objetivo principal é criar pares 'Termo/Definição' semanticamente precisos.
 
-## A REGRA CENTRAL: "O que é?"
+## A REGRA CENTRAL: Definição Direta e Concisa
 
 - O TERMO deve ser um conceito-chave (substantivo, nome próprio, processo)
-- A DEFINIÇÃO deve responder de forma concisa e direta: "O que é [Termo]?" ou "O que significa [Termo]?"
+- A DEFINIÇÃO deve ser uma resposta concisa e direta ao que é o conceito
+- NUNCA comece a definição com "O que é", "O que significa" ou qualquer pergunta
+- Vá direto ao ponto: "Processo de...", "Indivíduos que...", "Princípio do..."
 
 ## A REGRA DE OURO: Evite Confusões Semânticas
 
@@ -71,10 +73,12 @@ REGRAS OBRIGATÓRIAS:
 1. Selecione os substantivos e conceitos MAIS IMPORTANTES do texto
 2. Para cada conceito, extraia apenas sua DEFINIÇÃO FUNDAMENTAL
 3. Cada TERMO deve ser um conceito-chave (não uma pergunta)
-4. Cada DEFINIÇÃO deve responder "O que é?" de forma clara e concisa
-5. NÃO use exemplos, consequências ou relações como definições
-6. Extraia apenas informações que EXISTEM no texto
-7. É melhor ter MENOS flashcards corretos do que muitos confusos
+4. Cada DEFINIÇÃO deve ser clara e concisa, indo DIRETO ao ponto
+5. NÃO comece definições com "O que é", "O que significa" ou perguntas
+6. NÃO use exemplos, consequências ou relações como definições
+7. Extraia apenas informações que EXISTEM no texto
+8. É melhor ter MENOS flashcards corretos do que muitos confusos
+9. Formato ideal: "Processo de...", "Indivíduos que...", "Princípio do..."
 
 VALIDAÇÃO FINAL:
 Antes de retornar os flashcards, revise cada um e pergunte-se:
@@ -86,7 +90,7 @@ Retorne APENAS um JSON válido neste formato exato, sem markdown:
   "flashcards": [
     {
       "term": "Conceito-Chave",
-      "definition": "O que é [Conceito-Chave]: explicação clara e concisa"
+      "definition": "Explicação clara e concisa (SEM iniciar com 'O que é' ou perguntas)"
     }
   ]
 }`;

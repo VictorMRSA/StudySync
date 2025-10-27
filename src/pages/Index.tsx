@@ -30,7 +30,11 @@ const Index = () => {
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [aiAssistantState, setAiAssistantState] = useState<{ focusTopic?: string; errorRate?: number }>({});
+  const [aiAssistantState, setAiAssistantState] = useState<{
+    focusTopic?: string;
+    errorRate?: number;
+    initialMessage?: string;
+  }>({});
 
   useEffect(() => {
     // Check for existing session
@@ -52,9 +56,9 @@ const Index = () => {
       setActiveTab(tabParam);
       // Se for ai-assistant e houver state, salvar
       if (tabParam === 'ai-assistant' && location.state) {
-        const { focusTopic, errorRate } = location.state as any;
-        if (focusTopic || errorRate !== undefined) {
-          setAiAssistantState({ focusTopic, errorRate });
+        const { focusTopic, errorRate, initialMessage } = location.state as any;
+        if (focusTopic || errorRate !== undefined || initialMessage) {
+          setAiAssistantState({ focusTopic, errorRate, initialMessage });
         }
       }
     }
@@ -81,7 +85,7 @@ const Index = () => {
       case "materials":
         return <Materials />;
       case "ai-assistant":
-        return <AIAssistantTab focusTopic={aiAssistantState.focusTopic} errorRate={aiAssistantState.errorRate} />;
+        return <AIAssistantTab focusTopic={aiAssistantState.focusTopic} errorRate={aiAssistantState.errorRate} initialMessage={aiAssistantState.initialMessage} />;
       case "achievements":
         return <Achievements />;
       case "profile":
