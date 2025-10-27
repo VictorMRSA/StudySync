@@ -27,7 +27,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
 
   // Configure pdf.js worker
   React.useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
   }, []);
 
   const supportedFormats = [
