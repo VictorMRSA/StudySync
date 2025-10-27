@@ -196,7 +196,7 @@ const Materials = () => {
             <p className="text-base text-muted-foreground">Biblioteca colaborativa de materiais de estudo</p>
           </div>
           
-          <Button variant="gamified" size="lg" className="shadow-medium" onClick={() => navigate('/ai-assistant')}>
+          <Button variant="gamified" size="lg" className="shadow-medium" onClick={() => navigate('/?tab=ai-assistant')}>
             <Upload className="w-5 h-5" />
             Enviar Material
           </Button>
@@ -370,7 +370,7 @@ const Materials = () => {
                   Tente ajustar os filtros ou termos de busca, ou seja o primeiro a compartilhar um material!
                 </p>
               </div>
-              <Button variant="gamified" onClick={() => navigate('/ai-assistant')}>
+              <Button variant="gamified" onClick={() => navigate('/?tab=ai-assistant')}>
                 <Upload className="w-4 h-4" />
                 Enviar Primeiro Material
               </Button>
