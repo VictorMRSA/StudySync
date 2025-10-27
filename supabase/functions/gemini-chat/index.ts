@@ -17,17 +17,55 @@ serve(async (req) => {
   }
 
   try {
-    const { message, history = [] } = await req.json();
+    const rawBody = await req.json();
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     
     if (!GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    const userMessage = typeof message === 'string' ? message.trim() : '';
+    // Input validation
+    const message = rawBody?.message;
+    const history = rawBody?.history;
+
+    // Validate message
+    if (typeof message !== 'string') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Mensagem deve ser uma string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userMessage = message.trim();
+    
     if (!userMessage) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Mensagem inválida' }),
+        JSON.stringify({ success: false, error: 'Mensagem não pode estar vazia' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (userMessage.length > 2000) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Mensagem muito longa (máximo 2000 caracteres)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Sanitize message - remove control characters
+    const sanitizedMessage = userMessage.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+
+    // Validate history
+    if (history !== undefined && !Array.isArray(history)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Histórico deve ser um array' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (Array.isArray(history) && history.length > 50) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Histórico muito longo (máximo 50 mensagens)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -35,6 +73,7 @@ serve(async (req) => {
     // Preparar o histórico da conversa (aceitando vários formatos)
     const mappedHistory: ChatMessage[] = Array.isArray(history)
       ? history
+          .slice(0, 50) // Hard limit
           .map((h: any) => {
             const role: 'user' | 'model' = h?.role === 'assistant' || h?.role === 'model' ? 'model' : 'user';
             const text: string =
@@ -43,7 +82,7 @@ serve(async (req) => {
                 : typeof h?.parts?.[0]?.text === 'string'
                 ? h.parts[0].text
                 : '';
-            const t = String(text ?? '').trim();
+            const t = String(text ?? '').trim().substring(0, 4000); // Limit each history message
             return t ? ({ role, parts: [{ text: t }] } as ChatMessage) : undefined;
           })
           .filter((m: any): m is ChatMessage => Boolean(m))
@@ -61,7 +100,7 @@ serve(async (req) => {
       ...mappedHistory,
       {
         role: 'user',
-        parts: [{ text: userMessage }]
+        parts: [{ text: sanitizedMessage }]
       }
     ];
 
