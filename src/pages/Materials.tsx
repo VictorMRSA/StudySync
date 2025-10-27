@@ -52,7 +52,15 @@ const Materials = () => {
       
       const { data: materialsData, error: materialsError } = await supabase
         .from('materials')
-        .select('*')
+        .select(`
+          *,
+          profiles:uploaded_by (
+            id,
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
         .eq('status', 'approved')
         .order('created_at', { ascending: false });
 
@@ -272,17 +280,15 @@ const Materials = () => {
 
                   {/* Action Buttons */}
                   <div className="space-y-2">
-                    {material.file_url && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => viewMaterial(material)}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        <span className="text-xs font-medium">Visualizar Material</span>
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => viewMaterial(material)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      <span className="text-xs font-medium">Visualizar Conteúdo</span>
+                    </Button>
                     
                     {material.hasAISummary && (
                       <Button
@@ -319,6 +325,7 @@ const Materials = () => {
                   {/* Author and Upvotes */}
                   <div className="flex items-center gap-2 pt-2 border-t">
                     <Avatar className="w-6 h-6">
+                      <AvatarImage src={material.profiles?.avatar_url} />
                       <AvatarFallback className="text-xs bg-gradient-primary text-primary-foreground">
                         {material.profiles?.username?.substring(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>
@@ -377,7 +384,7 @@ const Materials = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              Material Original - {selectedMaterial?.title}
+              {selectedMaterial?.title}
             </DialogTitle>
           </DialogHeader>
           
@@ -385,18 +392,32 @@ const Materials = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Badge variant="outline">
-                  {selectedMaterial.file_type || 'TEXTO'}
+                  {selectedMaterial.file_type || 'DOCUMENTO'}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
-                  {selectedMaterial.file_name}
-                </span>
+                {selectedMaterial.file_name && (
+                  <span className="text-sm text-muted-foreground">
+                    {selectedMaterial.file_name}
+                  </span>
+                )}
               </div>
               
-              <div className="bg-muted/50 rounded-lg p-6 border">
-                <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-                  {selectedMaterial.file_url || 'Conteúdo não disponível'}
-                </pre>
-              </div>
+              {selectedMaterial.file_url ? (
+                <div className="bg-muted/50 rounded-lg p-6 border">
+                  <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {selectedMaterial.file_url}
+                  </pre>
+                </div>
+              ) : (
+                <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
+                  <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">
+                    O conteúdo deste material não está disponível para visualização.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Use os resumos IA, quiz ou flashcards para estudar este material.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
