@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import AIChat from '@/components/AIChat';
 import AISummaryGenerator from '@/components/AISummaryGenerator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,15 +8,7 @@ interface AIAssistantTabProps {
   initialMessage?: string;
 }
 
-const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ initialMessage: propInitialMessage }) => {
-  const [initialMessage, setInitialMessage] = useState<string | undefined>(propInitialMessage);
-
-  useEffect(() => {
-    if (propInitialMessage) {
-      setInitialMessage(propInitialMessage);
-    }
-  }, [propInitialMessage]);
-
+const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ initialMessage }) => {
   return (
     <div className="container mx-auto px-4 py-6 lg:py-8">
       <div className="max-w-6xl mx-auto">

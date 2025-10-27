@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -31,8 +31,6 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [aiAssistantState, setAiAssistantState] = useState<{
-    focusTopic?: string;
-    errorRate?: number;
     initialMessage?: string;
   }>({});
 
@@ -54,26 +52,26 @@ const Index = () => {
     const tabParam = new URLSearchParams(location.search).get('tab');
     if (tabParam) {
       setActiveTab(tabParam);
-      // Se for ai-assistant e houver state, salvar
-      if (tabParam === 'ai-assistant' && location.state) {
-        const { focusTopic, errorRate, initialMessage } = location.state as any;
-        if (focusTopic || errorRate !== undefined || initialMessage) {
-          setAiAssistantState({ focusTopic, errorRate, initialMessage });
-        }
+    }
+
+    // Capturar dados do location.state para AI Assistant
+    if (location.state) {
+      const state = location.state as any;
+      
+      // Construir initialMessage diretamente aqui
+      let initialMessage: string | undefined;
+      
+      if (state.initialMessage) {
+        initialMessage = state.initialMessage;
+      } else if (state.focusTopic && state.errorRate !== undefined) {
+        initialMessage = `Preciso estudar sobre "${state.focusTopic}". Tive ${state.errorRate.toFixed(0)}% de erro nesse tópico nos meus quizzes. Pode me explicar de forma clara esse conceito e dar exemplos práticos para eu entender melhor?`;
+      }
+      
+      if (initialMessage) {
+        setAiAssistantState({ initialMessage });
       }
     }
   }, [location.search, location.state]);
-
-  // Construir initialMessage a partir de focusTopic/errorRate ou usar diretamente
-  const computedInitialMessage = useMemo(() => {
-    if (aiAssistantState.initialMessage) {
-      return aiAssistantState.initialMessage;
-    }
-    if (aiAssistantState.focusTopic && aiAssistantState.errorRate !== undefined) {
-      return `Preciso estudar sobre "${aiAssistantState.focusTopic}". Tive ${aiAssistantState.errorRate.toFixed(0)}% de erro nesse tópico nos meus quizzes. Pode me explicar de forma clara esse conceito e dar exemplos práticos para eu entender melhor?`;
-    }
-    return undefined;
-  }, [aiAssistantState]);
 
   const handleGetStarted = () => {
     if (user) {
@@ -96,7 +94,7 @@ const Index = () => {
       case "materials":
         return <Materials />;
       case "ai-assistant":
-        return <AIAssistantTab initialMessage={computedInitialMessage} />;
+        return <AIAssistantTab initialMessage={aiAssistantState.initialMessage} />;
       case "achievements":
         return <Achievements />;
       case "profile":
