@@ -1,13 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import AIChat from '@/components/AIChat';
 import AISummaryGenerator from '@/components/AISummaryGenerator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, MessageCircle, FileText, Sparkles } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 const AIAssistant: React.FC = () => {
   const activeTab = 'ai-assistant';
   const handleTabChange = () => {};
+  const location = useLocation();
+  const { focusTopic, errorRate } = location.state || {};
+  const [initialMessage, setInitialMessage] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (focusTopic && errorRate !== undefined) {
+      const message = `Preciso estudar sobre "${focusTopic}". Tive ${errorRate.toFixed(0)}% de erro nesse tópico nos meus quizzes. Pode me explicar de forma clara esse conceito e dar exemplos práticos para eu entender melhor?`;
+      setInitialMessage(message);
+    }
+  }, [focusTopic, errorRate]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,7 +56,7 @@ const AIAssistant: React.FC = () => {
               <TabsContent value="chat" className="space-y-4 lg:space-y-6">
                 <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
                   <div className="lg:col-span-2 order-2 lg:order-1">
-                    <AIChat />
+                    <AIChat initialMessage={initialMessage} />
                   </div>
                   
                   <div className="space-y-3 lg:space-y-4 order-1 lg:order-2">

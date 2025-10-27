@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { SimpleNavigation } from '@/components/SimpleNavigation';
-import { AlertCircle, TrendingDown } from 'lucide-react';
+import { AlertCircle, TrendingDown, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -179,7 +179,7 @@ export default function DifficultiesAnalysis() {
                         style={{ width: `${difficulty.errorRate}%` }}
                       />
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-3">
                       <p className="text-sm font-medium text-warning">
                         Taxa de erro: {difficulty.errorRate.toFixed(1)}%
                       </p>
@@ -189,6 +189,19 @@ export default function DifficultiesAnalysis() {
                         </span>
                       )}
                     </div>
+                    <Button
+                      onClick={() => navigate('/ai-assistant', { 
+                        state: { 
+                          focusTopic: difficulty.topic,
+                          errorRate: difficulty.errorRate 
+                        }
+                      })}
+                      variant="default"
+                      className="w-full"
+                    >
+                      <Brain className="w-4 h-4 mr-2" />
+                      Estudar "{difficulty.topic}" com IA
+                    </Button>
                   </div>
                 </div>
               </Card>

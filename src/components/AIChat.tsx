@@ -14,7 +14,11 @@ interface Message {
   timestamp: Date;
 }
 
-const AIChat: React.FC = () => {
+interface AIChatProps {
+  initialMessage?: string;
+}
+
+const AIChat: React.FC<AIChatProps> = ({ initialMessage }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,13 +33,24 @@ const AIChat: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  useEffect(() => {
+    if (initialMessage && messages.length === 0 && !isLoading) {
+      setInputMessage(initialMessage);
+      // Auto-enviar após um pequeno delay para garantir que o componente está pronto
+      const timer = setTimeout(() => {
+        sendMessageWithText(initialMessage);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [initialMessage]);
+
+  const sendMessageWithText = async (messageText: string) => {
+    if (!messageText.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      parts: [{ text: inputMessage }],
+      parts: [{ text: messageText }],
       timestamp: new Date()
     };
 
@@ -46,7 +61,7 @@ const AIChat: React.FC = () => {
     try {
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
         body: {
-          message: inputMessage,
+          message: messageText,
           history: messages.map(msg => ({
             role: msg.role,
             parts: msg.parts
@@ -77,6 +92,10 @@ const AIChat: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const sendMessage = async () => {
+    await sendMessageWithText(inputMessage);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

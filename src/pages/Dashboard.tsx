@@ -24,9 +24,8 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const streakDays = 7;
-  const currentXP = 1250;
-  const nextLevelXP = 2000;
+  const [upcomingDeadlines, setUpcomingDeadlines] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   
   interface Goal {
     id: string;
@@ -48,6 +47,8 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
     if (user) {
       fetchGoals();
       fetchProfile();
+      fetchDeadlines();
+      fetchRecentActivity();
     }
   }, [user]);
 
@@ -101,17 +102,75 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
     }
   };
 
-  const upcomingDeadlines = [
-    { subject: "Física I", task: "Prova", daysLeft: 3, urgent: true },
-    { subject: "Cálculo I", task: "Lista de exercícios", daysLeft: 5, urgent: false },
-    { subject: "Programação", task: "Projeto final", daysLeft: 12, urgent: false },
-  ];
+  const fetchDeadlines = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: assignments, error } = await supabase
+        .from('assignments')
+        .select('*, classes(name)')
+        .gte('due_date', new Date().toISOString())
+        .order('due_date', { ascending: true })
+        .limit(5);
 
-  const recentActivity = [
-    { action: "Upload de material", subject: "Física I", points: "+50 XP", time: "2h atrás" },
-    { action: "Meta concluída", subject: "Cálculo I", points: "+25 XP", time: "4h atrás" },
-    { action: "Criou turma", subject: "Álgebra Linear", points: "+100 XP", time: "1 dia atrás" },
-  ];
+      if (error) throw error;
+
+      const deadlines = assignments?.map(a => {
+        const daysLeft = Math.ceil((new Date(a.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        return {
+          subject: a.classes?.name || 'Sem turma',
+          task: a.title,
+          daysLeft: daysLeft,
+          urgent: daysLeft <= 3,
+          id: a.id
+        };
+      }) || [];
+
+      setUpcomingDeadlines(deadlines);
+    } catch (error) {
+      console.error('Error fetching deadlines:', error);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: activities, error } = await supabase
+        .from('activity_log')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      const activityList = activities?.map(a => {
+        const timeAgo = formatTimeAgo(new Date(a.created_at));
+        const metadata = a.metadata as { subject?: string } | null;
+        return {
+          action: a.description,
+          subject: metadata?.subject || '',
+          points: a.points_earned > 0 ? `+${a.points_earned} XP` : '',
+          time: timeAgo
+        };
+      }) || [];
+
+      setRecentActivity(activityList);
+    } catch (error) {
+      console.error('Error fetching activity:', error);
+    }
+  };
+
+  const formatTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    
+    if (seconds < 60) return 'Agora';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}min atrás`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h atrás`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)} dia${Math.floor(seconds / 86400) > 1 ? 's' : ''} atrás`;
+    return date.toLocaleDateString();
+  };
 
   const removeGoal = async (id: string) => {
     if (!user) return;
@@ -172,7 +231,11 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
     }
   };
 
-  const progressPercentage = (currentXP / nextLevelXP) * 100;
+  const currentXP = profile?.experience_points || 0;
+  const currentLevel = profile?.current_level || 1;
+  const nextLevelXP = profile?.next_level_xp || 100;
+  const streakDays = profile?.streak_days || 0;
+  const progressPercentage = nextLevelXP > 0 ? (currentXP / nextLevelXP) * 100 : 0;
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
@@ -217,7 +280,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-foreground">{currentXP} XP</div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Nível 5</div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Nível {currentLevel}</div>
                 </div>
               </div>
             </div>
@@ -238,8 +301,8 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
             </div>
             <Progress value={progressPercentage} className="h-4" />
             <div className="flex justify-between text-sm font-medium">
-              <span className="text-muted-foreground">Nível 5</span>
-              <span className="text-primary">Nível 6</span>
+              <span className="text-muted-foreground">Nível {currentLevel}</span>
+              <span className="text-primary">Nível {currentLevel + 1}</span>
             </div>
           </div>
         </Card>
@@ -302,7 +365,13 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
               <h3 className="text-lg font-semibold">Próximos Prazos</h3>
             </div>
             <div className="space-y-3">
-              {upcomingDeadlines.map((deadline, index) => (
+              {upcomingDeadlines.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhum prazo próximo</p>
+                </div>
+              ) : (
+                upcomingDeadlines.map((deadline, index) => (
                 <div key={index} className="p-3 rounded-lg bg-muted/30 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-sm">{deadline.subject}</span>
@@ -315,7 +384,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                   </div>
                   <p className="text-xs text-muted-foreground">{deadline.task}</p>
                 </div>
-              ))}
+              )))}
             </div>
           </Card>
 
@@ -328,7 +397,13 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
               <h3 className="text-lg font-semibold">Atividade Recente</h3>
             </div>
             <div className="space-y-3">
-              {recentActivity.map((activity, index) => (
+              {recentActivity.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Trophy className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhuma atividade recente</p>
+                </div>
+              ) : (
+                recentActivity.map((activity, index) => (
                 <div key={index} className="p-3 rounded-lg bg-muted/30 space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">{activity.action}</span>
@@ -339,7 +414,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
                   <p className="text-xs text-muted-foreground">{activity.subject}</p>
                   <p className="text-xs text-muted-foreground">{activity.time}</p>
                 </div>
-              ))}
+              )))}
             </div>
           </Card>
         </div>
