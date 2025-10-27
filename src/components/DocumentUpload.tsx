@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Upload, FileText, File, Loader2, X, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface UploadedFile {
   file: File;
@@ -23,6 +24,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
   const [dragActive, setDragActive] = useState(false);
   const [parsing, setParsing] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Configure pdf.js worker
+  React.useEffect(() => {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  }, []);
 
   const supportedFormats = [
     'application/pdf',
@@ -80,6 +86,29 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
     }
   }, [toast]);
 
+  const parsePDF = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    
+    let fullText = '';
+    const numPages = Math.min(pdf.numPages, 50); // Limit to first 50 pages
+    
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n\n';
+    }
+    
+    if (pdf.numPages > 50) {
+      fullText += `\n\n[Nota: Este PDF tem ${pdf.numPages} páginas. Apenas as primeiras 50 páginas foram processadas.]`;
+    }
+    
+    return fullText.trim();
+  };
+
   const parseDocument = async (uploadedFile: UploadedFile) => {
     setParsing(uploadedFile.id);
     
@@ -98,13 +127,36 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
           title: 'Documento carregado',
           description: `${uploadedFile.file.name} foi processado com sucesso.`
         });
-      } else {
-        // For binary files (PDF, Word, etc.), we need to parse them
-        // Create FormData to send the file
+      } 
+      // For PDF files, parse with pdf.js in the client
+      else if (uploadedFile.file.type === 'application/pdf' || uploadedFile.file.name.endsWith('.pdf')) {
+        toast({
+          title: 'Processando PDF',
+          description: 'Extraindo texto do documento PDF. Isso pode levar alguns segundos...'
+        });
+        
+        const content = await parsePDF(uploadedFile.file);
+        
+        if (!content || content.length < 10) {
+          throw new Error('O PDF não contém texto extraível ou está protegido.');
+        }
+        
+        setUploadedFiles(prev => prev.map(f => 
+          f.id === uploadedFile.id 
+            ? { ...f, parsed: true, content }
+            : f
+        ));
+        
+        toast({
+          title: 'PDF processado',
+          description: `${uploadedFile.file.name} foi processado com sucesso.`
+        });
+      }
+      // For other binary files (Word, PowerPoint), use edge function
+      else {
         const formData = new FormData();
         formData.append('file', uploadedFile.file);
         
-        // Call edge function to parse the document
         const { data, error } = await supabase.functions.invoke('parse-document', {
           body: formData
         });
@@ -131,13 +183,13 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
       
       setUploadedFiles(prev => prev.map(f => 
         f.id === uploadedFile.id 
-          ? { ...f, parsed: false, error: 'Erro ao processar o documento' }
+          ? { ...f, parsed: false, error: error instanceof Error ? error.message : 'Erro ao processar o documento' }
           : f
       ));
       
       toast({
         title: 'Erro no processamento',
-        description: `Não foi possível processar ${uploadedFile.file.name}.`,
+        description: error instanceof Error ? error.message : `Não foi possível processar ${uploadedFile.file.name}.`,
         variant: 'destructive'
       });
     } finally {

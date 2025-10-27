@@ -57,18 +57,18 @@ serve(async (req) => {
       );
     }
     
-    // For PDF files, extract text
+    // For PDF files, return message to use client-side parsing
     if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-      const text = new TextDecoder().decode(uint8Array);
-      const content = extractTextFromPDF(text);
-      
       return new Response(
         JSON.stringify({ 
-          success: true, 
-          content: content || 'Não foi possível extrair texto do PDF. O documento pode conter apenas imagens ou estar protegido.',
-          fileName: file.name
+          success: false, 
+          error: 'PDF_CLIENT_SIDE',
+          message: 'PDFs devem ser processados no cliente usando pdf.js'
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
     
@@ -99,37 +99,7 @@ serve(async (req) => {
   }
 });
 
-// Helper function to extract text from PDF
-function extractTextFromPDF(rawText: string): string {
-  try {
-    // Very basic PDF text extraction
-    // Remove binary data and extract readable text
-    const textMatches = rawText.match(/BT\s+(.*?)\s+ET/gs);
-    if (textMatches) {
-      let extractedText = '';
-      textMatches.forEach(match => {
-        const textContent = match.match(/\((.*?)\)/g);
-        if (textContent) {
-          textContent.forEach(text => {
-            extractedText += text.replace(/[()]/g, '') + ' ';
-          });
-        }
-      });
-      return extractedText.trim();
-    }
-    
-    // Fallback: try to extract any readable text
-    const readableText = rawText.match(/[\x20-\x7E\s]{10,}/g);
-    if (readableText) {
-      return readableText.join(' ').trim();
-    }
-    
-    return '';
-  } catch (error) {
-    console.error('Error extracting PDF text:', error);
-    return '';
-  }
-}
+// PDF parsing removed - now handled client-side with pdf.js for better accuracy
 
 // Helper function to extract text from DOCX
 async function extractTextFromDocx(uint8Array: Uint8Array): Promise<string> {
