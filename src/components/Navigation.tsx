@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAdmin } from "@/hooks/useAdmin";
+import { NotificationsPanel } from "@/components/NotificationsPanel";
 
 interface NavigationProps {
   activeTab: string;
@@ -73,13 +74,16 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
             </h1>
           </div>
           
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            <NotificationsPanel />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -111,13 +115,16 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
       <div className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-background/95 backdrop-blur-sm border-r shadow-soft z-30">
         <div className="flex flex-col w-full p-6">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-primary-foreground" />
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Study Sync
+              </h1>
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Study Sync
-            </h1>
+            <NotificationsPanel />
           </div>
 
           {/* Navigation */}

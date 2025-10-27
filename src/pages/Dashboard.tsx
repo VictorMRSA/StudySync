@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast, toast } from "@/hooks/use-toast";
-import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock, Calendar, Award, Trash2 } from "lucide-react";
+import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock, Calendar, Award, Trash2, Lightbulb, Brain, FileText, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import ReportErrorButton from "@/components/ReportErrorButton";
 
@@ -19,6 +20,7 @@ interface DashboardProps {
 
 const Dashboard = ({ onTabChange }: DashboardProps) => {
   useToast();
+  const navigate = useNavigate();
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [goalTitle, setGoalTitle] = useState("");
   const [user, setUser] = useState<User | null>(null);
@@ -26,6 +28,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
   const [loading, setLoading] = useState(true);
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
   
   interface Goal {
     id: string;
@@ -49,6 +52,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
       fetchProfile();
       fetchDeadlines();
       fetchRecentActivity();
+      fetchRecommendations();
     }
   }, [user]);
 
@@ -170,6 +174,96 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h atrás`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)} dia${Math.floor(seconds / 86400) > 1 ? 's' : ''} atrás`;
     return date.toLocaleDateString();
+  };
+
+  const fetchRecommendations = async () => {
+    if (!user) return;
+    
+    try {
+      const recs: any[] = [];
+
+      // 1. Buscar top 3 dificuldades (quiz_question_results com is_correct = false)
+      const { data: wrongAnswers } = await supabase
+        .from('quiz_question_results')
+        .select(`
+          question_text,
+          quiz_sessions!inner(user_id)
+        `)
+        .eq('quiz_sessions.user_id', user.id)
+        .eq('is_correct', false)
+        .limit(3);
+
+      if (wrongAnswers && wrongAnswers.length > 0) {
+        wrongAnswers.forEach((answer, index) => {
+          if (index < 2) { // Limitar a 2 dificuldades
+            recs.push({
+              type: 'difficulty',
+              icon: AlertCircle,
+              title: 'Revisar dificuldade',
+              description: `Você errou: "${answer.question_text.substring(0, 60)}..."`,
+              action: 'Estudar com IA',
+              link: '/ai-assistant',
+              state: { focusTopic: answer.question_text, errorRate: 'high' },
+              priority: 1
+            });
+          }
+        });
+      }
+
+      // 2. Buscar materiais não estudados (sem quiz_sessions)
+      const { data: classMemberships } = await supabase
+        .from('class_members')
+        .select('class_id')
+        .eq('user_id', user.id);
+
+      if (classMemberships && classMemberships.length > 0) {
+        const classIds = classMemberships.map(m => m.class_id);
+        
+        const { data: materials } = await supabase
+          .from('materials')
+          .select('id, title, class_id')
+          .in('class_id', classIds)
+          .eq('status', 'approved')
+          .limit(2);
+
+        if (materials && materials.length > 0) {
+          materials.forEach((material) => {
+            recs.push({
+              type: 'material',
+              icon: FileText,
+              title: 'Material disponível',
+              description: material.title,
+              action: 'Ver Material',
+              link: '/materials',
+              priority: 2
+            });
+          });
+        }
+      }
+
+      // 3. Prazos urgentes (já temos upcomingDeadlines)
+      if (upcomingDeadlines.length > 0) {
+        upcomingDeadlines.slice(0, 1).forEach((deadline) => {
+          if (deadline.urgent) {
+            recs.push({
+              type: 'deadline',
+              icon: Clock,
+              title: 'Prazo urgente',
+              description: `${deadline.task} - ${deadline.daysLeft} dia${deadline.daysLeft > 1 ? 's' : ''}`,
+              action: 'Ver Calendário',
+              link: '/calendar',
+              priority: 3
+            });
+          }
+        });
+      }
+
+      // Ordenar por prioridade e limitar a 3
+      recs.sort((a, b) => a.priority - b.priority);
+      setRecommendations(recs.slice(0, 3));
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    }
   };
 
   const removeGoal = async (id: string) => {
@@ -306,6 +400,55 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
             </div>
           </div>
         </Card>
+
+        {/* Smart Recommendations Widget */}
+        {recommendations.length > 0 && (
+          <Card className="p-6 shadow-medium border-l-4 border-accent">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-accent/10">
+                <Lightbulb className="w-5 h-5 text-accent" />
+              </div>
+              <h3 className="text-xl font-semibold">O que estudar agora?</h3>
+            </div>
+            <div className="space-y-4">
+              {recommendations.map((rec, index) => {
+                const Icon = rec.icon;
+                return (
+                  <div 
+                    key={index} 
+                    className="p-4 rounded-lg bg-accent/5 border border-accent/20 hover:border-accent/40 transition-smooth"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-accent/10">
+                        <Icon className="w-5 h-5 text-accent" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-sm mb-1">{rec.title}</h4>
+                        <p className="text-xs text-muted-foreground mb-3">{rec.description}</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            if (rec.state) {
+                              navigate(rec.link, { state: rec.state });
+                            } else if (rec.link.startsWith('/')) {
+                              navigate(rec.link);
+                            } else {
+                              onTabChange?.(rec.link);
+                            }
+                          }}
+                        >
+                          {rec.action}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
         {/* Gestalt: Symmetry - Balanced 3-column grid with consistent spacing */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
