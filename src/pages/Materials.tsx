@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import ReportErrorButton from "@/components/ReportErrorButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { MarkdownContent } from "@/components/MarkdownContent";
 import { 
   Upload, 
   FileText, 
@@ -461,15 +462,9 @@ const Materials = () => {
                 </span>
               </div>
               
-              <div className="bg-slate-900 text-slate-100 rounded-lg p-6 border border-slate-700">
-                <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-                  {selectedSummary.summary.content}
-                </pre>
+              <div className="bg-muted/50 rounded-lg p-6 border">
+                <MarkdownContent content={selectedSummary.summary.content} />
               </div>
-              
-              <p className="text-xs text-muted-foreground italic">
-                * Em breve este arquivo terá formatação aprimorada
-              </p>
             </div>
           )}
         </DialogContent>

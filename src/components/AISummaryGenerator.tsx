@@ -10,6 +10,7 @@ import { FileText, Loader2, Sparkles, Upload, Save, ThumbsUp, ThumbsDown, Refres
 import DocumentUpload from './DocumentUpload';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MarkdownContent } from './MarkdownContent';
 
 const AISummaryGenerator: React.FC = () => {
   const [content, setContent] = useState('');
@@ -389,8 +390,8 @@ const AISummaryGenerator: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="max-h-[70dvh] md:max-h-[70vh] overflow-auto bg-muted/50 rounded-lg p-4 pr-6">
-              <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed overflow-x-auto">{result}</pre>
+            <div className="max-h-[70dvh] md:max-h-[70vh] overflow-auto bg-muted/50 rounded-lg p-6 pr-6">
+              <MarkdownContent content={result} />
             </div>
 
             {/* Save to Materials Section - Gestalt: Closure with clear grouping */}

@@ -31,25 +31,89 @@ serve(async (req) => {
     let prompt = '';
     switch (type) {
       case 'resumo':
-        prompt = `Faça um resumo claro e conciso do seguinte conteúdo educacional. Destaque os pontos principais e conceitos importantes:${feedbackContext}\n${content}`;
+        prompt = `IMPORTANTE: Responda em Markdown com formatação rica.
+
+Faça um resumo claro e conciso do seguinte conteúdo educacional. Use:
+- ## para títulos de seções principais
+- ### para subtítulos e tópicos importantes
+- **negrito** para conceitos e termos importantes
+- - para listas de tópicos
+- > para citações ou destaques relevantes
+
+Destaque os pontos principais e conceitos importantes:${feedbackContext}
+
+${content}`;
         break;
       case 'pontos-chave':
-        prompt = `Extraia e liste os pontos-chave mais importantes do seguinte conteúdo:${feedbackContext}\n${content}`;
+        prompt = `IMPORTANTE: Responda em Markdown com formatação rica.
+
+Extraia e liste os pontos-chave mais importantes do seguinte conteúdo. Use:
+- ## Pontos-Chave para o título
+- - **Termo/Conceito**: descrição para cada item
+- **negrito** para destacar conceitos principais
+
+${feedbackContext}
+
+${content}`;
         break;
       case 'perguntas':
-        prompt = `Com base no seguinte conteúdo, gere 5-8 perguntas de estudo relevantes com diferentes níveis de dificuldade:${feedbackContext}\n${content}`;
+        prompt = `IMPORTANTE: Responda em Markdown com formatação rica.
+
+Com base no seguinte conteúdo, gere 5-8 perguntas de estudo relevantes. Use:
+- ## Perguntas de Estudo para o título
+- ### para numerar cada pergunta (### 1. Pergunta...)
+- **negrito** para destacar conceitos nas perguntas
+- Organize por níveis: Básico, Intermediário, Avançado
+
+${feedbackContext}
+
+${content}`;
         break;
       case 'conceitos':
-        prompt = `Identifique e explique os conceitos principais apresentados no seguinte conteúdo educacional:${feedbackContext}\n${content}`;
+        prompt = `IMPORTANTE: Responda em Markdown com formatação rica.
+
+Identifique e explique os conceitos principais. Use:
+- ## Conceitos Principais para o título
+- ### para cada conceito
+- **negrito** para termos técnicos
+- - para listar características
+
+${feedbackContext}
+
+${content}`;
         break;
       case 'glossario':
-        prompt = `Crie um glossário com os termos técnicos e importantes do seguinte conteúdo, com definições claras:${feedbackContext}\n${content}`;
+        prompt = `IMPORTANTE: Responda em Markdown com formatação rica.
+
+Crie um glossário com os termos técnicos e importantes. Use:
+- ## Glossário de Termos para o título
+- - **Termo**: definição clara e objetiva
+- _itálico_ para exemplos ou observações
+
+${feedbackContext}
+
+${content}`;
         break;
       case 'mapa-mental':
-        prompt = `Crie um mapa mental estruturado em formato de texto do seguinte conteúdo, organizando hierarquicamente os temas principais e subtemas:${feedbackContext}\n${content}`;
+        prompt = `IMPORTANTE: Responda em Markdown com formatação rica.
+
+Crie um mapa mental estruturado. Use:
+- # para o tema central
+- ## para temas principais
+- ### para subtemas
+- - para detalhes e ramificações
+- **negrito** para conceitos-chave
+
+${feedbackContext}
+
+${content}`;
         break;
       default:
-        prompt = `Analise o seguinte conteúdo educacional:${feedbackContext}\n${content}`;
+        prompt = `IMPORTANTE: Responda em Markdown com formatação rica (use ##, ###, **negrito**, listas, etc).
+
+Analise o seguinte conteúdo educacional:${feedbackContext}
+
+${content}`;
     }
 
     const response = await fetch(
