@@ -41,6 +41,11 @@ const Materials = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Detecta se o conteúdo é código bruto de PDF
+  const isRawPdfContent = (content: string) => {
+    return content.startsWith('%PDF-') || content.includes('endobj') || content.includes('/Type /Catalog');
+  };
+
   useEffect(() => {
     loadMaterials();
     loadVotes();
@@ -402,11 +407,23 @@ const Materials = () => {
               </div>
               
               {selectedMaterial.file_url ? (
-                <div className="bg-muted/50 rounded-lg p-6 border">
-                  <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {selectedMaterial.file_url}
-                  </pre>
-                </div>
+                isRawPdfContent(selectedMaterial.file_url) ? (
+                  <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
+                    <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">
+                      Este PDF não pôde ser processado automaticamente.
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Use os resumos IA, quiz ou flashcards para estudar este material.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-muted/50 rounded-lg p-6 border">
+                    <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {selectedMaterial.file_url}
+                    </pre>
+                  </div>
+                )
               ) : (
                 <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
                   <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
