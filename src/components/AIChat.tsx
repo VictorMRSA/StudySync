@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MessageCircle, Send, Bot, User, Loader2 } from 'lucide-react';
-import { MarkdownContent } from '@/components/MarkdownContent';
+import { MarkdownContentCompact } from '@/components/MarkdownContentCompact';
 
 interface Message {
   id: string;
@@ -160,7 +160,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage }) => {
                   {message.role === 'user' ? (
                     <p className="whitespace-pre-wrap">{message.parts[0].text}</p>
                   ) : (
-                    <MarkdownContent content={message.parts[0].text} />
+                    <MarkdownContentCompact content={message.parts[0].text} />
                   )}
                   <span className="text-xs opacity-70 mt-1 block">
                     {message.timestamp.toLocaleTimeString()}
