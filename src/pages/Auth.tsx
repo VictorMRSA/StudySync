@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
@@ -18,20 +19,33 @@ const Auth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isConfirmingEmail, setIsConfirmingEmail] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if this is a redirect from email confirmation
-    const handleEmailConfirmation = async () => {
+    // Check if this is a redirect from password reset or email confirmation
+    const handleRedirects = async () => {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const params = new URLSearchParams(window.location.search);
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');
       const type = hashParams.get('type');
 
+      // Check for password recovery
+      if (type === 'recovery' || params.get('reset') === 'true') {
+        setIsResettingPassword(true);
+        return;
+      }
+
+      // Check for email confirmation
       if (type === 'signup' && accessToken && refreshToken) {
         setIsConfirmingEmail(true);
         try {
-          // Set the session from the tokens received
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
@@ -41,7 +55,6 @@ const Auth = () => {
           
           if (data.session?.user) {
             toast.success("Email confirmado! Bem-vindo!");
-            // Clear the hash from URL
             window.history.replaceState(null, '', window.location.pathname);
             navigate("/");
             return;
@@ -53,19 +66,18 @@ const Auth = () => {
       }
     };
 
-    // Handle email confirmation first
-    handleEmailConfirmation();
+    handleRedirects();
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+      if (session?.user && !isResettingPassword) {
         navigate("/");
       }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
+      if (session?.user && !isResettingPassword) {
         setUser(session.user);
         setIsConfirmingEmail(false);
         navigate("/");
@@ -76,7 +88,7 @@ const Auth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, isResettingPassword]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,6 +147,59 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Email de recuperação enviado! Verifique sua caixa de entrada.");
+      setShowForgotPassword(false);
+      setResetEmail("");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao enviar email de recuperação");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Senha atualizada com sucesso!");
+      setIsResettingPassword(false);
+      navigate("/");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao atualizar senha");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Show confirmation message if confirming email
   if (isConfirmingEmail) {
     return (
@@ -147,6 +212,51 @@ const Auth = () => {
           <CardContent className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Aguarde enquanto confirmamos seu email e fazemos login automaticamente.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show password reset form
+  if (isResettingPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-primary">
+              Redefinir Senha
+            </CardTitle>
+            <CardDescription>
+              Digite sua nova senha abaixo
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Nova senha (mínimo 6 caracteres)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Confirmar nova senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Atualizando..." : "Atualizar Senha"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
@@ -200,6 +310,15 @@ const Auth = () => {
                         <Eye className="h-4 w-4" />
                       )}
                     </Button>
+                  </div>
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Esqueci minha senha
+                    </button>
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -271,6 +390,38 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recuperar Senha</DialogTitle>
+            <DialogDescription>
+              Digite seu email para receber um link de recuperação de senha.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handlePasswordReset} className="space-y-4">
+            <Input
+              type="email"
+              placeholder="seu@email.com"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              required
+            />
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowForgotPassword(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={resetLoading}>
+                {resetLoading ? "Enviando..." : "Enviar Link"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
