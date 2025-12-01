@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,94 +26,64 @@ const Auth = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const navigate = useNavigate();
+  
+  // Usar useRef para evitar problemas com closures stale
+  const isResettingPasswordRef = useRef(false);
 
   useEffect(() => {
-    // 1. VERIFICAÇÃO SÍNCRONA PRIMEIRO - previne race condition
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get('type');
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    
-    // Se é recovery, setar flag IMEDIATAMENTE (antes de qualquer async)
-    const isRecoveryFlow = type === 'recovery' && accessToken && refreshToken;
-    if (isRecoveryFlow) {
-      setIsResettingPassword(true);
-    }
+    console.log('Auth useEffect mounted');
 
-    // 2. Função async para lidar com os redirects
-    const handleRedirects = async () => {
-      // Password recovery - estabelecer sessão
-      if (isRecoveryFlow) {
-        try {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken!,
-            refresh_token: refreshToken!
-          });
-          
-          if (error) {
-            toast.error("Link de recuperação inválido ou expirado");
-            setIsResettingPassword(false);
-            return;
-          }
-          
-          // Limpar URL após sucesso
-          window.history.replaceState(null, '', window.location.pathname);
-        } catch (error: any) {
-          toast.error("Link de recuperação inválido ou expirado");
-          setIsResettingPassword(false);
+    // Auth state listener - escuta eventos específicos do Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event received:', event);
+
+      // PASSWORD_RECOVERY é emitido automaticamente pelo SDK quando detecta tokens de recovery
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('Password recovery flow detected');
+        isResettingPasswordRef.current = true;
+        setIsResettingPassword(true);
+        setUser(session?.user ?? null);
+        // Limpa a URL para evitar reprocessamento
+        window.history.replaceState(null, '', window.location.pathname);
+        return;
+      }
+
+      // SIGNED_IN após atualizar senha ou login normal
+      if (event === 'SIGNED_IN') {
+        console.log('User signed in, isResetting:', isResettingPasswordRef.current);
+        setUser(session?.user ?? null);
+        
+        // Só navega para home se NÃO estiver no fluxo de reset de senha
+        if (!isResettingPasswordRef.current) {
+          setIsConfirmingEmail(false);
+          navigate("/");
         }
         return;
       }
 
-      // Email confirmation
-      if (type === 'signup' && accessToken && refreshToken) {
-        setIsConfirmingEmail(true);
-        try {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-
-          if (error) throw error;
-          
-          if (data.session?.user) {
-            toast.success("Email confirmado! Bem-vindo!");
-            window.history.replaceState(null, '', window.location.pathname);
-            navigate("/");
-            return;
-          }
-        } catch (error: any) {
-          toast.error("Erro ao confirmar email: " + error.message);
-          setIsConfirmingEmail(false);
-        }
-      }
-    };
-
-    handleRedirects();
-
-    // 3. Check existing session - APENAS se não for recovery flow
-    if (!isRecoveryFlow) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          navigate("/");
-        }
-      });
-    }
-
-    // 4. Auth state listener - respeita isRecoveryFlow
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // IMPORTANTE: usar closure variable isRecoveryFlow ao invés do state
-      if (session?.user && !isRecoveryFlow) {
-        setUser(session.user);
-        setIsConfirmingEmail(false);
-        navigate("/");
-      } else if (!session) {
+      // SIGNED_OUT
+      if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
         setUser(null);
+        isResettingPasswordRef.current = false;
+        setIsResettingPassword(false);
         setIsConfirmingEmail(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Check existing session (mas não redireciona automaticamente)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Existing session check:', !!session);
+      if (session?.user && !isResettingPasswordRef.current) {
+        setUser(session.user);
+        navigate("/");
+      }
+    });
+
+    return () => {
+      console.log('Auth useEffect cleanup');
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -217,6 +187,7 @@ const Auth = () => {
       if (error) throw error;
       
       toast.success("Senha atualizada com sucesso!");
+      isResettingPasswordRef.current = false;
       setIsResettingPassword(false);
       navigate("/");
     } catch (error: any) {
