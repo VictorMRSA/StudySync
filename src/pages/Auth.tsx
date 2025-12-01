@@ -37,9 +37,22 @@ const Auth = () => {
       const type = hashParams.get('type');
 
       // Check for password recovery
-      if (type === 'recovery' || params.get('reset') === 'true') {
-        setIsResettingPassword(true);
-        return;
+      if (type === 'recovery' && accessToken && refreshToken) {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) throw error;
+          
+          setIsResettingPassword(true);
+          window.history.replaceState(null, '', window.location.pathname);
+          return;
+        } catch (error: any) {
+          toast.error("Link de recuperação inválido ou expirado");
+          setIsResettingPassword(false);
+        }
       }
 
       // Check for email confirmation
