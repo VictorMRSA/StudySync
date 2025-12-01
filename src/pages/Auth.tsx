@@ -28,34 +28,44 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if this is a redirect from password reset or email confirmation
-    const handleRedirects = async () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const params = new URLSearchParams(window.location.search);
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const type = hashParams.get('type');
+    // 1. VERIFICAÇÃO SÍNCRONA PRIMEIRO - previne race condition
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    
+    // Se é recovery, setar flag IMEDIATAMENTE (antes de qualquer async)
+    const isRecoveryFlow = type === 'recovery' && accessToken && refreshToken;
+    if (isRecoveryFlow) {
+      setIsResettingPassword(true);
+    }
 
-      // Check for password recovery
-      if (type === 'recovery' && accessToken && refreshToken) {
+    // 2. Função async para lidar com os redirects
+    const handleRedirects = async () => {
+      // Password recovery - estabelecer sessão
+      if (isRecoveryFlow) {
         try {
           const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
+            access_token: accessToken!,
+            refresh_token: refreshToken!
           });
           
-          if (error) throw error;
+          if (error) {
+            toast.error("Link de recuperação inválido ou expirado");
+            setIsResettingPassword(false);
+            return;
+          }
           
-          setIsResettingPassword(true);
+          // Limpar URL após sucesso
           window.history.replaceState(null, '', window.location.pathname);
-          return;
         } catch (error: any) {
           toast.error("Link de recuperação inválido ou expirado");
           setIsResettingPassword(false);
         }
+        return;
       }
 
-      // Check for email confirmation
+      // Email confirmation
       if (type === 'signup' && accessToken && refreshToken) {
         setIsConfirmingEmail(true);
         try {
@@ -81,27 +91,30 @@ const Auth = () => {
 
     handleRedirects();
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !isResettingPassword) {
-        navigate("/");
-      }
-    });
+    // 3. Check existing session - APENAS se não for recovery flow
+    if (!isRecoveryFlow) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          navigate("/");
+        }
+      });
+    }
 
-    // Listen for auth changes
+    // 4. Auth state listener - respeita isRecoveryFlow
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user && !isResettingPassword) {
+      // IMPORTANTE: usar closure variable isRecoveryFlow ao invés do state
+      if (session?.user && !isRecoveryFlow) {
         setUser(session.user);
         setIsConfirmingEmail(false);
         navigate("/");
-      } else {
+      } else if (!session) {
         setUser(null);
         setIsConfirmingEmail(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, isResettingPassword]);
+  }, [navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
