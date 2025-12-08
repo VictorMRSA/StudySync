@@ -695,7 +695,6 @@ export type Database = {
           experience_points: number
           full_name: string | null
           id: string
-          is_admin: boolean | null
           last_activity_date: string | null
           next_level_xp: number
           streak_days: number
@@ -710,7 +709,6 @@ export type Database = {
           experience_points?: number
           full_name?: string | null
           id: string
-          is_admin?: boolean | null
           last_activity_date?: string | null
           next_level_xp?: number
           streak_days?: number
@@ -725,7 +723,6 @@ export type Database = {
           experience_points?: number
           full_name?: string | null
           id?: string
-          is_admin?: boolean | null
           last_activity_date?: string | null
           next_level_xp?: number
           streak_days?: number
@@ -901,6 +898,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -970,6 +988,13 @@ export type Database = {
         Args: { p_badge_id: string; p_user_id: string }
         Returns: boolean
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin: { Args: { _class_id: string }; Returns: boolean }
       is_member: { Args: { _class_id: string }; Returns: boolean }
       is_user_admin: { Args: never; Returns: boolean }
@@ -1000,6 +1025,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       assignment_type: "exam" | "homework" | "project"
       class_role: "admin" | "member"
       content_status: "pending" | "approved" | "rejected"
@@ -1130,6 +1156,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       assignment_type: ["exam", "homework", "project"],
       class_role: ["admin", "member"],
       content_status: ["pending", "approved", "rejected"],
