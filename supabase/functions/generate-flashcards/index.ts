@@ -6,42 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Função para fazer retry com exponential backoff
-async function fetchWithRetry(
-  url: string, 
-  options: RequestInit, 
-  maxRetries: number = 3,
-  baseDelay: number = 5000
-): Promise<Response> {
-  let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-      
-      // Se for erro 429, fazer retry com backoff
-      if (response.status === 429) {
-        const delay = baseDelay * Math.pow(2, attempt); // 5s, 10s, 20s
-        console.log(`Rate limited (429). Attempt ${attempt + 1}/${maxRetries}. Waiting ${delay/1000}s...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      
-      return response;
-    } catch (error) {
-      lastError = error;
-      console.error(`Attempt ${attempt + 1} failed:`, error);
-      
-      if (attempt < maxRetries - 1) {
-        const delay = baseDelay * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  
-  throw lastError || new Error('Max retries exceeded');
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -49,10 +13,10 @@ serve(async (req) => {
 
   try {
     const { content, title } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     console.log('Generating flashcards for:', title);
@@ -131,29 +95,25 @@ Retorne APENAS um JSON válido neste formato exato, sem markdown:
   ]
 }`;
 
-    // Usar modelo mais estável com retry automático
-    const response = await fetchWithRetry(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.5,
-            maxOutputTokens: 2048,
-          },
-        }),
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
       },
-      3, // maxRetries
-      5000 // baseDelay (5 segundos)
-    );
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: 'Você é um assistente especializado em criar flashcards educacionais de alta qualidade. Retorne sempre JSON válido.' },
+          { role: 'user', content: prompt }
+        ],
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Gemini API error:', errorText);
+      console.error('Lovable AI error:', response.status, errorText);
       
-      // Verificar se é erro de quota
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ 
@@ -164,15 +124,27 @@ Retorne APENAS um JSON válido neste formato exato, sem markdown:
         );
       }
       
-      throw new Error(`Gemini API error: ${response.status}`);
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'payment_required',
+            message: 'Créditos insuficientes. Por favor, adicione créditos à sua conta Lovable.'
+          }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      throw new Error(`Lovable AI error: ${response.status}`);
     }
 
     const data = await response.json();
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const generatedText = data.choices?.[0]?.message?.content;
 
     if (!generatedText) {
       throw new Error('No content generated');
     }
+
+    console.log('Raw response:', generatedText.substring(0, 200));
 
     const cleanedText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const flashcardsData = JSON.parse(cleanedText);
