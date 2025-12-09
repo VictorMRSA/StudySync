@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SimpleNavigation } from '@/components/SimpleNavigation';
 import { toast } from '@/hooks/use-toast';
-import { RotateCcw, Play, MessageCircle } from 'lucide-react';
+import { RotateCcw, Play, MessageCircle, RefreshCw, Loader2 } from 'lucide-react';
 
 interface Flashcard {
   term: string;
@@ -20,12 +20,16 @@ export default function Flashcards() {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [currentCard, setCurrentCard] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [errorState, setErrorState] = useState<'none' | 'quota' | 'error'>('none');
 
   useEffect(() => {
     loadFlashcards();
   }, [materialId]);
 
   const loadFlashcards = async () => {
+    setLoading(true);
+    setErrorState('none');
+    
     try {
       const { data: material } = await supabase
         .from('materials')
@@ -57,14 +61,39 @@ export default function Flashcards() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
-      setFlashcards(data.flashcards);
+      // Verificar se houve erro de quota
+      if (data?.error === 'quota_exceeded') {
+        setErrorState('quota');
+        setLoading(false);
+        return;
+      }
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+      
+      setFlashcards(data.flashcards || []);
       setLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading flashcards:', error);
-      toast({ title: 'Erro ao carregar flashcards', variant: 'destructive' });
-      navigate(-1);
+      
+      // Verificar se é erro de quota pelo status
+      if (error?.status === 429 || error?.message?.includes('quota')) {
+        setErrorState('quota');
+      } else {
+        setErrorState('error');
+        toast({ 
+          title: 'Erro ao carregar flashcards', 
+          description: 'Tente novamente em alguns segundos.',
+          variant: 'destructive' 
+        });
+      }
+      
+      setLoading(false);
     }
   };
 
@@ -90,8 +119,63 @@ export default function Flashcards() {
     return (
       <div className="min-h-screen bg-background">
         <SimpleNavigation />
-        <div className="container mx-auto p-6 flex items-center justify-center min-h-[80vh]">
-          <p className="text-muted-foreground">Gerando flashcards...</p>
+        <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh] gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Gerando flashcards com IA...</p>
+          <p className="text-sm text-muted-foreground/60">Isso pode levar alguns segundos</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Estado de erro de quota
+  if (errorState === 'quota') {
+    return (
+      <div className="min-h-screen bg-background">
+        <SimpleNavigation />
+        <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh] gap-6">
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl font-semibold text-foreground">Limite temporário atingido</h2>
+            <p className="text-muted-foreground max-w-md">
+              O serviço de IA está com muitas requisições no momento. 
+              Aguarde alguns segundos e tente novamente.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button onClick={loadFlashcards} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Tentar Novamente
+            </Button>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              Voltar
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Estado de erro genérico
+  if (errorState === 'error') {
+    return (
+      <div className="min-h-screen bg-background">
+        <SimpleNavigation />
+        <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh] gap-6">
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl font-semibold text-foreground">Erro ao gerar flashcards</h2>
+            <p className="text-muted-foreground max-w-md">
+              Ocorreu um problema ao processar o material. Tente novamente.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button onClick={loadFlashcards} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Tentar Novamente
+            </Button>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              Voltar
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -101,8 +185,17 @@ export default function Flashcards() {
     return (
       <div className="min-h-screen bg-background">
         <SimpleNavigation />
-        <div className="container mx-auto p-6 flex items-center justify-center min-h-[80vh]">
+        <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh] gap-6">
           <p className="text-muted-foreground">Nenhum flashcard gerado.</p>
+          <div className="flex gap-3">
+            <Button onClick={loadFlashcards} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Tentar Novamente
+            </Button>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              Voltar
+            </Button>
+          </div>
         </div>
       </div>
     );
