@@ -44,6 +44,45 @@ export type Database = {
         }
         Relationships: []
       }
+      assignments: {
+        Row: {
+          class_id: number
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: number
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: number
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           description: string | null
@@ -100,26 +139,35 @@ export type Database = {
       classes: {
         Row: {
           created_at: string | null
+          created_by: string | null
           description: string | null
           id: number
+          invite_code: string | null
           name: string
           owner_id: string
+          subject: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: never
+          invite_code?: string | null
           name: string
           owner_id: string
+          subject?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: never
+          invite_code?: string | null
           name?: string
           owner_id?: string
+          subject?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -165,11 +213,16 @@ export type Database = {
       }
       events: {
         Row: {
+          all_day: boolean
           class: string
           created_at: string
           date: string
+          description: string | null
+          end_date: string | null
           id: string
           location: string
+          priority: number
+          start_date: string | null
           time: string
           title: string
           type: string
@@ -177,11 +230,16 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          all_day?: boolean
           class: string
           created_at?: string
           date: string
+          description?: string | null
+          end_date?: string | null
           id?: string
           location: string
+          priority?: number
+          start_date?: string | null
           time: string
           title: string
           type: string
@@ -189,11 +247,16 @@ export type Database = {
           user_id: string
         }
         Update: {
+          all_day?: boolean
           class?: string
           created_at?: string
           date?: string
+          description?: string | null
+          end_date?: string | null
           id?: string
           location?: string
+          priority?: number
+          start_date?: string | null
           time?: string
           title?: string
           type?: string
@@ -455,6 +518,34 @@ export type Database = {
           total_profiles: number
           total_reports: number
           total_users: number
+        }[]
+      }
+      get_class_by_invite: {
+        Args: { invite_code: string }
+        Returns: {
+          description: string
+          id: number
+          invite_code: string
+          name: string
+          owner_id: string
+          subject: string
+        }[]
+      }
+      get_class_members: {
+        Args: { _class_id: number }
+        Returns: {
+          class_id: number
+          id: number
+          joined_at: string
+          role: string
+          user_id: string
+        }[]
+      }
+      get_member_counts: {
+        Args: { _class_ids: number[] }
+        Returns: {
+          class_id: number
+          member_count: number
         }[]
       }
       is_user_admin: { Args: never; Returns: boolean }

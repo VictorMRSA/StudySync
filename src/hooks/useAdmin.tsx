@@ -8,7 +8,7 @@ export const useAdmin = () => {
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        const { data, error } = await supabase.rpc('is_user_admin');
+        const { data, error } = await supabase.rpc('is_user_admin' as any);
         if (error) {
           console.error('Error checking admin status:', error);
           setIsAdmin(false);
@@ -23,10 +23,8 @@ export const useAdmin = () => {
       }
     };
 
-    // Check admin status when component mounts
     checkAdminStatus();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         checkAdminStatus();
