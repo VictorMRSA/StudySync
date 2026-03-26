@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_summaries: {
+        Row: {
+          content: string
+          created_at: string
+          generated_by: string
+          id: string
+          material_id: number | null
+          summary_type: string
+          user_feedback: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          generated_by: string
+          id?: string
+          material_id?: number | null
+          summary_type: string
+          user_feedback?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          generated_by?: string
+          id?: string
+          material_id?: number | null
+          summary_type?: string
+          user_feedback?: string | null
+        }
+        Relationships: []
+      }
+      badges: {
+        Row: {
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       class_memberships: {
         Row: {
           class_id: number
@@ -73,6 +124,45 @@ export type Database = {
         }
         Relationships: []
       }
+      error_reports: {
+        Row: {
+          area: string
+          created_at: string
+          description: string
+          id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          technical_details: Json | null
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          area?: string
+          created_at?: string
+          description: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          technical_details?: Json | null
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          description?: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          technical_details?: Json | null
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           class: string
@@ -117,9 +207,13 @@ export type Database = {
           class_id: number
           created_at: string | null
           description: string | null
+          extracted_text: string | null
+          file_name: string | null
           file_size: number | null
           file_type: string | null
+          file_url: string | null
           id: number
+          status: string | null
           storage_path: string
           title: string
           uploaded_by: string
@@ -128,9 +222,13 @@ export type Database = {
           class_id: number
           created_at?: string | null
           description?: string | null
+          extracted_text?: string | null
+          file_name?: string | null
           file_size?: number | null
           file_type?: string | null
+          file_url?: string | null
           id?: never
+          status?: string | null
           storage_path: string
           title: string
           uploaded_by: string
@@ -139,9 +237,13 @@ export type Database = {
           class_id?: number
           created_at?: string | null
           description?: string | null
+          extracted_text?: string | null
+          file_name?: string | null
           file_size?: number | null
           file_type?: string | null
+          file_url?: string | null
           id?: never
+          status?: string | null
           storage_path?: string
           title?: string
           uploaded_by?: string
@@ -156,33 +258,84 @@ export type Database = {
           },
         ]
       }
-      profiles: {
+      notifications: {
         Row: {
-          avatar_url: string | null
-          created_at: string | null
-          full_name: string | null
-          id: number
-          role: string | null
-          updated_at: string | null
+          created_at: string
+          id: string
+          link: string | null
+          message: string | null
+          read: boolean
+          title: string
+          type: string
           user_id: string
         }
         Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          full_name?: string | null
-          id?: never
-          role?: string | null
-          updated_at?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          message?: string | null
+          read?: boolean
+          title: string
+          type?: string
           user_id: string
         }
         Update: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          message?: string | null
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          current_level: number
+          experience_points: number
+          full_name: string | null
+          id: number
+          next_level_xp: number
+          role: string | null
+          streak_days: number
+          updated_at: string | null
+          user_id: string
+          username: string | null
+        }
+        Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string | null
+          current_level?: number
+          experience_points?: number
           full_name?: string | null
           id?: never
+          next_level_xp?: number
           role?: string | null
+          streak_days?: number
+          updated_at?: string | null
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          current_level?: number
+          experience_points?: number
+          full_name?: string | null
+          id?: never
+          next_level_xp?: number
+          role?: string | null
+          streak_days?: number
           updated_at?: string | null
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -242,12 +395,69 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          badge_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_admin_stats: {
+        Args: never
+        Returns: {
+          pending_reports: number
+          total_classes: number
+          total_profiles: number
+          total_reports: number
+          total_users: number
+        }[]
+      }
+      is_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
