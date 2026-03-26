@@ -40,7 +40,7 @@ const AISummaryGenerator: React.FC = () => {
       if (error) throw error;
       setUserClasses(data || []);
       if (data && data.length > 0) {
-        setSelectedClassId(data[0].id);
+        setSelectedClassId(String(data[0].id));
       }
     } catch (error) {
       console.error('Erro ao carregar turmas:', error);
@@ -127,36 +127,37 @@ const AISummaryGenerator: React.FC = () => {
       const { data: material, error: materialError } = await supabase
         .from('materials')
         .insert({
-          class_id: selectedClassId,
+          class_id: parseInt(selectedClassId),
           title: materialTitle,
           description: `Resumo de IA gerado: ${summaryType}`,
           uploaded_by: user.id,
           file_type: currentFileName ? currentFileName.split('.').pop()?.toUpperCase() : 'TEXT',
+          storage_path: 'ai-generated',
           file_name: currentFileName || 'Texto manual',
-          file_url: content, // Backward compatibility - will become Storage URL in Phase 2B
-          extracted_text: content, // Phase 2A: New field for extracted content
+          file_url: content,
+          extracted_text: content,
           status: 'approved'
-        })
+        } as any)
         .select()
         .single();
 
       if (materialError) throw materialError;
 
       // Save AI summary
-      const { data: summaryData, error: summaryError } = await supabase
-        .from('ai_summaries')
+      const { data: summaryData, error: summaryError } = await (supabase
+        .from('ai_summaries' as any)
         .insert({
           material_id: material.id,
           summary_type: summaryType,
           content: result,
           generated_by: user.id
-        })
+        }) as any)
         .select()
         .single();
 
       if (summaryError) throw summaryError;
 
-      setSavedSummaryId(summaryData.id);
+      setSavedSummaryId(String(summaryData.id));
 
       toast({
         title: 'Salvo com sucesso!',
@@ -183,9 +184,9 @@ const AISummaryGenerator: React.FC = () => {
           ? 'Análise aprovada pelo usuário' 
           : 'Usuário solicitou melhoria na análise';
         
-        const { error } = await supabase
-          .from('ai_summaries')
-          .update({ user_feedback: feedbackText })
+        const { error } = await (supabase
+          .from('ai_summaries' as any)
+          .update({ user_feedback: feedbackText }) as any)
           .eq('id', savedSummaryId);
 
         if (error) throw error;
