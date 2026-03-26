@@ -26,9 +26,9 @@ export const useGamification = () => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('experience_points, current_level, next_level_xp, streak_days')
-        .eq('id', user.id)
-        .single();
+        .select('experience_points, current_level, next_level_xp, streak_days' as any)
+        .eq('user_id', user.id)
+        .single() as any;
 
       if (profile) {
         setData({
@@ -52,9 +52,9 @@ export const useGamification = () => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('experience_points, current_level')
-        .eq('id', user.id)
-        .single();
+        .select('experience_points, current_level' as any)
+        .eq('user_id', user.id)
+        .single() as any;
 
       if (profile) {
         const oldLevel = profile.current_level;
@@ -62,10 +62,10 @@ export const useGamification = () => {
 
         const { data: updated } = await supabase
           .from('profiles')
-          .update({ experience_points: newXp })
-          .eq('id', user.id)
-          .select('current_level, next_level_xp')
-          .single();
+          .update({ experience_points: newXp } as any)
+          .eq('user_id', user.id)
+          .select('current_level, next_level_xp' as any)
+          .single() as any;
 
         if (updated && updated.current_level > oldLevel) {
           toast({
@@ -91,17 +91,17 @@ export const useGamification = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: badge } = await supabase
-        .from('badges')
+      const { data: badge } = await (supabase
+        .from('badges' as any)
         .select('id')
         .eq('name', badgeName)
-        .single();
+        .single() as any);
 
       if (!badge) return;
 
-      const { error } = await supabase
-        .from('user_badges')
-        .insert({ user_id: user.id, badge_id: badge.id });
+      const { error } = await (supabase
+        .from('user_badges' as any)
+        .insert({ user_id: user.id, badge_id: badge.id }) as any);
 
       if (!error) {
         toast({
