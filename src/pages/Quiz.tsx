@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -80,14 +81,7 @@ export default function Quiz() {
 
       const content = summaries?.[0]?.content || material.description || material.title;
 
-      const { data, error } = await supabase.functions.invoke('generate-quiz', {
-        body: { 
-          content,
-          title: material.title 
-        }
-      });
-
-      if (error) throw error;
+      const data = await api.generateQuiz(content, material.title);
       
       setQuestions(data.questions);
       setLoading(false);

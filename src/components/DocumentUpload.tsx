@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Upload, FileText, File, Loader2, X, Download } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import * as pdfjsLib from 'pdfjs-dist';
 
 interface UploadedFile {
@@ -154,14 +154,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
       }
       // For other binary files (Word, PowerPoint), use edge function
       else {
-        const formData = new FormData();
-        formData.append('file', uploadedFile.file);
-        
-        const { data, error } = await supabase.functions.invoke('parse-document', {
-          body: formData
-        });
-        
-        if (error) throw error;
+        const data = await api.uploadDocument(uploadedFile.file);
         
         if (data.success && data.content) {
           setUploadedFiles(prev => prev.map(f => 

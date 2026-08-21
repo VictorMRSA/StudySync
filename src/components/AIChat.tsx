@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { MessageCircle, Send, Bot, User, Loader2 } from 'lucide-react';
 import { MarkdownContentCompact } from '@/components/MarkdownContentCompact';
 
@@ -62,17 +62,10 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage }) => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('gemini-chat', {
-        body: {
-          message: messageText,
-          history: messages.map(msg => ({
-            role: msg.role,
-            parts: msg.parts
-          }))
-        }
-      });
-
-      if (error) throw error;
+      const data = await api.chat(messageText, messages.map(msg => ({
+        role: msg.role,
+        parts: msg.parts
+      })));
 
       if (data.success) {
         const botMessage: Message = {

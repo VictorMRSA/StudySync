@@ -27,8 +27,11 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
 CREATE POLICY "Users can view own notifications" ON public.notifications FOR SELECT TO authenticated USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
 CREATE POLICY "Users can update own notifications" ON public.notifications FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "System can insert notifications" ON public.notifications;
 CREATE POLICY "System can insert notifications" ON public.notifications FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 
 -- Create error_reports table
@@ -45,7 +48,9 @@ CREATE TABLE IF NOT EXISTS public.error_reports (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.error_reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can insert own error reports" ON public.error_reports;
 CREATE POLICY "Users can insert own error reports" ON public.error_reports FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "Users can view own error reports" ON public.error_reports;
 CREATE POLICY "Users can view own error reports" ON public.error_reports FOR SELECT TO authenticated USING (user_id = auth.uid());
 
 -- Create ai_summaries table
@@ -59,6 +64,7 @@ CREATE TABLE IF NOT EXISTS public.ai_summaries (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.ai_summaries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own summaries" ON public.ai_summaries;
 CREATE POLICY "Users can manage own summaries" ON public.ai_summaries FOR ALL TO authenticated USING (generated_by = auth.uid()) WITH CHECK (generated_by = auth.uid());
 
 -- Create badges table
@@ -69,6 +75,7 @@ CREATE TABLE IF NOT EXISTS public.badges (
   icon text
 );
 ALTER TABLE public.badges ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can view badges" ON public.badges;
 CREATE POLICY "Anyone can view badges" ON public.badges FOR SELECT TO authenticated USING (true);
 
 -- Create user_badges table
@@ -80,7 +87,9 @@ CREATE TABLE IF NOT EXISTS public.user_badges (
   UNIQUE(user_id, badge_id)
 );
 ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own badges" ON public.user_badges;
 CREATE POLICY "Users can view own badges" ON public.user_badges FOR SELECT TO authenticated USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "Users can earn badges" ON public.user_badges;
 CREATE POLICY "Users can earn badges" ON public.user_badges FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 
 -- Create user_roles table for admin
@@ -91,6 +100,7 @@ CREATE TABLE IF NOT EXISTS public.user_roles (
   UNIQUE(user_id, role)
 );
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own roles" ON public.user_roles;
 CREATE POLICY "Users can view own roles" ON public.user_roles FOR SELECT TO authenticated USING (user_id = auth.uid());
 
 -- Create is_user_admin function
@@ -108,6 +118,7 @@ AS $$
 $$;
 
 -- Create get_admin_stats function
+DROP FUNCTION IF EXISTS public.get_admin_stats();
 CREATE OR REPLACE FUNCTION public.get_admin_stats()
 RETURNS TABLE(total_users bigint, total_profiles bigint, total_classes bigint, total_reports bigint, pending_reports bigint)
 LANGUAGE plpgsql
@@ -128,7 +139,9 @@ END;
 $$;
 
 -- Admin policies for error_reports
+DROP POLICY IF EXISTS "Admins can view all error reports" ON public.error_reports;
 CREATE POLICY "Admins can view all error reports" ON public.error_reports FOR SELECT TO authenticated USING (public.is_user_admin());
+DROP POLICY IF EXISTS "Admins can update error reports" ON public.error_reports;
 CREATE POLICY "Admins can update error reports" ON public.error_reports FOR UPDATE TO authenticated USING (public.is_user_admin());
 
 -- Create profile auto-creation trigger

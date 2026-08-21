@@ -86,7 +86,7 @@ const Profile = () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("id", user.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -119,7 +119,7 @@ const Profile = () => {
       const { data, error } = await supabase
         .from("profiles")
         .insert({
-          user_id: user.id,
+          id: user.id,
           username: defaultUsername,
           full_name: "",
           bio: ""
@@ -163,7 +163,7 @@ const Profile = () => {
           full_name: formData.full_name,
           bio: formData.bio
         } as any)
-        .eq("user_id", user.id);
+        .eq("id", user.id);
 
       if (error) {
         if (error.code === "23505") {
@@ -223,7 +223,7 @@ const Profile = () => {
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ avatar_url: publicUrl })
-        .eq("user_id", user.id);
+        .eq("id", user.id);
 
       if (updateError) throw updateError;
 
@@ -253,7 +253,7 @@ const Profile = () => {
       const { error } = await supabase
         .from("profiles")
         .update({ avatar_url: null })
-        .eq("user_id", user.id);
+        .eq("id", user.id);
 
       if (error) throw error;
 

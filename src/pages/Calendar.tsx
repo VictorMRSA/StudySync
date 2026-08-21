@@ -255,17 +255,18 @@ const Calendar = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const startDate = new Date(editEvent.start_date);
-    startDate.setHours(0, 0, 0, 0);
-    
-    // Validação 1: Data de início não pode ser no passado
-    if (startDate < today) {
-      toast({
-        title: "Erro de Validação",
-        description: "A data de início não pode ser anterior à data atual.",
-        variant: "destructive"
-      });
-      return false;
+    // Validação 1: Data de fim não pode ser no passado
+    if (editEvent.end_date) {
+      const endDate = new Date(editEvent.end_date);
+      endDate.setHours(0, 0, 0, 0);
+      if (endDate < today) {
+        toast({
+          title: "Erro de Validação",
+          description: "A data de fim não pode ser anterior à data atual.",
+          variant: "destructive"
+        });
+        return false;
+      }
     }
     
     // Validação 2: Se há data de fim, não pode ser anterior à data de início
@@ -300,17 +301,18 @@ const Calendar = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const startDate = new Date(newEvent.start_date);
-    startDate.setHours(0, 0, 0, 0);
-    
-    // Validação 1: Data de início não pode ser no passado
-    if (startDate < today) {
-      toast({
-        title: "Erro de Validação",
-        description: "A data de início não pode ser anterior à data atual.",
-        variant: "destructive"
-      });
-      return false;
+    // Validação 1: Data de fim não pode ser no passado
+    if (newEvent.end_date) {
+      const endDate = new Date(newEvent.end_date);
+      endDate.setHours(0, 0, 0, 0);
+      if (endDate < today) {
+        toast({
+          title: "Erro de Validação",
+          description: "A data de fim não pode ser anterior à data atual.",
+          variant: "destructive"
+        });
+        return false;
+      }
     }
     
     // Validação 2: Se há data de fim, não pode ser anterior à data de início
@@ -818,9 +820,11 @@ const Calendar = () => {
               components={{
                 DayContent: ({ date }) => {
                   const dateStr = date.toISOString().split('T')[0];
-                  const dayEvents = events.filter(event => 
-                    event.start_date.split('T')[0] === dateStr
-                  );
+                  const dayEvents = events.filter(event => {
+                    const onStart = event.start_date.split('T')[0] === dateStr;
+                    const onEnd = event.end_date && event.end_date.split('T')[0] === dateStr;
+                    return onStart || onEnd;
+                  });
                   
                   return (
                     <div className="relative w-full h-full flex flex-col items-center justify-center">

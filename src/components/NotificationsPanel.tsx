@@ -45,9 +45,10 @@ export const NotificationsPanel = () => {
   useEffect(() => {
     fetchNotifications();
 
-    // Real-time updates
+    // Real-time updates — use unique channel name to avoid conflicts on re-mount
+    const channelName = `notifications-changes-${Date.now()}`;
     const channel = supabase
-      .channel('notifications-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

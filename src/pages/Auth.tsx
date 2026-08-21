@@ -91,6 +91,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting sign in with email:', email);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -99,7 +100,12 @@ const Auth = () => {
       if (error) throw error;
       toast.success("Login realizado com sucesso!");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer login");
+      console.error('Sign in error:', error);
+      if (error.message?.includes('fetch') || error.message?.includes('network') || error.name === 'TypeError') {
+        toast.error("Erro de conexão com o Supabase. Verifique se o projeto está ativo.");
+      } else {
+        toast.error(error.message || "Erro ao fazer login");
+      }
     } finally {
       setLoading(false);
     }

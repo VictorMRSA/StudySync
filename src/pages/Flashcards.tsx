@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SimpleNavigation } from '@/components/SimpleNavigation';
@@ -55,16 +56,7 @@ export default function Flashcards() {
       // Priorizar: resumo da IA > texto completo > descrição > título
       const content = summaries?.[0]?.content || material.file_url || material.description || material.title;
 
-      const { data, error } = await supabase.functions.invoke('generate-flashcards', {
-        body: { 
-          content: content,
-          title: material.title 
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
+      const data = await api.generateFlashcards(content, material.title);
       
       // Verificar se houve erro de quota
       if (data?.error === 'quota_exceeded') {

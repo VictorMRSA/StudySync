@@ -117,8 +117,9 @@ export const useGamification = () => {
   useEffect(() => {
     fetchGamificationData();
 
+    const channelName = `profile-changes-${Date.now()}`;
     const channel = supabase
-      .channel('profile-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

@@ -13,7 +13,8 @@ END $$;
 
 -- Keep a single trigger that adds the creator as admin
 -- Optionally, ensure our intended trigger exists
-CREATE TRIGGER IF NOT EXISTS on_class_created_add_creator
+DROP TRIGGER IF EXISTS on_class_created_add_creator ON public.classes;
+CREATE TRIGGER on_class_created_add_creator
 AFTER INSERT ON public.classes
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_new_class();

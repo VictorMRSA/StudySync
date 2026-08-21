@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { FileText, Loader2, Sparkles, Upload, Save, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
 import { Input } from '@/components/ui/input';
@@ -82,11 +83,7 @@ const AISummaryGenerator: React.FC = () => {
         requestBody.feedback = userFeedback;
       }
 
-      const { data, error } = await supabase.functions.invoke('gemini-summarize', {
-        body: requestBody
-      });
-
-      if (error) throw error;
+      const data = await api.summarize(content.trim(), summaryType, userFeedback);
 
       if (data.success) {
         setResult(data.result);

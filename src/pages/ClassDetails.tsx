@@ -119,7 +119,7 @@ const ClassDetails = () => {
       const { data: classInfo, error: classError } = await supabase
         .from("classes")
         .select("*")
-        .eq("id", parseInt(id))
+        .eq("id", id)
         .single();
 
       if (classError) throw classError;
@@ -127,9 +127,9 @@ const ClassDetails = () => {
 
       // Fetch user role
       const { data: memberData, error: memberError } = await supabase
-        .from("class_memberships")
+        .from("class_members")
         .select("role")
-        .eq("class_id" as any, parseInt(id))
+        .eq("class_id" as any, id)
         .eq("user_id" as any, currentUserId)
         .single();
 
@@ -138,14 +138,14 @@ const ClassDetails = () => {
 
       // Fetch all members with profile data using RPC
       const { data: membersData, error: membersError } = await supabase
-        .rpc("get_class_members" as any, { _class_id: parseInt(id) });
+        .rpc("get_class_members" as any, { _class_id: id });
 
       if (membersError) {
         console.error("Erro ao buscar membros:", membersError);
         const { data: fallbackData } = await supabase
-          .from("class_memberships")
+          .from("class_members")
           .select("*")
-          .eq("class_id" as any, parseInt(id))
+          .eq("class_id" as any, id)
           .eq("user_id" as any, currentUserId);
         setMembers((fallbackData || []) as any);
       } else {
@@ -153,12 +153,12 @@ const ClassDetails = () => {
           const memberIds = (membersData as any[]).map((m: any) => m.user_id);
           const { data: profilesData } = await supabase
             .from("profiles")
-            .select("user_id, username, full_name, avatar_url" as any)
-            .in("user_id" as any, memberIds);
+            .select("id, username, full_name, avatar_url")
+            .in("id", memberIds);
 
           const membersWithProfiles = (membersData as any[]).map((member: any) => ({
             ...member,
-            profiles: (profilesData as any[])?.find((profile: any) => profile.user_id === member.user_id)
+            profiles: (profilesData as any[])?.find((profile: any) => profile.id === member.user_id)
           }));
           
           setMembers(membersWithProfiles as any);
@@ -171,7 +171,7 @@ const ClassDetails = () => {
       const { data: materialsData, error: materialsError } = await supabase
         .from("materials")
         .select("*")
-        .eq("class_id" as any, parseInt(id))
+        .eq("class_id" as any, id)
         .order("created_at", { ascending: false });
 
       if (materialsError) throw materialsError;
@@ -181,7 +181,7 @@ const ClassDetails = () => {
       const { data: assignmentsData, error: assignmentsError } = await (supabase
         .from("assignments" as any)
         .select("*")
-        .eq("class_id", parseInt(id)) as any)
+        .eq("class_id", id) as any)
         .order("created_at", { ascending: false });
 
       if (assignmentsError) throw assignmentsError;
@@ -203,11 +203,10 @@ const ClassDetails = () => {
       const { error } = await supabase
         .from("materials")
         .insert({
-          class_id: parseInt(id!),
+          class_id: id!,
           title: materialForm.title,
           description: materialForm.description,
           uploaded_by: currentUserId,
-          storage_path: 'manual-upload',
           status: userRole === 'admin' ? 'approved' : 'pending'
         } as any);
 
@@ -230,7 +229,7 @@ const ClassDetails = () => {
       const { error } = await (supabase
         .from("assignments" as any)
         .insert({
-          class_id: parseInt(id!),
+          class_id: id!,
           title: assignmentForm.title,
           description: assignmentForm.description,
           type: assignmentForm.type,

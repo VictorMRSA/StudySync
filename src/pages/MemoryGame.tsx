@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SimpleNavigation } from '@/components/SimpleNavigation';
@@ -75,14 +76,7 @@ export default function MemoryGame() {
 
       const content = summaries?.[0]?.content || material.description || material.title;
 
-      const { data, error } = await supabase.functions.invoke('generate-flashcards', {
-        body: { 
-          content,
-          title: material.title 
-        }
-      });
-
-      if (error) throw error;
+      const data = await api.generateFlashcards(content, material.title);
       
       const flashcards: Flashcard[] = data.flashcards;
       const memoryCards: MemoryCard[] = [];
