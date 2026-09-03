@@ -43,27 +43,47 @@ export const NotificationsPanel = () => {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    // Real-time updates — use unique channel name to avoid conflicts on re-mount
-    const channelName = `notifications-changes-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications'
-        },
-        () => {
-          fetchNotifications();
-        }
-      )
-      .subscribe();
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await fetchNotifications();
+
+      // Use a stable channel name tied to the user to avoid duplicate subscriptions
+      const channelName = `notifications-${user.id}`;
+
+      // Remove any existing channel with this name before creating a new one
+      const existing = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
+      if (existing) {
+        await supabase.removeChannel(existing);
+      }
+
+      // Create channel, add listener BEFORE subscribing
+      channel = supabase.channel(channelName);
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            fetchNotifications();
+          }
+        )
+        .subscribe();
+    };
+
+    setupRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
