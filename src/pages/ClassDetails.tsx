@@ -335,7 +335,7 @@ const ClassDetails = () => {
           subject: classForm.subject,
           description: classForm.description
         } as any)
-        .eq("id", parseInt(id!));
+        .eq("id", id!);
 
       if (error) throw error;
       
@@ -355,7 +355,7 @@ const ClassDetails = () => {
       const { error } = await supabase
         .from("classes")
         .delete()
-        .eq("id", parseInt(id!));
+        .eq("id", id!);
 
       if (error) throw error;
       
