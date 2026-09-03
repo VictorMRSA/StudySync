@@ -185,7 +185,7 @@ const Classes = () => {
 
       // Find the class by invite code using secure RPC function
       const { data: classData, error: classError } = await supabase
-        .rpc("get_class_by_invite", { _invite_code: inviteCode })
+        .rpc("get_class_by_invite", { invite_code: inviteCode })
         .maybeSingle();
         
       console.log("Resultado da busca:", { classData, classError });
