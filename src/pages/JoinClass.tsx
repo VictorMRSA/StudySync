@@ -60,7 +60,7 @@ const JoinClass = () => {
     try {
       // Find class by invite code using secure RPC function
       const { data: classInfo, error: classError } = await supabase
-        .rpc("get_class_by_invite", { invite_code: inviteCode })
+        .rpc("get_class_by_invite", { _invite_code: inviteCode })
         .maybeSingle();
 
       if (classError || !classInfo) {
