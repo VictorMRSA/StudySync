@@ -1,18 +1,18 @@
-import { useState } from "react";
+// @ts-nocheck
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import ReportErrorButton from "@/components/ReportErrorButton";
-import { 
-  Trophy, 
-  Flame, 
-  Zap, 
-  BookOpen, 
-  Users, 
-  Calendar,
-  Award,
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Trophy,
+  Flame,
+  Zap,
+  BookOpen,
+  Users,
   Target,
   TrendingUp,
   Crown,
@@ -21,144 +21,124 @@ import {
   CheckCircle,
   Clock,
   Medal,
-  Sparkles
+  Sparkles,
+  GraduationCap,
+  FileText,
 } from "lucide-react";
+
+const iconMap: Record<string, any> = {
+  Users, Flame, Trophy, Crown, FileText, BookOpen, Star, Sparkles, Zap,
+  GraduationCap, Target, Medal,
+};
+
+const categoryIconMap: Record<string, any> = {
+  social: Users,
+  streak: Flame,
+  materials: BookOpen,
+  study: Target,
+  level: Crown,
+  special: Sparkles,
+};
+
+const difficultyLabel: Record<string, string> = {
+  easy: "Fácil",
+  medium: "Médio",
+  hard: "Difícil",
+  legendary: "Lendário",
+};
+
+const difficultyColors: Record<string, string> = {
+  easy: "text-success bg-success/10 border-success/20",
+  medium: "text-warning bg-warning/10 border-warning/20",
+  hard: "text-destructive bg-destructive/10 border-destructive/20",
+  legendary: "text-accent bg-accent/10 border-accent/20",
+};
+
+interface Achievement {
+  id: string;
+  key: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: string;
+  difficulty: string;
+  xp_reward: number;
+  requirement_type: string;
+  requirement_value: number;
+  // from user_achievements join
+  current_progress: number;
+  unlocked: boolean;
+  unlocked_at: string | null;
+}
 
 const Achievements = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const achievements = [
-    {
-      id: 1,
-      title: "Primeira Turma",
-      description: "Criou sua primeira turma de estudos",
-      icon: "🎯",
-      category: "social",
-      difficulty: "easy",
-      xpReward: 100,
-      unlocked: true,
-      unlockedDate: "2024-01-15",
-      progress: 100,
-      type: "milestone"
-    },
-    {
-      id: 2,
-      title: "Sequência de Fogo",
-      description: "Manteve 7 dias consecutivos de estudo",
-      icon: "🔥",
-      category: "streak",
-      difficulty: "medium",
-      xpReward: 200,
-      unlocked: true,
-      unlockedDate: "2024-01-12",
-      progress: 100,
-      type: "streak"
-    },
-    {
-      id: 3,
-      title: "Colaborador Ativo",
-      description: "Compartilhou 10+ materiais de estudo",
-      icon: "📚",
-      category: "materials",
-      difficulty: "medium",
-      xpReward: 250,
-      unlocked: true,
-      unlockedDate: "2024-01-10",
-      progress: 100,
-      type: "progress"
-    },
-    {
-      id: 4,
-      title: "Mentor da Turma",
-      description: "Ajudou 5+ colegas com dúvidas",
-      icon: "👨‍🏫",
-      category: "social",
-      difficulty: "hard",
-      xpReward: 300,
-      unlocked: false,
-      progress: 60,
-      type: "progress",
-      requirement: "3/5 colegas ajudados"
-    },
-    {
-      id: 5,
-      title: "Especialista",
-      description: "Alcance o nível 10 no sistema",
-      icon: "⭐",
-      category: "level",
-      difficulty: "hard",
-      xpReward: 500,
-      unlocked: false,
-      progress: 30,
-      type: "milestone",
-      requirement: "Nível 5/10"
-    },
-    {
-      id: 6,
-      title: "Maratonista",
-      description: "30 dias consecutivos de estudo",
-      icon: "🏃‍♂️",
-      category: "streak",
-      difficulty: "legendary",
-      xpReward: 750,
-      unlocked: false,
-      progress: 23,
-      type: "streak",
-      requirement: "7/30 dias"
-    },
-    {
-      id: 7,
-      title: "Colecionador",
-      description: "Baixou 50+ materiais diferentes",
-      icon: "📂",
-      category: "materials",
-      difficulty: "medium",
-      xpReward: 200,
-      unlocked: false,
-      progress: 76,
-      type: "progress",
-      requirement: "38/50 materiais"
-    },
-    {
-      id: 8,
-      title: "Líder Estudantil",
-      description: "Criou 3+ turmas ativas",
-      icon: "👑",
-      category: "social",
-      difficulty: "hard",
-      xpReward: 400,
-      unlocked: false,
-      progress: 33,
-      type: "progress",
-      requirement: "1/3 turmas"
-    },
-    {
-      id: 9,
-      title: "Dedicado",
-      description: "Estudou por 100+ horas totais",
-      icon: "⏰",
-      category: "study",
-      difficulty: "hard",
-      xpReward: 300,
-      unlocked: false,
-      progress: 84,
-      type: "progress",
-      requirement: "84/100 horas"
-    },
-    {
-      id: 10,
-      title: "Lenda do Study Sync",
-      description: "Desbloqueou todas as outras conquistas",
-      icon: "🏆",
-      category: "special",
-      difficulty: "legendary",
-      xpReward: 1000,
-      unlocked: false,
-      progress: 30,
-      type: "special",
-      requirement: "3/10 conquistas"
+  useEffect(() => {
+    fetchAchievements();
+  }, []);
+
+  const fetchAchievements = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch all achievement definitions
+      const { data: defs, error: defsError } = await supabase
+        .from("achievements")
+        .select("*")
+        .order("difficulty", { ascending: true });
+
+      if (defsError) throw defsError;
+
+      // Fetch this user's progress
+      const { data: userProgress, error: progressError } = await supabase
+        .from("user_achievements")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (progressError) throw progressError;
+
+      // Merge definitions with user progress
+      const merged: Achievement[] = (defs || []).map((def) => {
+        const progress = (userProgress || []).find(
+          (p) => p.achievement_id === def.id
+        );
+        return {
+          ...def,
+          current_progress: progress?.current_progress ?? 0,
+          unlocked: progress?.unlocked ?? false,
+          unlocked_at: progress?.unlocked_at ?? null,
+        };
+      });
+
+      setAchievements(merged);
+    } catch (err) {
+      console.error("Erro ao carregar conquistas:", err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const getProgressPercent = (a: Achievement) => {
+    if (a.unlocked) return 100;
+    if (a.requirement_value === 0) return 0;
+    return Math.min(
+      Math.round((a.current_progress / a.requirement_value) * 100),
+      99
+    );
+  };
+
+  const getRequirementLabel = (a: Achievement) => {
+    if (a.requirement_type === "streak")
+      return `${a.current_progress}/${a.requirement_value} dias`;
+    if (a.requirement_type === "milestone")
+      return `Nível ${a.current_progress}/${a.requirement_value}`;
+    return `${a.current_progress}/${a.requirement_value}`;
+  };
 
   const categories = [
     { id: "all", name: "Todas", icon: Trophy },
@@ -167,87 +147,96 @@ const Achievements = () => {
     { id: "materials", name: "Materiais", icon: BookOpen },
     { id: "study", name: "Estudo", icon: Target },
     { id: "level", name: "Nível", icon: Crown },
-    { id: "special", name: "Especiais", icon: Sparkles }
+    { id: "special", name: "Especiais", icon: Sparkles },
   ];
 
-  const difficultyColors = {
-    easy: "text-success bg-success/10 border-success/20",
-    medium: "text-warning bg-warning/10 border-warning/20",
-    hard: "text-destructive bg-destructive/10 border-destructive/20",
-    legendary: "text-accent bg-accent/10 border-accent/20"
-  };
-
-  const filteredAchievements = achievements.filter(achievement => 
-    selectedCategory === "all" || achievement.category === selectedCategory
+  const filtered = achievements.filter(
+    (a) => selectedCategory === "all" || a.category === selectedCategory
   );
 
   const stats = {
     total: achievements.length,
-    unlocked: achievements.filter(a => a.unlocked).length,
-    totalXP: achievements.filter(a => a.unlocked).reduce((sum, a) => sum + a.xpReward, 0),
-    inProgress: achievements.filter(a => !a.unlocked && a.progress > 0).length
+    unlocked: achievements.filter((a) => a.unlocked).length,
+    totalXP: achievements
+      .filter((a) => a.unlocked)
+      .reduce((sum, a) => sum + a.xp_reward, 0),
+    inProgress: achievements.filter(
+      (a) => !a.unlocked && a.current_progress > 0
+    ).length,
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header - Hierarquia */}
-        <div className="text-center space-y-4">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-foreground flex items-center justify-center gap-3">
-              <Trophy className="w-10 h-10 text-warning" />
-              Conquistas
-            </h1>
-            <p className="text-base text-muted-foreground">Acompanhe seu progresso e desbloqueie novas conquistas</p>
-          </div>
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold text-foreground flex items-center justify-center gap-3">
+            <Trophy className="w-10 h-10 text-warning" />
+            Conquistas
+          </h1>
+          <p className="text-base text-muted-foreground">
+            Acompanhe seu progresso e desbloqueie novas conquistas
+          </p>
         </div>
 
-        {/* Stats Overview - Proximidade (gap-4) */}
+        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-4 shadow-soft border-l-4 border-primary">
             <div className="space-y-2 text-center">
               <div className="w-10 h-10 mx-auto rounded-full bg-gradient-primary flex items-center justify-center">
                 <Trophy className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div className="text-2xl font-bold text-foreground">{stats.unlocked}</div>
+              <div className="text-2xl font-bold text-foreground">
+                {loading ? <Skeleton className="h-8 w-10 mx-auto" /> : stats.unlocked}
+              </div>
               <p className="text-sm text-muted-foreground">Desbloqueadas</p>
             </div>
           </Card>
-          
+
           <Card className="p-4 shadow-soft border-l-4 border-xp">
             <div className="space-y-2 text-center">
               <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-r from-accent to-primary flex items-center justify-center">
                 <Zap className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div className="text-2xl font-bold text-foreground">{stats.totalXP}</div>
+              <div className="text-2xl font-bold text-foreground">
+                {loading ? <Skeleton className="h-8 w-12 mx-auto" /> : stats.totalXP}
+              </div>
               <p className="text-sm text-muted-foreground">XP Total</p>
             </div>
           </Card>
-          
+
           <Card className="p-4 shadow-soft border-l-4 border-warning">
             <div className="space-y-2 text-center">
               <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-r from-warning to-success flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div className="text-2xl font-bold text-foreground">{stats.inProgress}</div>
+              <div className="text-2xl font-bold text-foreground">
+                {loading ? <Skeleton className="h-8 w-8 mx-auto" /> : stats.inProgress}
+              </div>
               <p className="text-sm text-muted-foreground">Em Progresso</p>
             </div>
           </Card>
-          
+
           <Card className="p-4 shadow-soft border-l-4 border-success">
             <div className="space-y-2 text-center">
               <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-r from-success to-accent flex items-center justify-center">
                 <Target className="w-5 h-5 text-primary-foreground" />
               </div>
               <div className="text-2xl font-bold text-foreground">
-                {Math.round((stats.unlocked / stats.total) * 100)}%
+                {loading ? (
+                  <Skeleton className="h-8 w-12 mx-auto" />
+                ) : stats.total > 0 ? (
+                  `${Math.round((stats.unlocked / stats.total) * 100)}%`
+                ) : (
+                  "0%"
+                )}
               </div>
               <p className="text-sm text-muted-foreground">Completo</p>
             </div>
           </Card>
         </div>
 
-        {/* Progress Overview */}
+        {/* Progress overview */}
         <Card className="p-6 shadow-medium">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -256,14 +245,17 @@ const Achievements = () => {
                 {stats.unlocked} de {stats.total}
               </Badge>
             </div>
-            <Progress value={(stats.unlocked / stats.total) * 100} className="h-3" />
+            <Progress
+              value={stats.total > 0 ? (stats.unlocked / stats.total) * 100 : 0}
+              className="h-3"
+            />
             <p className="text-sm text-muted-foreground text-center">
               Continue desbloqueando conquistas para ganhar mais XP e subir de nível!
             </p>
           </div>
         </Card>
 
-        {/* Category Filters - Proximidade (gap-3) */}
+        {/* Category filters */}
         <Card className="p-4 shadow-medium border-l-4 border-muted">
           <div className="flex flex-wrap gap-3">
             {categories.map((category) => {
@@ -284,121 +276,163 @@ const Achievements = () => {
           </div>
         </Card>
 
-        {/* Achievements Grid - Simetria (grid 3 cols) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAchievements.map((achievement) => {
-            const getBorderColor = () => {
-              if (achievement.unlocked) return "border-success";
-              if (achievement.progress > 50) return "border-warning";
-              return "border-muted";
-            };
-            
-            return (
-            <Card 
-              key={achievement.id} 
-              className={`p-6 shadow-soft transition-smooth border-l-4 ${getBorderColor()} ${
-                achievement.unlocked 
-                  ? "bg-gradient-to-br from-success/5 to-accent/5" 
-                  : ""
-              }`}
-            >
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`text-3xl ${achievement.unlocked ? "" : "grayscale opacity-50"}`}>
-                      {achievement.icon}
+        {/* Achievements grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="p-6 space-y-4">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-2 w-full" />
+              </Card>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <Card className="p-12 text-center">
+            <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Nenhuma conquista nesta categoria.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map((achievement) => {
+              const percent = getProgressPercent(achievement);
+              const IconComponent =
+                iconMap[achievement.icon] || Trophy;
+
+              const borderColor = achievement.unlocked
+                ? "border-success"
+                : percent > 50
+                ? "border-warning"
+                : "border-muted";
+
+              return (
+                <Card
+                  key={achievement.id}
+                  className={`p-6 shadow-soft transition-smooth border-l-4 ${borderColor} ${
+                    achievement.unlocked
+                      ? "bg-gradient-to-br from-success/5 to-accent/5"
+                      : ""
+                  }`}
+                >
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`p-2 rounded-lg ${
+                            achievement.unlocked
+                              ? "bg-success/10"
+                              : "bg-muted/30 grayscale opacity-60"
+                          }`}
+                        >
+                          <IconComponent className="w-6 h-6 text-foreground" />
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${difficultyColors[achievement.difficulty]}`}
+                        >
+                          {difficultyLabel[achievement.difficulty] ?? achievement.difficulty}
+                        </Badge>
+                      </div>
+                      {achievement.unlocked ? (
+                        <CheckCircle className="w-5 h-5 text-success" />
+                      ) : (
+                        <Lock className="w-5 h-5 text-muted-foreground" />
+                      )}
                     </div>
+
+                    {/* Content */}
                     <div className="space-y-1">
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${difficultyColors[achievement.difficulty]}`}
+                      <h3
+                        className={`font-semibold ${
+                          achievement.unlocked
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                        }`}
                       >
-                        {achievement.difficulty === "easy" && "Fácil"}
-                        {achievement.difficulty === "medium" && "Médio"}
-                        {achievement.difficulty === "hard" && "Difícil"}
-                        {achievement.difficulty === "legendary" && "Lendário"}
-                      </Badge>
+                        {achievement.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {achievement.description}
+                      </p>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-1">
+
+                    {/* Progress / Unlocked */}
                     {achievement.unlocked ? (
-                      <CheckCircle className="w-5 h-5 text-success" />
+                      <Badge
+                        variant="outline"
+                        className="bg-success-light text-success text-xs"
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Desbloqueado em{" "}
+                        {achievement.unlocked_at
+                          ? new Date(achievement.unlocked_at).toLocaleDateString(
+                              "pt-BR"
+                            )
+                          : "—"}
+                      </Badge>
                     ) : (
-                      <Lock className="w-5 h-5 text-muted-foreground" />
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            Progresso
+                          </span>
+                          <span className="text-sm font-medium text-foreground">
+                            {percent}%
+                          </span>
+                        </div>
+                        <Progress value={percent} className="h-2" />
+                        <p className="text-xs text-muted-foreground">
+                          {getRequirementLabel(achievement)}
+                        </p>
+                      </div>
                     )}
-                  </div>
-                </div>
 
-                {/* Content */}
-                <div className="space-y-2">
-                  <h3 className={`font-semibold ${achievement.unlocked ? "text-foreground" : "text-muted-foreground"}`}>
-                    {achievement.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                </div>
-
-                {/* Progress */}
-                {achievement.unlocked ? (
-                  <div className="space-y-2">
-                    <Badge variant="outline" className="bg-success-light text-success text-xs">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Desbloqueado em {new Date(achievement.unlockedDate).toLocaleDateString('pt-BR')}
-                    </Badge>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Progresso</span>
-                      <span className="text-sm font-medium text-foreground">{achievement.progress}%</span>
-                    </div>
-                    <Progress value={achievement.progress} className="h-2" />
-                    {achievement.requirement && (
-                      <p className="text-xs text-muted-foreground">{achievement.requirement}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Reward */}
-                <div className="flex items-center justify-between pt-3 border-t">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <Zap className="w-4 h-4 text-accent" />
-                      <span className="text-sm font-medium text-foreground">+{achievement.xpReward} XP</span>
+                    {/* Reward */}
+                    <div className="flex items-center justify-between pt-3 border-t">
+                      <div className="flex items-center gap-1">
+                        <Zap className="w-4 h-4 text-accent" />
+                        <span className="text-sm font-medium text-foreground">
+                          +{achievement.xp_reward} XP
+                        </span>
+                      </div>
+                      {!achievement.unlocked && achievement.current_progress > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="bg-warning-light text-warning text-xs"
+                        >
+                          <Clock className="w-3 h-3 mr-1" />
+                          Em progresso
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                  
-                  {!achievement.unlocked && achievement.progress > 0 && (
-                    <Badge variant="outline" className="bg-warning-light text-warning text-xs">
-                      <Clock className="w-3 h-3 mr-1" />
-                      Em progresso
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </Card>
-            );
-          })}
-        </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
-        {/* Motivational Card */}
+        {/* Motivational */}
         <Card className="p-6 shadow-medium bg-gradient-to-r from-accent/5 to-primary/5">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
               <Medal className="w-6 h-6 text-primary-foreground" />
             </div>
             <div className="space-y-1">
-              <h3 className="font-semibold text-foreground">Continue conquistando! 🎉</h3>
+              <h3 className="font-semibold text-foreground">
+                Continue conquistando! 🎉
+              </h3>
               <p className="text-muted-foreground">
-                Cada conquista desbloqueada te dá mais XP e te aproxima de novos níveis. Continue estudando!
+                Cada conquista desbloqueada te dá mais XP e te aproxima de novos
+                níveis. Continue estudando!
               </p>
             </div>
           </div>
         </Card>
       </div>
-      
-      {/* Report Error Button */}
+
       <div className="flex justify-center mt-8">
         <ReportErrorButton area="Conquistas" />
       </div>
