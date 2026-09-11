@@ -643,7 +643,7 @@ const ClassDetails = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Tipo de atividade" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper">
                   <SelectItem value="homework">Trabalho</SelectItem>
                   <SelectItem value="exam">Prova</SelectItem>
                   <SelectItem value="project">Projeto</SelectItem>
@@ -836,7 +836,7 @@ const ClassDetails = () => {
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper">
                         <SelectItem value="homework">Trabalho</SelectItem>
                         <SelectItem value="exam">Prova</SelectItem>
                         <SelectItem value="project">Projeto</SelectItem>
