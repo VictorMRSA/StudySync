@@ -24,11 +24,12 @@ import {
   Sparkles,
   GraduationCap,
   FileText,
+  Brain,
 } from "lucide-react";
 
 const iconMap: Record<string, any> = {
   Users, Flame, Trophy, Crown, FileText, BookOpen, Star, Sparkles, Zap,
-  GraduationCap, Target, Medal,
+  GraduationCap, Target, Medal, Brain,
 };
 
 const categoryIconMap: Record<string, any> = {
