@@ -1,14 +1,14 @@
 """
-Serviço principal de interação com LangChain e Google Generative AI.
+Serviço principal de interação com LangChain e DeepSeek.
 Contém toda a lógica de IA: chat, sumarização, análise, quiz, flashcards e RAG.
-Os prompts são idênticos aos das Supabase Edge Functions originais.
+DeepSeek usa API compatível com OpenAI — troca simples de provider.
 """
 
 import json
 import logging
 import re
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 from config import settings
@@ -17,16 +17,15 @@ logger = logging.getLogger(__name__)
 
 
 class LangChainService:
-    """Serviço centralizado de IA usando LangChain + Google Generative AI."""
+    """Serviço centralizado de IA usando LangChain + DeepSeek."""
 
     def __init__(self) -> None:
-        self._llm = ChatGoogleGenerativeAI(
-            model=settings.MODEL_NAME,
-            google_api_key=settings.GEMINI_API_KEY,
+        self._llm = ChatOpenAI(
+            model=settings.MODEL_NAME,          # deepseek-chat
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url="https://api.deepseek.com",
             temperature=0.7,
-            top_k=40,
-            top_p=0.95,
-            max_output_tokens=4096,
+            max_tokens=4096,
         )
         logger.info("LangChainService inicializado com modelo: %s", settings.MODEL_NAME)
 
@@ -231,7 +230,7 @@ class LangChainService:
         )
 
         # Usar temperatura 0.3 para sumarização (idêntico à edge function)
-        llm = self._llm.bind(temperature=0.3, max_output_tokens=8192)
+        llm = self._llm.bind(temperature=0.3, max_tokens=8192)
         response = await llm.ainvoke([HumanMessage(content=prompt)])
         return response.content
 
@@ -271,7 +270,7 @@ class LangChainService:
         )
 
         # Temperatura 0.1 (idêntico à edge function)
-        llm = self._llm.bind(temperature=0.1, max_output_tokens=512)
+        llm = self._llm.bind(temperature=0.1, max_tokens=512)
         response = await llm.ainvoke([HumanMessage(content=prompt)])
 
         try:
@@ -326,7 +325,7 @@ class LangChainService:
         )
 
         # Temperatura 0.7 (idêntico à edge function)
-        llm = self._llm.bind(temperature=0.7, max_output_tokens=2048)
+        llm = self._llm.bind(temperature=0.7, max_tokens=2048)
         response = await llm.ainvoke([HumanMessage(content=prompt)])
 
         try:
@@ -425,7 +424,7 @@ class LangChainService:
             HumanMessage(content=prompt),
         ]
 
-        llm = self._llm.bind(temperature=0.7, max_output_tokens=2048)
+        llm = self._llm.bind(temperature=0.7, max_tokens=2048)
         response = await llm.ainvoke(messages)
 
         try:

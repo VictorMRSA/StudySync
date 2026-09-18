@@ -15,10 +15,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # DeepSeek (principal)
+    DEEPSEEK_API_KEY: str = "your_deepseek_api_key_here"
+    MODEL_NAME: str = "deepseek-chat"
+
+    # Gemini (fallback — mantido caso precise trocar)
     GEMINI_API_KEY: str = "your_gemini_api_key_here"
+
     CORS_ORIGINS_STR: str = "http://localhost:5173,http://localhost:3000"
     VECTOR_STORE_PATH: str = "./vector_stores"
-    MODEL_NAME: str = "gemini-2.5-flash"
 
     @property
     def CORS_ORIGINS(self) -> list[str]:
