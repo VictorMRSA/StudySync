@@ -74,11 +74,17 @@ export default function MemoryGame() {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      const content = summaries?.[0]?.content || material.description || material.title;
+      const content = summaries?.[0]?.content || material.extracted_text || material.description || material.title;
 
       const data = await api.generateFlashcards(content, material.title);
       
-      const flashcards: Flashcard[] = data.flashcards;
+      const flashcards: Flashcard[] = data.flashcards || [];
+      
+      if (!flashcards.length) {
+        toast({ title: 'Nenhum par gerado', description: 'Adicione mais conteúdo ao material e tente novamente.', variant: 'destructive' });
+        navigate(-1);
+        return;
+      }
       const memoryCards: MemoryCard[] = [];
 
       flashcards.forEach((card, index) => {

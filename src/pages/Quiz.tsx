@@ -79,7 +79,7 @@ export default function Quiz() {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      const content = summaries?.[0]?.content || material.description || material.title;
+      const content = summaries?.[0]?.content || material.extracted_text || material.description || material.title;
 
       const data = await api.generateQuiz(content, material.title);
       

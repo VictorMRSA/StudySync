@@ -53,23 +53,15 @@ export default function Flashcards() {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      // Priorizar: resumo da IA > texto completo > descrição > título
-      const content = summaries?.[0]?.content || material.file_url || material.description || material.title;
+      // Priorizar: resumo IA > texto extraído do arquivo > descrição > título
+      const content = summaries?.[0]?.content || material.extracted_text || material.description || material.title;
 
       const data = await api.generateFlashcards(content, material.title);
       
-      // Verificar se houve erro de quota
-      if (data?.error === 'quota_exceeded') {
-        setErrorState('quota');
-        setLoading(false);
-        return;
-      }
-      
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-      
       setFlashcards(data.flashcards || []);
+      if (!data.flashcards?.length) {
+        toast({ title: 'Nenhum flashcard gerado', description: 'Tente adicionar mais conteúdo ao material.', variant: 'destructive' });
+      }
       setLoading(false);
     } catch (error: any) {
       console.error('Error loading flashcards:', error);
