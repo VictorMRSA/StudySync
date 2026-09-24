@@ -15,14 +15,16 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # DeepSeek (principal)
-    DEEPSEEK_API_KEY: str = "your_deepseek_api_key_here"
-    MODEL_NAME: str = "deepseek-chat"
+    # ── IA Local via Ollama (padrão) ──────────────────────────────────────
+    # Ollama roda em localhost:11434 com API compatível com OpenAI
+    OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
+    MODEL_NAME: str = "huihui_ai/qwen3-abliterated:4b"
 
-    # Gemini (fallback — mantido caso precise trocar)
-    GEMINI_API_KEY: str = "your_gemini_api_key_here"
+    # ── DeepSeek / Cloud (opcional — preencher se quiser usar nuvem) ──────
+    DEEPSEEK_API_KEY: str = "no-key-needed-for-local"
+    GEMINI_API_KEY: str = "no-key-needed-for-local"
 
-    CORS_ORIGINS_STR: str = "http://localhost:5173,http://localhost:3000"
+    CORS_ORIGINS_STR: str = "http://localhost:5173,http://localhost:3000,https://studysync-lyart-one.vercel.app"
     VECTOR_STORE_PATH: str = "./vector_stores"
 
     @property

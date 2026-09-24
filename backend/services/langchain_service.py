@@ -1,7 +1,7 @@
 """
-Serviço principal de interação com LangChain e DeepSeek.
+Serviço principal de interação com LangChain e Ollama (IA local).
 Contém toda a lógica de IA: chat, sumarização, análise, quiz, flashcards e RAG.
-DeepSeek usa API compatível com OpenAI — troca simples de provider.
+Ollama expõe uma API compatível com OpenAI em localhost:11434/v1 — custo zero.
 """
 
 import json
@@ -17,17 +17,17 @@ logger = logging.getLogger(__name__)
 
 
 class LangChainService:
-    """Serviço centralizado de IA usando LangChain + DeepSeek."""
+    """Serviço centralizado de IA usando LangChain + Ollama (local)."""
 
     def __init__(self) -> None:
         self._llm = ChatOpenAI(
-            model=settings.MODEL_NAME,          # deepseek-chat
-            api_key=settings.DEEPSEEK_API_KEY,
-            base_url="https://api.deepseek.com",
+            model=settings.MODEL_NAME,          # huihui_ai/qwen3-abliterated:4b
+            api_key="ollama",                   # Ollama não precisa de chave real
+            base_url=settings.OLLAMA_BASE_URL,  # http://localhost:11434/v1
             temperature=0.7,
             max_tokens=4096,
         )
-        logger.info("LangChainService inicializado com modelo: %s", settings.MODEL_NAME)
+        logger.info("LangChainService inicializado — Ollama local | modelo: %s", settings.MODEL_NAME)
 
     # ── Utilitário: parse de JSON da resposta do LLM ────────────────────
 
