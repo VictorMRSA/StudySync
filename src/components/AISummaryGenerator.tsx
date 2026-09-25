@@ -62,8 +62,8 @@ const AISummaryGenerator: React.FC = () => {
     if (!content.trim()) {
       toast({
         title: 'Erro',
-        description: inputMode === 'upload' 
-          ? 'Carregue um documento primeiro.' 
+        description: inputMode === 'upload'
+          ? 'Carregue um documento primeiro.'
           : 'Digite o conteúdo que deseja analisar.',
         variant: 'destructive'
       });
@@ -74,16 +74,13 @@ const AISummaryGenerator: React.FC = () => {
     setResult('');
 
     try {
-      const requestBody: any = {
-        content: content.trim(),
-        type: summaryType
-      };
-
-      if (userFeedback) {
-        requestBody.feedback = userFeedback;
-      }
-
-      const data = await api.summarize(content.trim(), summaryType, userFeedback);
+      const data = await api.summarize(
+        content.trim(),
+        summaryType,
+        userFeedback,
+        // onChunk: exibe o texto sendo gerado em tempo real ✨
+        (chunk: string) => setResult(prev => prev + chunk)
+      );
 
       if (data.success) {
         setResult(data.result);
@@ -93,13 +90,13 @@ const AISummaryGenerator: React.FC = () => {
           description: 'Análise gerada com sucesso! Salve em Materiais para compartilhar.'
         });
       } else {
-        throw new Error(data.error || 'Erro desconhecido');
+        throw new Error('Erro desconhecido');
       }
     } catch (error) {
       console.error('Erro ao gerar resumo:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível gerar a análise. Tente novamente.',
+        description: 'Não foi possível gerar a análise. Verifique se o backend está rodando.',
         variant: 'destructive'
       });
     } finally {

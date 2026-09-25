@@ -234,6 +234,76 @@ class LangChainService:
         response = await llm.ainvoke([HumanMessage(content=prompt)])
         return response.content
 
+    async def summarize_stream(self, content: str, summary_type: str, feedback: str | None = None):
+        """
+        Versão streaming do summarize — gera tokens progressivamente.
+        Evita timeout do Cloudflare em respostas longas com CPU lento.
+
+        Yields:
+            str: Cada chunk de texto gerado pela IA.
+        """
+        # Reutiliza a mesma lógica de prompt do summarize()
+        feedback_context = ""
+        if feedback:
+            feedback_context = (
+                f'\n\nFEEDBACK DO USUÁRIO SOBRE ANÁLISE ANTERIOR:\n'
+                f'"{feedback}"\n\n'
+                f'Por favor, considere este feedback e melhore a análise '
+                f'focando nos pontos mencionados pelo usuário.\n\n'
+            )
+
+        prompts: dict[str, str] = {
+            "resumo": (
+                "IMPORTANTE: Responda em Markdown com formatação rica.\n\n"
+                "Faça um resumo claro e conciso do seguinte conteúdo educacional. Use:\n"
+                "- ## para títulos de seções principais\n"
+                "- ### para subtítulos e tópicos importantes\n"
+                "- **negrito** para conceitos e termos importantes\n"
+                "- - para listas de tópicos\n"
+                "- > para citações ou destaques relevantes\n\n"
+                f"Destaque os pontos principais e conceitos importantes:{feedback_context}\n\n"
+                f"{content}"
+            ),
+            "pontos-chave": (
+                "IMPORTANTE: Responda em Markdown com formatação rica.\n\n"
+                "Extraia e liste os pontos-chave mais importantes do seguinte conteúdo. Use:\n"
+                "- ## Pontos-Chave para o título\n"
+                "- - **Termo/Conceito**: descrição para cada item\n"
+                "- **negrito** para destacar conceitos principais\n\n"
+                f"{feedback_context}\n\n{content}"
+            ),
+            "perguntas": (
+                "IMPORTANTE: Responda em Markdown com formatação rica.\n\n"
+                "Com base no seguinte conteúdo, gere 5-8 perguntas de estudo relevantes.\n\n"
+                f"{feedback_context}\n\n{content}"
+            ),
+            "conceitos": (
+                "IMPORTANTE: Responda em Markdown com formatação rica.\n\n"
+                "Identifique e explique os conceitos principais.\n\n"
+                f"{feedback_context}\n\n{content}"
+            ),
+            "glossario": (
+                "IMPORTANTE: Responda em Markdown com formatação rica.\n\n"
+                "Crie um glossário com os termos técnicos e importantes.\n\n"
+                f"{feedback_context}\n\n{content}"
+            ),
+            "mapa-mental": (
+                "IMPORTANTE: Responda em Markdown com formatação rica.\n\n"
+                "Crie um mapa mental estruturado em Markdown.\n\n"
+                f"{feedback_context}\n\n{content}"
+            ),
+        }
+
+        prompt = prompts.get(
+            summary_type,
+            f"IMPORTANTE: Responda em Markdown com formatação rica.\n\nAnalise o seguinte conteúdo educacional:{feedback_context}\n\n{content}",
+        )
+
+        llm = self._llm.bind(temperature=0.3, max_tokens=8192)
+        async for chunk in llm.astream([HumanMessage(content=prompt)]):
+            if chunk.content:
+                yield chunk.content
+
     # ── Análise de Material ──────────────────────────────────────────────
 
     async def analyze(self, content: str, title: str | None = None, description: str | None = None) -> dict:

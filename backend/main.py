@@ -41,10 +41,12 @@ app = FastAPI(
 )
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
+# Libera todas as origens — necessário pois o túnel Cloudflare gera URLs
+# aleatórias a cada sessão. Seguro para projeto acadêmico local.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,   # deve ser False quando allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
