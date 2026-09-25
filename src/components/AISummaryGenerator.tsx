@@ -129,10 +129,9 @@ const AISummaryGenerator: React.FC = () => {
           title: materialTitle,
           description: `Resumo de IA gerado: ${summaryType}`,
           uploaded_by: user.id,
-          file_type: currentFileName ? currentFileName.split('.').pop()?.toUpperCase() : 'TEXT',
-          storage_path: 'ai-generated',
+          file_type: 'AI',
           file_name: currentFileName || 'Texto manual',
-          file_url: content,
+          file_url: 'ai-generated',
           extracted_text: content,
           status: 'approved'
         } as any)
