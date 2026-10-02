@@ -99,6 +99,46 @@ async function summarizeStream(
   return finalResult;
 }
 
+/**
+ * Helper genérico para endpoints SSE com keepalive.
+ * Envia POST, lê o stream e retorna o primeiro evento com 'done: true'.
+ */
+async function sseRequest<T>(endpoint: string, body: object): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok || !response.body) {
+    const err = await response.json().catch(() => ({ error: 'Erro de conexão' }));
+    throw new Error(err.error || `Erro ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const text = decoder.decode(value, { stream: true });
+    for (const line of text.split('\n')) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const data = JSON.parse(line.slice(6));
+        if (data.keepalive) continue;
+        if (data.error) throw new Error(data.error);
+        if (data.done) return data as T;
+      } catch (e: any) {
+        if (e.message && !e.message.includes('JSON')) throw e;
+      }
+    }
+  }
+
+  throw new Error('Resposta incompleta do servidor');
+}
+
 export const api = {
   chat: (message: string, history: any[]) =>
     apiRequest<{ response: string; success: boolean }>('/api/chat', { body: { message, history } }),
@@ -114,11 +154,12 @@ export const api = {
   analyze: (content: string, title?: string) =>
     apiRequest<{ analysis: any; success: boolean }>('/api/analyze', { body: { content, title } }),
 
+  // Usa streaming SSE para evitar timeout do Cloudflare
   generateQuiz: (content: string, title: string) =>
-    apiRequest<{ questions: any[] }>('/api/quiz', { body: { content, title } }),
+    sseRequest<{ questions: any[]; success: boolean; done: boolean }>('/api/quiz', { content, title }),
 
   generateFlashcards: (content: string, title: string) =>
-    apiRequest<{ flashcards: any[] }>('/api/flashcards', { body: { content, title } }),
+    sseRequest<{ flashcards: any[]; success: boolean; done: boolean }>('/api/flashcards', { content, title }),
 
   uploadDocument: (file: File) => {
     const formData = new FormData();

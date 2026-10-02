@@ -1,12 +1,16 @@
 """
 Router de flashcards — gera flashcards de estudo a partir do conteúdo.
+Usa StreamingResponse com keepalive imediato para evitar timeout 524 do Cloudflare.
 """
 
 import logging
+import json
+import asyncio
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
-from models.schemas import FlashcardRequest, FlashcardResponse, ErrorResponse
+from models.schemas import FlashcardRequest, ErrorResponse
 from services.langchain_service import langchain_service
 
 logger = logging.getLogger(__name__)
@@ -16,37 +20,42 @@ router = APIRouter(prefix="/api", tags=["Flashcards"])
 
 @router.post(
     "/flashcards",
-    response_model=FlashcardResponse,
     responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
-async def generate_flashcards(request: FlashcardRequest) -> FlashcardResponse:
-    """Gera 6-8 flashcards de estudo a partir do conteúdo."""
+async def generate_flashcards(request: FlashcardRequest):
+    """
+    Gera flashcards de estudo via streaming com keepalive imediato.
+    O keepalive é enviado antes de iniciar a geração para evitar timeout 524 do Cloudflare.
+    """
     if not request.content or not request.content.strip():
-        raise HTTPException(
-            status_code=400,
-            detail="Conteúdo é obrigatório para gerar flashcards",
-        )
+        raise HTTPException(status_code=400, detail="Conteúdo é obrigatório para gerar flashcards")
 
     if not request.title or not request.title.strip():
-        raise HTTPException(
-            status_code=400,
-            detail="Título é obrigatório para gerar flashcards",
-        )
+        raise HTTPException(status_code=400, detail="Título é obrigatório para gerar flashcards")
 
-    try:
-        flashcards_data = await langchain_service.generate_flashcards(
-            content=request.content,
-            title=request.title,
-        )
-        return FlashcardResponse(
-            flashcards=flashcards_data.get("flashcards", []),
-            success=True,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    except Exception as e:
-        logger.error("Erro ao gerar flashcards: %s", e, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao gerar flashcards: {str(e)}",
-        )
+    async def generate():
+        # Keepalive imediato — mantém a conexão viva enquanto o Ollama processa
+        yield f"data: {json.dumps({'keepalive': True})}\n\n"
+        await asyncio.sleep(0)
+
+        try:
+            flashcards_data = await langchain_service.generate_flashcards(
+                content=request.content,
+                title=request.title,
+            )
+            flashcards = flashcards_data.get("flashcards", [])
+            yield f"data: {json.dumps({'flashcards': flashcards, 'success': True, 'done': True})}\n\n"
+
+        except Exception as e:
+            logger.error("Erro ao gerar flashcards: %s", e, exc_info=True)
+            yield f"data: {json.dumps({'error': str(e), 'success': False})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
