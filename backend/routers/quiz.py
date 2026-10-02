@@ -34,15 +34,22 @@ async def generate_quiz(request: QuizRequest):
         raise HTTPException(status_code=400, detail="Título é obrigatório para gerar o quiz")
 
     async def generate():
-        # Keepalive imediato — mantém a conexão viva enquanto o Ollama processa
-        yield f"data: {json.dumps({'keepalive': True})}\n\n"
-        await asyncio.sleep(0)
-
-        try:
-            quiz_data = await langchain_service.generate_quiz(
+        # Cria uma task para rodar a geração em background
+        task = asyncio.create_task(
+            langchain_service.generate_quiz(
                 content=request.content,
                 title=request.title,
             )
+        )
+
+        # Envia keepalive a cada 5 segundos enquanto a task não terminar.
+        # Impede o Cloudflare 524 timeout mesmo se o Ollama demorar vários minutos no CPU.
+        while not task.done():
+            yield f"data: {json.dumps({'keepalive': True})}\n\n"
+            await asyncio.sleep(5)
+
+        try:
+            quiz_data = task.result()
             questions = quiz_data.get("questions", [])
             yield f"data: {json.dumps({'questions': questions, 'success': True, 'done': True})}\n\n"
 

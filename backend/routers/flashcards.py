@@ -34,15 +34,22 @@ async def generate_flashcards(request: FlashcardRequest):
         raise HTTPException(status_code=400, detail="Título é obrigatório para gerar flashcards")
 
     async def generate():
-        # Keepalive imediato — mantém a conexão viva enquanto o Ollama processa
-        yield f"data: {json.dumps({'keepalive': True})}\n\n"
-        await asyncio.sleep(0)
-
-        try:
-            flashcards_data = await langchain_service.generate_flashcards(
+        # Cria uma task para rodar a geração em background
+        task = asyncio.create_task(
+            langchain_service.generate_flashcards(
                 content=request.content,
                 title=request.title,
             )
+        )
+
+        # Envia keepalive a cada 5 segundos enquanto a task não terminar.
+        # Impede o Cloudflare 524 timeout mesmo se o Ollama demorar vários minutos no CPU.
+        while not task.done():
+            yield f"data: {json.dumps({'keepalive': True})}\n\n"
+            await asyncio.sleep(5)
+
+        try:
+            flashcards_data = task.result()
             flashcards = flashcards_data.get("flashcards", [])
             yield f"data: {json.dumps({'flashcards': flashcards, 'success': True, 'done': True})}\n\n"
 
