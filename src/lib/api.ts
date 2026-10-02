@@ -43,12 +43,21 @@ async function summarizeStream(
   content: string,
   type: string = 'resumo',
   feedback?: string,
-  onChunk?: (chunk: string) => void
-): Promise<{ result: string; type: string; success: boolean }> {
-  const response = await fetch(`${API_BASE}/api/summarize`, {
+  onChunk?: (chunk: string) => void,
+  endpoint: string = '/api/summarize',
+  history?: any[]
+): Promise<{ result?: string; response?: string; type: string; success: boolean }> {
+  const payload: any = { content, type, feedback };
+  // Para chat
+  if (endpoint === '/api/chat') {
+    payload.message = content;
+    payload.history = history || [];
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content, type, feedback }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok || !response.body) {
@@ -58,7 +67,7 @@ async function summarizeStream(
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let finalResult: { result: string; type: string; success: boolean } | null = null;
+  let finalResult: { result?: string; response?: string; type: string; success: boolean } | null = null;
   let accumulated = '';
 
   while (true) {
@@ -78,8 +87,12 @@ async function summarizeStream(
           accumulated += data.chunk;
           if (onChunk) onChunk(data.chunk);
         }
-        if (data.done && data.result) {
-          finalResult = { result: data.result, type: data.type, success: data.success };
+        if (data.done) {
+          if (data.result) {
+            finalResult = { result: data.result, type: data.type, success: data.success };
+          } else if (data.response) {
+            finalResult = { response: data.response, type: data.type || 'chat', success: data.success };
+          }
         }
         if (data.error) {
           throw new Error(data.error);
@@ -92,7 +105,11 @@ async function summarizeStream(
 
   // Fallback: se o done final foi perdido mas chunks chegaram, monta resultado
   if (!finalResult && accumulated.trim()) {
-    finalResult = { result: accumulated, type, success: true };
+    if (endpoint === '/api/chat') {
+      finalResult = { response: accumulated, type: 'chat', success: true };
+    } else {
+      finalResult = { result: accumulated, type, success: true };
+    }
   }
 
   if (!finalResult) throw new Error('Resposta incompleta do servidor');
@@ -140,8 +157,10 @@ async function sseRequest<T>(endpoint: string, body: object): Promise<T> {
 }
 
 export const api = {
-  chat: (message: string, history: any[]) =>
-    apiRequest<{ response: string; success: boolean }>('/api/chat', { body: { message, history } }),
+  // Usa streaming para exibir a digitação em tempo real e evitar timeout
+  chat: (message: string, history: any[], onChunk?: (c: string) => void) => {
+    return summarizeStream(message, 'chat', '', onChunk, '/api/chat', history);
+  },
 
   // Usa streaming para evitar timeout do Cloudflare em CPU lento
   summarize: (
@@ -149,7 +168,7 @@ export const api = {
     type: string = 'resumo',
     feedback?: string,
     onChunk?: (c: string) => void
-  ) => summarizeStream(content, type, feedback, onChunk),
+  ) => summarizeStream(content, type, feedback, onChunk, '/api/summarize'),
 
   analyze: (content: string, title?: string) =>
     apiRequest<{ analysis: any; success: boolean }>('/api/analyze', { body: { content, title } }),

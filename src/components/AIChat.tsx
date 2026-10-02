@@ -61,23 +61,42 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage }) => {
     setInputMessage('');
     setIsLoading(true);
 
-    try {
-      const data = await api.chat(messageText, messages.map(msg => ({
-        role: msg.role,
-        parts: msg.parts
-      })));
+    // Cria a mensagem vazia do bot para ir preenchendo com streaming
+    const botMessageId = (Date.now() + 1).toString();
+    const initialBotMessage: Message = {
+      id: botMessageId,
+      role: 'model',
+      parts: [{ text: '' }],
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, initialBotMessage]);
 
-      if (data.success) {
-        const botMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'model',
-          parts: [{ text: data.response }],
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botMessage]);
-      } else {
+    try {
+      const data = await api.chat(
+        messageText, 
+        messages.map(msg => ({
+          role: msg.role,
+          parts: msg.parts
+        })),
+        // onChunk: preenche a mensagem do bot em tempo real
+        (chunk: string) => {
+          setMessages(prev => prev.map(msg => {
+            if (msg.id === botMessageId) {
+              return {
+                ...msg,
+                parts: [{ text: msg.parts[0].text + chunk }]
+              };
+            }
+            return msg;
+          }));
+        }
+      );
+
+      if (!data.success) {
         throw new Error(data.error || 'Erro desconhecido');
       }
+
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       toast({

@@ -128,6 +128,54 @@ class LangChainService:
         response = await self._llm.ainvoke(messages)
         return response.content
 
+    async def chat_stream(self, message: str, history: list[dict] = None):
+        """
+        Versão streaming do chat — gera tokens progressivamente.
+        """
+        history = history or []
+        sanitized = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", message.strip())
+
+        messages = [
+            HumanMessage(content=(
+                "Você é um assistente educacional inteligente. "
+                "Ajude os estudantes com suas dúvidas de forma clara e didática."
+            )),
+            AIMessage(content=(
+                "Olá! Sou seu assistente educacional. "
+                "Estou aqui para ajudá-lo com seus estudos. "
+                "Como posso auxiliá-lo hoje?"
+            )),
+        ]
+
+        for item in history:
+            role = getattr(item, "role", None) or (item.get("role") if isinstance(item, dict) else None)
+            if hasattr(item, "content") and item.content:
+                text = item.content
+            elif hasattr(item, "parts") and item.parts:
+                text = item.parts[0].get("text", "") if isinstance(item.parts[0], dict) else ""
+            elif isinstance(item, dict):
+                text = item.get("content", "")
+                if not text and "parts" in item:
+                    parts = item["parts"]
+                    text = parts[0].get("text", "") if parts and isinstance(parts[0], dict) else ""
+            else:
+                text = ""
+
+            text = str(text or "").strip()[:4000]
+            if not text:
+                continue
+
+            if role in ("assistant", "model"):
+                messages.append(AIMessage(content=text))
+            else:
+                messages.append(HumanMessage(content=text))
+
+        messages.append(HumanMessage(content=sanitized))
+
+        async for chunk in self._llm.astream(messages):
+            if chunk.content:
+                yield chunk.content
+
     # ── Sumarização ──────────────────────────────────────────────────────
 
     async def summarize(self, content: str, summary_type: str, feedback: str | None = None) -> str:
