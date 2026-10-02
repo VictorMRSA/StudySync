@@ -122,7 +122,7 @@ const AISummaryGenerator: React.FC = () => {
       const { data: material, error: materialError } = await supabase
         .from('materials')
         .insert({
-          class_id: parseInt(selectedClassId),
+          class_id: selectedClassId,
           title: materialTitle,
           description: `Resumo de IA gerado: ${summaryType}`,
           uploaded_by: user.id,

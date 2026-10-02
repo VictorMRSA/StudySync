@@ -59,6 +59,7 @@ async function summarizeStream(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let finalResult: { result: string; type: string; success: boolean } | null = null;
+  let accumulated = '';
 
   while (true) {
     const { done, value } = await reader.read();
@@ -71,8 +72,9 @@ async function summarizeStream(
       if (!line.startsWith('data: ')) continue;
       try {
         const data = JSON.parse(line.slice(6));
-        if (data.chunk && onChunk) {
-          onChunk(data.chunk);
+        if (data.chunk) {
+          accumulated += data.chunk;
+          if (onChunk) onChunk(data.chunk);
         }
         if (data.done && data.result) {
           finalResult = { result: data.result, type: data.type, success: data.success };
@@ -84,6 +86,11 @@ async function summarizeStream(
         if (e.message && !e.message.includes('JSON')) throw e;
       }
     }
+  }
+
+  // Fallback: se o done final foi perdido mas chunks chegaram, monta resultado
+  if (!finalResult && accumulated.trim()) {
+    finalResult = { result: accumulated, type, success: true };
   }
 
   if (!finalResult) throw new Error('Resposta incompleta do servidor');
