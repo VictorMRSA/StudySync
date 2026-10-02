@@ -72,6 +72,8 @@ async function summarizeStream(
       if (!line.startsWith('data: ')) continue;
       try {
         const data = JSON.parse(line.slice(6));
+        // Ignora eventos de keepalive (enviados para manter a conexão viva)
+        if (data.keepalive) continue;
         if (data.chunk) {
           accumulated += data.chunk;
           if (onChunk) onChunk(data.chunk);
