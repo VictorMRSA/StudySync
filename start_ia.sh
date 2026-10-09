@@ -40,38 +40,11 @@ echo "  ║        StudySync — IA Local 🤖           ║"
 echo "  ╚══════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# ── 1. Verifica Ollama ────────────────────────────────────────
-print_step "Verificando Ollama..."
+# ── 1. Verifica Ollama (DESATIVADO - Usando API do Gemini) ───────────
+print_step "Usando API do Gemini (Ollama desativado)..."
+print_ok "Pronto para usar a nuvem"
 
-if ! command -v ollama &>/dev/null; then
-  print_err "Ollama não encontrado. Instale em: https://ollama.com"
-  exit 1
-fi
-
-# Verifica se já está rodando
-if curl -s http://localhost:11434/api/tags &>/dev/null; then
-  print_ok "Ollama já está rodando"
-else
-  print_warn "Iniciando Ollama..."
-  ollama serve > "$LOG_DIR/ollama.log" 2>&1 &
-  sleep 3
-  if curl -s http://localhost:11434/api/tags &>/dev/null; then
-    print_ok "Ollama iniciado"
-  else
-    print_err "Falha ao iniciar Ollama. Veja: $LOG_DIR/ollama.log"
-    exit 1
-  fi
-fi
-
-# Verifica se o modelo está disponível
-MODEL="huihui_ai/qwen3-abliterated:4b"
-if ollama list 2>/dev/null | grep -q "qwen3"; then
-  print_ok "Modelo $MODEL disponível"
-else
-  print_warn "Baixando modelo $MODEL (~2.5GB, pode demorar)..."
-  ollama pull "$MODEL"
-  print_ok "Modelo baixado"
-fi
+# Se o Ollama estivesse ativo, os comandos estariam aqui...
 
 # ── 2. Verifica cloudflared ───────────────────────────────────
 print_step "Verificando cloudflared..."

@@ -8,7 +8,7 @@ import json
 import logging
 import re
 
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 from config import settings
@@ -17,17 +17,16 @@ logger = logging.getLogger(__name__)
 
 
 class LangChainService:
-    """Serviço centralizado de IA usando LangChain + Ollama (local)."""
+    """Serviço centralizado de IA usando LangChain + Gemini."""
 
     def __init__(self) -> None:
-        self._llm = ChatOpenAI(
-            model=settings.MODEL_NAME,          # huihui_ai/qwen3-abliterated:4b
-            api_key="ollama",                   # Ollama não precisa de chave real
-            base_url=settings.OLLAMA_BASE_URL,  # http://localhost:11434/v1
+        self._llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash",
+            google_api_key=settings.GEMINI_API_KEY,
             temperature=0.7,
             max_tokens=4096,
         )
-        logger.info("LangChainService inicializado — Ollama local | modelo: %s", settings.MODEL_NAME)
+        logger.info("LangChainService inicializado — Usando Gemini API | modelo: gemini-1.5-flash")
 
     # ── Utilitário: parse de JSON da resposta do LLM ────────────────────
 
