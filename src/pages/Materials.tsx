@@ -408,35 +408,47 @@ const Materials = () => {
                 )}
               </div>
               
-              {selectedMaterial.file_url ? (
-                isRawPdfContent(selectedMaterial.file_url) ? (
-                  <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
-                    <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground">
-                      Este PDF não pôde ser processado automaticamente.
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Use os resumos IA, quiz ou flashcards para estudar este material.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="bg-muted/50 rounded-lg p-6 border">
-                    <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {selectedMaterial.file_url}
+              {(() => {
+                const rawContent = (selectedMaterial.extracted_text && selectedMaterial.extracted_text !== 'ai-generated')
+                  ? selectedMaterial.extracted_text
+                  : (selectedMaterial.file_url !== 'ai-generated' ? selectedMaterial.file_url : null);
+
+                if (!rawContent) {
+                  return (
+                    <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
+                      <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-muted-foreground">
+                        O conteúdo textual deste material não está disponível para visualização direta.
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Use o botão "Resumo por IA disponível", "Quiz" ou "Flashcards" para estudar este material.
+                      </p>
+                    </div>
+                  );
+                }
+
+                if (isRawPdfContent(rawContent)) {
+                  return (
+                    <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
+                      <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-muted-foreground">
+                        Este PDF não pôde ser processado automaticamente.
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Use os resumos IA, quiz ou flashcards para estudar este material.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="bg-muted/50 rounded-lg p-6 border max-h-[60vh] overflow-y-auto">
+                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
+                      {rawContent}
                     </pre>
                   </div>
-                )
-              ) : (
-                <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
-                  <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">
-                    O conteúdo deste material não está disponível para visualização.
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Use os resumos IA, quiz ou flashcards para estudar este material.
-                  </p>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
         </DialogContent>
