@@ -91,15 +91,38 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     
     let fullText = '';
-    const numPages = Math.min(pdf.numPages, 50); // Limit to first 50 pages
+    const numPages = Math.min(pdf.numPages, 50); // Limita às primeiras 50 páginas
     
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n\n';
+      
+      // Agrupa os itens de texto preservando quebras de linha com base na coordenada Y
+      let pageText = '';
+      let lastY: number | null = null;
+
+      for (const item of textContent.items as any[]) {
+        if (!item.str) continue;
+        
+        const currentY = item.transform ? item.transform[5] : null;
+        
+        if (lastY !== null && currentY !== null) {
+          const diffY = Math.abs(lastY - currentY);
+          if (diffY > 12) {
+            // Nova linha ou novo parágrafo
+            pageText += diffY > 20 ? '\n\n' : '\n';
+          } else {
+            pageText += ' ';
+          }
+        }
+        
+        pageText += item.str;
+        if (currentY !== null) {
+          lastY = currentY;
+        }
+      }
+
+      fullText += pageText.trim() + '\n\n---\n\n';
     }
     
     if (pdf.numPages > 50) {

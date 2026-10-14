@@ -441,11 +441,15 @@ const Materials = () => {
                   );
                 }
 
+                // Converte marcadores comuns (• ou -) para listas markdown limpas
+                const formattedContent = rawContent
+                  .replace(/•\s*/g, '\n* ')
+                  .replace(/([0-9]+\.\s+[^\n]+)/g, '\n\n$1\n')
+                  .replace(/\n{3,}/g, '\n\n');
+
                 return (
-                  <div className="bg-muted/50 rounded-lg p-6 border max-h-[60vh] overflow-y-auto">
-                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
-                      {rawContent}
-                    </pre>
+                  <div className="bg-card rounded-lg p-6 border max-h-[65vh] overflow-y-auto shadow-inner">
+                    <MarkdownContent content={formattedContent} />
                   </div>
                 );
               })()}
