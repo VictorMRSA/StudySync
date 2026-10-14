@@ -69,18 +69,22 @@ async function summarizeStream(
   const decoder = new TextDecoder();
   let finalResult: { result?: string; response?: string; type: string; success: boolean } | null = null;
   let accumulated = '';
+  let buffer = '';
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
-    const text = decoder.decode(value, { stream: true });
-    const lines = text.split('\n');
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    // Mantém a última linha incompleta no buffer
+    buffer = lines.pop() || '';
 
     for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data: ')) continue;
       try {
-        const data = JSON.parse(line.slice(6));
+        const data = JSON.parse(trimmed.slice(6));
         // Ignora eventos de keepalive (enviados para manter a conexão viva)
         if (data.keepalive) continue;
         if (data.chunk) {
@@ -134,16 +138,22 @@ async function sseRequest<T>(endpoint: string, body: object): Promise<T> {
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
+  let buffer = '';
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
-    const text = decoder.decode(value, { stream: true });
-    for (const line of text.split('\n')) {
-      if (!line.startsWith('data: ')) continue;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    // Mantém a última parte não terminada com \n no buffer
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data: ')) continue;
       try {
-        const data = JSON.parse(line.slice(6));
+        const data = JSON.parse(trimmed.slice(6));
         if (data.keepalive) continue;
         if (data.error) throw new Error(data.error);
         if (data.done) return data as T;
