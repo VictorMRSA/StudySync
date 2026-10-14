@@ -21,12 +21,12 @@ class LangChainService:
 
     def __init__(self) -> None:
         self._llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model=settings.MODEL_NAME,          # ex: gemini-flash-lite-latest
             google_api_key=settings.GEMINI_API_KEY,
             temperature=0.7,
-            max_tokens=4096,
+            max_output_tokens=4096,
         )
-        logger.info("LangChainService inicializado — Usando Gemini API | modelo: gemini-1.5-flash")
+        logger.info("LangChainService inicializado — Gemini API | modelo: %s", settings.MODEL_NAME)
 
     # ── Utilitário: parse de JSON da resposta do LLM ────────────────────
 
@@ -125,7 +125,7 @@ class LangChainService:
 
         # Invocar LLM
         response = await self._llm.ainvoke(messages)
-        return response.content
+        return response.text
 
     async def chat_stream(self, message: str, history: list[dict] = None):
         """
@@ -172,8 +172,8 @@ class LangChainService:
         messages.append(HumanMessage(content=sanitized))
 
         async for chunk in self._llm.astream(messages):
-            if chunk.content:
-                yield chunk.content
+            if chunk.text:
+                yield chunk.text
 
     # ── Sumarização ──────────────────────────────────────────────────────
 
@@ -277,9 +277,9 @@ class LangChainService:
         )
 
         # Usar temperatura 0.3 para sumarização (idêntico à edge function)
-        llm = self._llm.bind(temperature=0.3, max_tokens=8192)
+        llm = self._llm.bind(temperature=0.3, max_output_tokens=8192)
         response = await llm.ainvoke([HumanMessage(content=prompt)])
-        return response.content
+        return response.text
 
     async def summarize_stream(self, content: str, summary_type: str, feedback: str | None = None):
         """
@@ -346,10 +346,10 @@ class LangChainService:
             f"IMPORTANTE: Responda em Markdown com formatação rica.\n\nAnalise o seguinte conteúdo educacional:{feedback_context}\n\n{content}",
         )
 
-        llm = self._llm.bind(temperature=0.3, max_tokens=8192)
+        llm = self._llm.bind(temperature=0.3, max_output_tokens=8192)
         async for chunk in llm.astream([HumanMessage(content=prompt)]):
-            if chunk.content:
-                yield chunk.content
+            if chunk.text:
+                yield chunk.text
 
     # ── Análise de Material ──────────────────────────────────────────────
 
@@ -387,11 +387,11 @@ class LangChainService:
         )
 
         # Temperatura 0.1 (idêntico à edge function)
-        llm = self._llm.bind(temperature=0.1, max_tokens=512)
+        llm = self._llm.bind(temperature=0.1, max_output_tokens=512)
         response = await llm.ainvoke([HumanMessage(content=prompt)])
 
         try:
-            analysis = self._parse_json_response(response.content)
+            analysis = self._parse_json_response(response.text)
         except ValueError:
             logger.warning("Falha ao fazer parse do JSON de análise, usando fallback")
             analysis = {
@@ -442,11 +442,11 @@ class LangChainService:
         )
 
         # Temperatura 0.7 (idêntico à edge function)
-        llm = self._llm.bind(temperature=0.7, max_tokens=2048)
+        llm = self._llm.bind(temperature=0.7, max_output_tokens=2048)
         response = await llm.ainvoke([HumanMessage(content=prompt)])
 
         try:
-            quiz_data = self._parse_json_response(response.content)
+            quiz_data = self._parse_json_response(response.text)
         except ValueError:
             logger.error("Falha ao fazer parse do JSON do quiz")
             raise ValueError("Não foi possível gerar o quiz. Tente novamente.")
@@ -541,11 +541,11 @@ class LangChainService:
             HumanMessage(content=prompt),
         ]
 
-        llm = self._llm.bind(temperature=0.7, max_tokens=2048)
+        llm = self._llm.bind(temperature=0.7, max_output_tokens=2048)
         response = await llm.ainvoke(messages)
 
         try:
-            flashcards_data = self._parse_json_response(response.content)
+            flashcards_data = self._parse_json_response(response.text)
         except ValueError:
             logger.error("Falha ao fazer parse do JSON dos flashcards")
             raise ValueError("Não foi possível gerar os flashcards. Tente novamente.")
@@ -584,7 +584,7 @@ class LangChainService:
         )
 
         response = await self._llm.ainvoke([HumanMessage(content=prompt)])
-        return response.content
+        return response.text
 
 
 # Instância global reutilizável

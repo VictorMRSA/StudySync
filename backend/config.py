@@ -15,14 +15,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # ── IA Local via Ollama (padrão) ──────────────────────────────────────
-    # Ollama roda em localhost:11434 com API compatível com OpenAI
-    OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
-    MODEL_NAME: str = "huihui_ai/qwen3-abliterated:4b"
+    # ── IA via Gemini API (padrão) ────────────────────────────────────────
+    MODEL_NAME: str = "gemini-flash-lite-latest"
+    GEMINI_API_KEY: str = ""
 
-    # ── DeepSeek / Cloud (opcional — preencher se quiser usar nuvem) ──────
+    # ── Legado: Ollama local / DeepSeek (não usados atualmente) ──────────
+    OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
     DEEPSEEK_API_KEY: str = "no-key-needed-for-local"
-    GEMINI_API_KEY: str = "no-key-needed-for-local"
 
     CORS_ORIGINS_STR: str = "http://localhost:5173,http://localhost:3000,https://studysync-lyart-one.vercel.app"
     VECTOR_STORE_PATH: str = "./vector_stores"
