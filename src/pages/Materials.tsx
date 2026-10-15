@@ -409,9 +409,10 @@ const Materials = () => {
               </div>
               
               {(() => {
+                const isUrl = (v?: string) => !!v && /^https?:\/\//.test(v);
                 const rawContent = (selectedMaterial.extracted_text && selectedMaterial.extracted_text !== 'ai-generated')
                   ? selectedMaterial.extracted_text
-                  : (selectedMaterial.file_url !== 'ai-generated' ? selectedMaterial.file_url : null);
+                  : (selectedMaterial.file_url !== 'ai-generated' && !isUrl(selectedMaterial.file_url) ? selectedMaterial.file_url : null);
 
                 if (!rawContent) {
                   return (

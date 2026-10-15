@@ -15,7 +15,7 @@ interface UploadedFile {
 }
 
 interface DocumentUploadProps {
-  onDocumentParsed: (content: string, fileName: string) => void;
+  onDocumentParsed: (content: string, fileName: string, file?: File) => void;
   isAnalyzing?: boolean;
 }
 
@@ -245,7 +245,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
 
   const analyzeDocument = (uploadedFile: UploadedFile) => {
     if (uploadedFile.content) {
-      onDocumentParsed(uploadedFile.content, uploadedFile.file.name);
+      onDocumentParsed(uploadedFile.content, uploadedFile.file.name, uploadedFile.file);
     }
   };
 

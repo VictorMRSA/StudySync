@@ -20,6 +20,7 @@ const AISummaryGenerator: React.FC = () => {
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentFileName, setCurrentFileName] = useState('');
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [inputMode, setInputMode] = useState<'upload' | 'text'>('upload');
   const [materialTitle, setMaterialTitle] = useState('');
   const [userClasses, setUserClasses] = useState<any[]>([]);
@@ -49,9 +50,10 @@ const AISummaryGenerator: React.FC = () => {
     }
   };
 
-  const handleDocumentParsed = (parsedContent: string, fileName: string) => {
+  const handleDocumentParsed = (parsedContent: string, fileName: string, file?: File) => {
     setContent(parsedContent);
     setCurrentFileName(fileName);
+    setCurrentFile(file || null);
     toast({
       title: 'Documento carregado',
       description: `${fileName} foi carregado com sucesso. Agora você pode gerar a análise.`
@@ -118,6 +120,34 @@ const AISummaryGenerator: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
+      // Fase 1: envia o arquivo original para o Storage (para o visualizador fiel).
+      // Se falhar, o resumo ainda é salvo normalmente — só fica sem o arquivo original.
+      let fileUrl = 'ai-generated';
+      if (currentFile) {
+        const safeName = currentFile.name
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-zA-Z0-9._-]/g, '_');
+        const storagePath = `${user.id}/${Date.now()}_${safeName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('materials')
+          .upload(storagePath, currentFile, {
+            contentType: currentFile.type || undefined,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Erro ao enviar arquivo original:', uploadError);
+          toast({
+            title: 'Arquivo original não foi salvo',
+            description: 'O resumo será salvo, mas sem o arquivo original para visualização.',
+            variant: 'destructive'
+          });
+        } else {
+          fileUrl = supabase.storage.from('materials').getPublicUrl(storagePath).data.publicUrl;
+        }
+      }
+
       // Create material (save content in both fields for Phase 2A)
       const { data: material, error: materialError } = await supabase
         .from('materials')
@@ -128,7 +158,7 @@ const AISummaryGenerator: React.FC = () => {
           uploaded_by: user.id,
           file_type: 'AI',
           file_name: currentFileName || 'Texto manual',
-          file_url: 'ai-generated',
+          file_url: fileUrl,
           extracted_text: content,
           status: 'approved'
         } as any)
@@ -214,6 +244,7 @@ const AISummaryGenerator: React.FC = () => {
     setResult('');
     setSummaryType('resumo');
     setCurrentFileName('');
+    setCurrentFile(null);
     setMaterialTitle('');
     setFeedbackGiven(null);
     setSavedSummaryId(null);
