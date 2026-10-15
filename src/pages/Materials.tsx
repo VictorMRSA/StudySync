@@ -26,8 +26,10 @@ import {
   Zap,
   Brain,
   Sparkles,
-  ThumbsUp
- } from "lucide-react";
+  ThumbsUp,
+  ExternalLink,
+  Download
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Materials = () => {
@@ -39,6 +41,7 @@ const Materials = () => {
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'original' | 'text'>('original');
   const [votedMaterials, setVotedMaterials] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -114,6 +117,8 @@ const Materials = () => {
 
   const viewMaterial = (material: any) => {
     setSelectedMaterial(material);
+    const hasOriginalUrl = material.file_url && material.file_url.startsWith('http') && material.file_url !== 'ai-generated';
+    setPreviewMode(hasOriginalUrl ? 'original' : 'text');
     setMaterialDialogOpen(true);
   };
 
@@ -385,75 +390,151 @@ const Materials = () => {
         <ReportErrorButton area="Materiais" />
       </div>
 
-      {/* Material Content Dialog */}
+      {/* Material Content Dialog - Leitor Fiel Estilo Google Drive */}
       <Dialog open={materialDialogOpen} onOpenChange={setMaterialDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              {selectedMaterial?.title}
-            </DialogTitle>
+        <DialogContent className="max-w-5xl h-[88vh] flex flex-col p-4 md:p-6">
+          <DialogHeader className="pb-3 border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <DialogTitle className="flex items-center gap-2 text-xl font-bold truncate">
+                <FileText className="w-5 h-5 text-primary shrink-0" />
+                <span className="truncate">{selectedMaterial?.title}</span>
+              </DialogTitle>
+
+              {/* Botões de Ação do Topo (Download / Abrir em Nova Aba) */}
+              {selectedMaterial?.file_url && selectedMaterial.file_url.startsWith('http') && selectedMaterial.file_url !== 'ai-generated' && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    asChild
+                  >
+                    <a href={selectedMaterial.file_url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Abrir em nova aba
+                    </a>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    asChild
+                  >
+                    <a href={selectedMaterial.file_url} download={selectedMaterial.file_name || 'documento'}>
+                      <Download className="w-3.5 h-3.5" />
+                      Baixar
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
           </DialogHeader>
           
           {selectedMaterial && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">
-                  {selectedMaterial.file_type || 'DOCUMENTO'}
-                </Badge>
-                {selectedMaterial.file_name && (
-                  <span className="text-sm text-muted-foreground">
-                    {selectedMaterial.file_name}
-                  </span>
+            <div className="flex-1 flex flex-col min-h-0 pt-3 space-y-3">
+              {/* Barra de Sub-cabeçalho com Badges e Alternador de Modo */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="font-medium">
+                    {selectedMaterial.file_type || 'DOCUMENTO'}
+                  </Badge>
+                  {selectedMaterial.file_name && (
+                    <span className="text-xs text-muted-foreground truncate max-w-xs">
+                      {selectedMaterial.file_name}
+                    </span>
+                  )}
+                </div>
+
+                {/* Alternador "Ver PDF Original" vs "Texto Extraído" quando ambos existem */}
+                {selectedMaterial.file_url && selectedMaterial.file_url.startsWith('http') && selectedMaterial.file_url !== 'ai-generated' && (
+                  <div className="flex items-center bg-muted p-1 rounded-lg text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('original')}
+                      className={`px-3 py-1 rounded-md font-medium transition-colors ${
+                        previewMode === 'original'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      📄 Documento Original
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('text')}
+                      className={`px-3 py-1 rounded-md font-medium transition-colors ${
+                        previewMode === 'text'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      📝 Texto Extraído
+                    </button>
+                  </div>
                 )}
               </div>
               
-              {(() => {
-                const isUrl = (v?: string) => !!v && /^https?:\/\//.test(v);
-                const rawContent = (selectedMaterial.extracted_text && selectedMaterial.extracted_text !== 'ai-generated')
-                  ? selectedMaterial.extracted_text
-                  : (selectedMaterial.file_url !== 'ai-generated' && !isUrl(selectedMaterial.file_url) ? selectedMaterial.file_url : null);
-
-                if (!rawContent) {
-                  return (
-                    <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
-                      <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                      <p className="text-muted-foreground">
-                        O conteúdo textual deste material não está disponível para visualização direta.
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Use o botão "Resumo por IA disponível", "Quiz" ou "Flashcards" para estudar este material.
-                      </p>
-                    </div>
-                  );
-                }
-
-                if (isRawPdfContent(rawContent)) {
-                  return (
-                    <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
-                      <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                      <p className="text-muted-foreground">
-                        Este PDF não pôde ser processado automaticamente.
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Use os resumos IA, quiz ou flashcards para estudar este material.
-                      </p>
-                    </div>
-                  );
-                }
-
-                // Converte marcadores comuns (• ou -) para listas markdown limpas
-                const formattedContent = rawContent
-                  .replace(/•\s*/g, '\n* ')
-                  .replace(/([0-9]+\.\s+[^\n]+)/g, '\n\n$1\n')
-                  .replace(/\n{3,}/g, '\n\n');
-
-                return (
-                  <div className="bg-card rounded-lg p-6 border max-h-[65vh] overflow-y-auto shadow-inner">
-                    <MarkdownContent content={formattedContent} />
+              {/* Corpo da Visualização */}
+              <div className="flex-1 min-h-0">
+                {previewMode === 'original' && selectedMaterial.file_url && selectedMaterial.file_url.startsWith('http') && selectedMaterial.file_url !== 'ai-generated' ? (
+                  // Visualizador Fiel de PDF estilo Google Drive / Embutido
+                  <div className="w-full h-full bg-slate-900/5 rounded-lg border overflow-hidden relative shadow-inner">
+                    <iframe
+                      src={`${selectedMaterial.file_url}#toolbar=1&navpanes=1&scrollbar=1`}
+                      title={selectedMaterial.title}
+                      className="w-full h-full border-0 rounded-lg"
+                    />
                   </div>
-                );
-              })()}
+                ) : (
+                  // Visualização em Markdown formatado (para texto extraído ou quando não há PDF)
+                  (() => {
+                    const isUrl = (v?: string) => !!v && /^https?:\/\//.test(v);
+                    const rawContent = (selectedMaterial.extracted_text && selectedMaterial.extracted_text !== 'ai-generated')
+                      ? selectedMaterial.extracted_text
+                      : (selectedMaterial.file_url !== 'ai-generated' && !isUrl(selectedMaterial.file_url) ? selectedMaterial.file_url : null);
+
+                    if (!rawContent) {
+                      return (
+                        <div className="h-full flex flex-col items-center justify-center bg-muted/20 rounded-lg p-8 text-center border-2 border-dashed">
+                          <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                          <p className="text-muted-foreground font-medium">
+                            O conteúdo textual deste material não está disponível.
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Use os botões de Quiz ou Flashcards para interagir com este material.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    if (isRawPdfContent(rawContent)) {
+                      return (
+                        <div className="h-full flex flex-col items-center justify-center bg-muted/20 rounded-lg p-8 text-center border-2 border-dashed">
+                          <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                          <p className="text-muted-foreground font-medium">
+                            Este PDF não pôde ser convertido para texto puro.
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Alterne para a aba "Documento Original" acima para vê-lo.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    // Converte marcadores comuns (• ou -) para listas markdown limpas
+                    const formattedContent = rawContent
+                      .replace(/•\s*/g, '\n* ')
+                      .replace(/([0-9]+\.\s+[^\n]+)/g, '\n\n$1\n')
+                      .replace(/\n{3,}/g, '\n\n');
+
+                    return (
+                      <div className="bg-card rounded-lg p-6 border h-full overflow-y-auto shadow-inner">
+                        <MarkdownContent content={formattedContent} />
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
