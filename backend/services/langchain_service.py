@@ -127,23 +127,55 @@ class LangChainService:
         response = await self._llm.ainvoke(messages)
         return response.text
 
-    async def chat_stream(self, message: str, history: list[dict] = None):
+    async def chat_stream(
+        self,
+        message: str,
+        history: list[dict] = None,
+        mode: str = "general",
+        sources: list[dict] = None
+    ):
         """
         Versão streaming do chat — gera tokens progressivamente.
+        Suporta modo 'general' (conhecimento livre) e modo 'sources' (RAG estilo NotebookLM).
         """
         history = history or []
+        sources = sources or []
         sanitized = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", message.strip())
 
-        messages = [
-            HumanMessage(content=(
+        # Configuração das instruções do sistema de acordo com o modo
+        if mode == "sources" and sources:
+            # Formata os documentos fontes fornecidos
+            formatted_sources = []
+            for idx, src in enumerate(sources, start=1):
+                title = src.get("title", f"Documento {idx}")
+                content = src.get("content", "").strip()
+                if content:
+                    formatted_sources.append(f"### [Fonte {idx}]: {title}\n{content}")
+
+            context_block = "\n\n---\n\n".join(formatted_sources)
+
+            system_instruction = (
+                "Você é um tutor acadêmico no modo 'Minhas Fontes' (estilo NotebookLM).\n"
+                "Sua missão é responder à dúvida do estudante EXCLUSIVAMENTE com base no conteúdo dos documentos fornecidos abaixo.\n\n"
+                "DIRETRIZES OBRIGATÓRIAS:\n"
+                "1. Cite explicitamente a fonte usada (ex: 'De acordo com [Nome do Documento]...') ao apresentar os fatos.\n"
+                "2. Se a informação solicitada NÃO estiver presente em nenhum dos documentos fornecidos, diga clara e educadamente:\n"
+                "   'Essa informação não consta nos materiais selecionados. Deseja que eu responda usando meu conhecimento geral?'\n"
+                "3. NÃO invente fatos, políticas ou conceitos que não estejam nos materiais.\n"
+                "4. Use formatação rica em Markdown (tópicos, negrito, títulos) para manter a leitura didática.\n\n"
+                f"## FONTES DISPONÍVEIS:\n{context_block}"
+            )
+            welcome_msg = "Olá! Estou focado nas suas fontes selecionadas. Pode fazer perguntas sobre esses materiais!"
+        else:
+            system_instruction = (
                 "Você é um assistente educacional inteligente. "
-                "Ajude os estudantes com suas dúvidas de forma clara e didática."
-            )),
-            AIMessage(content=(
-                "Olá! Sou seu assistente educacional. "
-                "Estou aqui para ajudá-lo com seus estudos. "
-                "Como posso auxiliá-lo hoje?"
-            )),
+                "Ajude os estudantes com suas dúvidas de forma clara, motivadora e didática."
+            )
+            welcome_msg = "Olá! Sou seu assistente educacional. Estou aqui para ajudá-lo com seus estudos. Como posso auxiliá-lo hoje?"
+
+        messages = [
+            HumanMessage(content=system_instruction),
+            AIMessage(content=welcome_msg),
         ]
 
         for item in history:

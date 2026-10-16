@@ -46,7 +46,18 @@ async def chat(request: ChatRequest):
         keepalive_count = 0
 
         try:
-            async for chunk in langchain_service.chat_stream(message, request.history):
+            # Converte as fontes em dicts simples para o serviço
+            sources_payload = [
+                {"title": src.title, "content": src.content}
+                for src in request.sources
+            ]
+
+            async for chunk in langchain_service.chat_stream(
+                message=message,
+                history=request.history,
+                mode=request.mode,
+                sources=sources_payload,
+            ):
                 full_text += chunk
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
 

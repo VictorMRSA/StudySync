@@ -14,10 +14,18 @@ class ChatMessagePart(BaseModel):
     content: str | None = None
 
 
+class ChatSource(BaseModel):
+    """Documento/material usado como fonte de contexto no modo RAG."""
+    title: str = Field(default="Documento sem título")
+    content: str = Field(..., description="Conteúdo textual do documento")
+
+
 class ChatRequest(BaseModel):
     """Requisição para o endpoint de chat."""
     message: str
     history: list[ChatMessagePart] = Field(default_factory=list)
+    mode: str = Field(default="general", description="'general' para conhecimento amplo ou 'sources' para RAG")
+    sources: list[ChatSource] = Field(default_factory=list, description="Lista de materiais para embasar a resposta no modo 'sources'")
 
 
 class ChatResponse(BaseModel):

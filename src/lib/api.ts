@@ -45,13 +45,17 @@ async function summarizeStream(
   feedback?: string,
   onChunk?: (chunk: string) => void,
   endpoint: string = '/api/summarize',
-  history?: any[]
+  history?: any[],
+  mode: string = 'general',
+  sources?: Array<{ title: string; content: string }>
 ): Promise<{ result?: string; response?: string; type: string; success: boolean }> {
   const payload: any = { content, type, feedback };
   // Para chat
   if (endpoint === '/api/chat') {
     payload.message = content;
     payload.history = history || [];
+    payload.mode = mode;
+    payload.sources = sources || [];
   }
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -168,8 +172,14 @@ async function sseRequest<T>(endpoint: string, body: object): Promise<T> {
 
 export const api = {
   // Usa streaming para exibir a digitação em tempo real e evitar timeout
-  chat: (message: string, history: any[], onChunk?: (c: string) => void) => {
-    return summarizeStream(message, 'chat', '', onChunk, '/api/chat', history);
+  chat: (
+    message: string,
+    history: any[],
+    onChunk?: (c: string) => void,
+    mode: 'general' | 'sources' = 'general',
+    sources?: Array<{ title: string; content: string }>
+  ) => {
+    return summarizeStream(message, 'chat', '', onChunk, '/api/chat', history, mode, sources);
   },
 
   // Usa streaming para evitar timeout do Cloudflare em CPU lento
