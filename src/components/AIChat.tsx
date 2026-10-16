@@ -128,8 +128,8 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
         const active = validMaterials.find(m => m.id === effectiveMaterialId);
         if (active) {
           toast({
-            title: 'Fonte ativada no Chatbot',
-            description: `Conversando com foco no material "${active.title}".`
+            title: 'Modo SyncDocs ativado',
+            description: `Conversando com foco no documento "${active.title}".`
           });
         }
       }
@@ -320,7 +320,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
               }`}
             >
               <BookOpen className="w-3.5 h-3.5 text-accent" />
-              Minhas Fontes (RAG)
+              SyncDocs (Documentos)
             </button>
           </div>
 
@@ -335,8 +335,8 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
               <FileText className="w-3.5 h-3.5 text-accent" />
               <span>
                 {selectedSourceIds.size === 0
-                  ? 'Escolher Fontes'
-                  : `${selectedSourceIds.size} ${selectedSourceIds.size === 1 ? 'fonte ativa' : 'fontes ativas'}`}
+                  ? 'Escolher Documentos'
+                  : `${selectedSourceIds.size} ${selectedSourceIds.size === 1 ? 'documento ativo' : 'documentos ativos'}`}
               </span>
             </Button>
           )}
@@ -345,7 +345,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
         {/* Indicador de fontes ativas no modo Sources */}
         {chatMode === 'sources' && selectedSourceIds.size > 0 && !showSourcesPanel && (
           <div className="flex items-center gap-1.5 flex-wrap pt-1">
-            <span className="text-[11px] text-muted-foreground">Fontes em foco:</span>
+            <span className="text-[11px] text-muted-foreground">Documentos em foco:</span>
             {materials
               .filter(m => selectedSourceIds.has(m.id))
               .map(m => (
@@ -363,7 +363,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-accent" />
-              <span className="text-xs font-semibold">Selecione os materiais que a IA deve ler:</span>
+              <span className="text-xs font-semibold">Selecione os materiais do SyncDocs para a IA ler:</span>
             </div>
             {materials.length > 0 && (
               <Button
@@ -431,12 +431,12 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                 <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="font-medium text-foreground">
                   {chatMode === 'sources'
-                    ? 'Modo Minhas Fontes Ativo (NotebookLM) 📚'
+                    ? 'Modo SyncDocs Ativo 📚'
                     : 'Olá! Sou seu assistente educacional.'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
                   {chatMode === 'sources'
-                    ? 'Pergunte qualquer coisa sobre os materiais selecionados. Responderei citando exatamente os trechos dos seus documentos!'
+                    ? 'Pergunte qualquer coisa sobre os materiais selecionados no SyncDocs. Responderei citando exatamente os trechos dos seus documentos!'
                     : 'Como posso ajudá-lo com seus estudos hoje? Faça perguntas livres sobre qualquer matéria.'}
                 </p>
               </div>
@@ -466,7 +466,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                   {message.mode === 'sources' && message.role === 'model' && (
                     <div className="flex items-center gap-1 text-[10px] text-accent font-medium mb-1.5 border-b border-accent/20 pb-1">
                       <BookOpen className="w-3 h-3" />
-                      <span>Embasado em {message.sourcesUsed?.length || 1} {message.sourcesUsed?.length === 1 ? 'fonte' : 'fontes'}</span>
+                      <span>Embasado em {message.sourcesUsed?.length || 1} {message.sourcesUsed?.length === 1 ? 'documento do SyncDocs' : 'documentos do SyncDocs'}</span>
                     </div>
                   )}
 
@@ -497,7 +497,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                   <div className="flex items-center gap-2 text-xs">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     <span>
-                      {chatMode === 'sources' ? 'Consultando suas fontes...' : 'Digitando resposta...'}
+                      {chatMode === 'sources' ? 'Consultando documentos no SyncDocs...' : 'Digitando resposta...'}
                     </span>
                   </div>
                 </div>
@@ -513,8 +513,8 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
             placeholder={
               chatMode === 'sources'
                 ? selectedSourceIds.size === 0
-                  ? 'Selecione fontes acima para perguntar...'
-                  : `Pergunte sobre as ${selectedSourceIds.size} fontes selecionadas...`
+                  ? 'Selecione documentos acima para perguntar...'
+                  : `Pergunte sobre os ${selectedSourceIds.size} documentos do SyncDocs...`
                 : 'Digite sua dúvida de estudos...'
             }
             value={inputMessage}

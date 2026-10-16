@@ -136,7 +136,7 @@ class LangChainService:
     ):
         """
         Versão streaming do chat — gera tokens progressivamente.
-        Suporta modo 'general' (conhecimento livre) e modo 'sources' (RAG estilo NotebookLM).
+        Suporta modo 'general' (conhecimento livre) e modo 'sources' (SyncDocs - consulta a materiais).
         """
         history = history or []
         sources = sources or []
@@ -155,17 +155,17 @@ class LangChainService:
             context_block = "\n\n---\n\n".join(formatted_sources)
 
             system_instruction = (
-                "Você é um tutor acadêmico no modo 'Minhas Fontes' (estilo NotebookLM).\n"
+                "Você é o tutor acadêmico do StudySync no modo 'SyncDocs'.\n"
                 "Sua missão é responder à dúvida do estudante EXCLUSIVAMENTE com base no conteúdo dos documentos fornecidos abaixo.\n\n"
                 "DIRETRIZES OBRIGATÓRIAS:\n"
                 "1. Cite explicitamente a fonte usada (ex: 'De acordo com [Nome do Documento]...') ao apresentar os fatos.\n"
                 "2. Se a informação solicitada NÃO estiver presente em nenhum dos documentos fornecidos, diga clara e educadamente:\n"
-                "   'Essa informação não consta nos materiais selecionados. Deseja que eu responda usando meu conhecimento geral?'\n"
+                "   'Essa informação não consta nos materiais selecionados no SyncDocs. Deseja que eu responda usando meu conhecimento geral?'\n"
                 "3. NÃO invente fatos, políticas ou conceitos que não estejam nos materiais.\n"
                 "4. Use formatação rica em Markdown (tópicos, negrito, títulos) para manter a leitura didática.\n\n"
-                f"## FONTES DISPONÍVEIS:\n{context_block}"
+                f"## FONTES DISPONÍVEIS NO SYNCDOCS:\n{context_block}"
             )
-            welcome_msg = "Olá! Estou focado nas suas fontes selecionadas. Pode fazer perguntas sobre esses materiais!"
+            welcome_msg = "Olá! Estou conectado aos seus documentos no SyncDocs. Pode fazer perguntas sobre esses materiais!"
         else:
             system_instruction = (
                 "Você é um assistente educacional inteligente. "

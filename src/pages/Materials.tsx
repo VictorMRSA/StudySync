@@ -454,7 +454,7 @@ const Materials = () => {
                       onClick={() => navigate(`/?tab=ai-assistant&materialId=${material.id}`, { state: { materialId: material.id } })}
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
-                      <span>Perguntar no Chatbot (RAG)</span>
+                      <span>Perguntar no SyncDocs</span>
                     </Button>
                   </div>
 
@@ -536,7 +536,7 @@ const Materials = () => {
                   }}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
-                  Perguntar no Chatbot
+                  Perguntar no SyncDocs
                 </Button>
 
                 {selectedMaterial?.file_url && selectedMaterial.file_url.startsWith('http') && selectedMaterial.file_url !== 'ai-generated' && (
