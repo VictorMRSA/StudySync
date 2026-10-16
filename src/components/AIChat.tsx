@@ -23,6 +23,7 @@ import {
   Info
 } from 'lucide-react';
 import { MarkdownContentCompact } from '@/components/MarkdownContentCompact';
+import { useLocation } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -46,12 +47,20 @@ interface AIChatProps {
 }
 
 const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const effectiveMaterialId = initialMaterialId || (location.state as any)?.materialId || searchParams.get('materialId') || undefined;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [chatMode, setChatMode] = useState<'general' | 'sources'>('general');
+  const [chatMode, setChatMode] = useState<'general' | 'sources'>(() => {
+    return effectiveMaterialId ? 'sources' : 'general';
+  });
   const [materials, setMaterials] = useState<MaterialSource[]>([]);
-  const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set());
+  const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(() => {
+    return effectiveMaterialId ? new Set([effectiveMaterialId]) : new Set();
+  });
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [showSourcesPanel, setShowSourcesPanel] = useState(false);
   const { toast } = useToast();
@@ -65,10 +74,18 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
     scrollToBottom();
   }, [messages]);
 
+  // Se effectiveMaterialId mudar, garante a ativação do modo fontes e do documento
+  useEffect(() => {
+    if (effectiveMaterialId) {
+      setSelectedSourceIds(new Set([effectiveMaterialId]));
+      setChatMode('sources');
+    }
+  }, [effectiveMaterialId]);
+
   // Carrega os materiais disponíveis para o usuário usar como fontes
   useEffect(() => {
     loadUserMaterials();
-  }, []);
+  }, [effectiveMaterialId]);
 
   const loadUserMaterials = async () => {
     setLoadingMaterials(true);
@@ -84,17 +101,37 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
         .map(m => ({
           id: m.id,
           title: m.title,
-          content: m.extracted_text || m.description || m.title,
+          content: m.extracted_text || m.description || m.title || '',
           file_type: m.file_type || 'DOC'
         }))
         .filter(m => m.content && m.content.trim() && m.content !== 'ai-generated');
 
+      // Se temos um effectiveMaterialId que porventura não passou no filtro, inclui-o para garantir o RAG
+      if (effectiveMaterialId) {
+        const found = (data || []).find(m => m.id === effectiveMaterialId);
+        if (found && !validMaterials.some(m => m.id === effectiveMaterialId)) {
+          validMaterials.unshift({
+            id: found.id,
+            title: found.title,
+            content: found.extracted_text || found.description || found.title || 'Conteúdo do documento',
+            file_type: found.file_type || 'DOC'
+          });
+        }
+      }
+
       setMaterials(validMaterials);
 
       // Se passou um material inicial (ex: vindo de um clique em Materiais)
-      if (initialMaterialId) {
-        setSelectedSourceIds(new Set([initialMaterialId]));
+      if (effectiveMaterialId) {
+        setSelectedSourceIds(new Set([effectiveMaterialId]));
         setChatMode('sources');
+        const active = validMaterials.find(m => m.id === effectiveMaterialId);
+        if (active) {
+          toast({
+            title: 'Fonte ativada no Chatbot',
+            description: `Conversando com foco no material "${active.title}".`
+          });
+        }
       }
     } catch (err) {
       console.error('Erro ao carregar materiais para fontes:', err);

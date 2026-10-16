@@ -32,6 +32,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [aiAssistantState, setAiAssistantState] = useState<{
     initialMessage?: string;
+    initialMaterialId?: string;
   }>({});
 
   useEffect(() => {
@@ -49,27 +50,31 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    const tabParam = new URLSearchParams(location.search).get('tab');
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
     if (tabParam) {
       setActiveTab(tabParam);
     }
 
+    const materialIdParam = searchParams.get('materialId');
+    const state = (location.state || {}) as any;
+
     // Capturar dados do location.state para AI Assistant
-    if (location.state) {
-      const state = location.state as any;
-      
-      // Construir initialMessage diretamente aqui
-      let initialMessage: string | undefined;
-      
-      if (state.initialMessage) {
-        initialMessage = state.initialMessage;
-      } else if (state.focusTopic && state.errorRate !== undefined) {
-        initialMessage = `Preciso estudar sobre "${state.focusTopic}". Tive ${state.errorRate.toFixed(0)}% de erro nesse tópico nos meus quizzes. Pode me explicar de forma clara esse conceito e dar exemplos práticos para eu entender melhor?`;
-      }
-      
-      if (initialMessage) {
-        setAiAssistantState({ initialMessage });
-      }
+    let initialMessage: string | undefined;
+    if (state.initialMessage) {
+      initialMessage = state.initialMessage;
+    } else if (state.focusTopic && state.errorRate !== undefined) {
+      initialMessage = `Preciso estudar sobre "${state.focusTopic}". Tive ${state.errorRate.toFixed(0)}% de erro nesse tópico nos meus quizzes. Pode me explicar de forma clara esse conceito e dar exemplos práticos para eu entender melhor?`;
+    }
+
+    const initialMaterialId = state.materialId || materialIdParam || undefined;
+
+    if (initialMessage !== undefined || initialMaterialId !== undefined) {
+      setAiAssistantState(prev => ({
+        ...prev,
+        ...(initialMessage !== undefined ? { initialMessage } : {}),
+        ...(initialMaterialId !== undefined ? { initialMaterialId } : {})
+      }));
     }
   }, [location.search, location.state]);
 
@@ -94,7 +99,12 @@ const Index = () => {
       case "materials":
         return <Materials />;
       case "ai-assistant":
-        return <AIAssistantTab initialMessage={aiAssistantState.initialMessage} />;
+        return (
+          <AIAssistantTab 
+            initialMessage={aiAssistantState.initialMessage} 
+            initialMaterialId={aiAssistantState.initialMaterialId} 
+          />
+        );
       case "achievements":
         return <Achievements />;
       case "profile":

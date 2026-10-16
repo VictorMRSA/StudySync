@@ -6,9 +6,10 @@ import { Brain, MessageCircle, FileText, Sparkles } from 'lucide-react';
 
 interface AIAssistantTabProps {
   initialMessage?: string;
+  initialMaterialId?: string;
 }
 
-const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ initialMessage }) => {
+const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ initialMessage, initialMaterialId }) => {
   return (
     <div className="container mx-auto px-4 py-6 lg:py-8">
       <div className="max-w-6xl mx-auto">
@@ -40,7 +41,7 @@ const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ initialMessage }) => {
           <TabsContent value="chat" className="space-y-4 lg:space-y-6">
             <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
               <div className="lg:col-span-2 order-2 lg:order-1">
-                <AIChat initialMessage={initialMessage} />
+                <AIChat initialMessage={initialMessage} initialMaterialId={initialMaterialId} />
               </div>
               
               <div className="space-y-3 lg:space-y-4 order-1 lg:order-2">

@@ -6,10 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ReportErrorButton from "@/components/ReportErrorButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { MarkdownContent } from "@/components/MarkdownContent";
+import { useAdmin } from "@/hooks/useAdmin";
 import { 
   Upload, 
   FileText, 
@@ -28,8 +39,9 @@ import {
   Sparkles,
   ThumbsUp,
   ExternalLink,
-  Download,
-  MessageSquare
+  MessageSquare,
+  Trash2,
+  Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -44,8 +56,12 @@ const Materials = () => {
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
   const [previewMode, setPreviewMode] = useState<'original' | 'text'>('original');
   const [votedMaterials, setVotedMaterials] = useState<Set<string>>(new Set());
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [materialToDelete, setMaterialToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
 
   // Detecta se o conteúdo é código bruto de PDF
   const isRawPdfContent = (content: string) => {
@@ -73,6 +89,9 @@ const Materials = () => {
   };
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUser(user);
+    });
     loadMaterials();
     loadVotes();
   }, []);
@@ -158,6 +177,65 @@ const Materials = () => {
       }
     } catch (error) {
       console.error('Error loading votes:', error);
+    }
+  };
+
+  const canDelete = (material: any) => {
+    if (!currentUser || !material) return false;
+    return material.uploaded_by === currentUser.id || isAdmin;
+  };
+
+  const handleDeleteMaterial = async () => {
+    if (!materialToDelete) return;
+    try {
+      setIsDeleting(true);
+
+      // 1. Remover arquivo físico do Supabase Storage se existir
+      if (materialToDelete.file_url && materialToDelete.file_url.includes('/materials/')) {
+        try {
+          const parts = materialToDelete.file_url.split('/materials/');
+          if (parts[1]) {
+            const rawPath = parts[1].split('?')[0];
+            const storagePath = decodeURIComponent(rawPath);
+            await supabase.storage.from('materials').remove([storagePath]);
+          }
+        } catch (storageErr) {
+          console.warn('Erro ao remover arquivo do Storage:', storageErr);
+        }
+      }
+
+      // 2. Remover o registro do banco de dados (public.materials)
+      // Tabelas dependentes (ai_summaries, quiz_sessions, material_votes) possuem CASCADE
+      const { error } = await supabase
+        .from('materials')
+        .delete()
+        .eq('id', materialToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Material excluído',
+        description: `O material "${materialToDelete.title}" foi removido com sucesso.`
+      });
+
+      // Atualizar lista local
+      setMaterials(prev => prev.filter(m => m.id !== materialToDelete.id));
+
+      // Se a modal de visualização estiver aberta com esse material, fecha-a
+      if (selectedMaterial?.id === materialToDelete.id) {
+        setMaterialDialogOpen(false);
+        setSelectedMaterial(null);
+      }
+      setMaterialToDelete(null);
+    } catch (error: any) {
+      console.error('Erro ao excluir material:', error);
+      toast({
+        title: 'Erro ao excluir material',
+        description: error.message || 'Não foi possível excluir o material. Verifique suas permissões.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -290,6 +368,21 @@ const Materials = () => {
                         )}
                       </div>
                     </div>
+
+                    {canDelete(material) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mr-2 -mt-1 transition-colors"
+                        title="Excluir material"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMaterialToDelete(material);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
 
                   {/* Title and Class */}
@@ -358,7 +451,7 @@ const Materials = () => {
                       variant="ghost"
                       size="sm"
                       className="w-full text-xs text-primary hover:bg-primary/10 hover:text-primary gap-1.5 h-8 border border-dashed border-primary/30"
-                      onClick={() => navigate('/ai-assistant', { state: { materialId: material.id } })}
+                      onClick={() => navigate(`/?tab=ai-assistant&materialId=${material.id}`, { state: { materialId: material.id } })}
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                       <span>Perguntar no Chatbot (RAG)</span>
@@ -431,31 +524,58 @@ const Materials = () => {
                 <span className="truncate">{selectedMaterial?.title}</span>
               </DialogTitle>
 
-              {/* Botões de Ação do Topo (Download / Abrir em Nova Aba) */}
-              {selectedMaterial?.file_url && selectedMaterial.file_url.startsWith('http') && selectedMaterial.file_url !== 'ai-generated' && (
-                <div className="flex items-center gap-2 shrink-0">
+              {/* Botões de Ação do Topo (Download / Perguntar no Chat / Excluir / Abrir em Nova Aba) */}
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/10"
+                  onClick={() => {
+                    setMaterialDialogOpen(false);
+                    navigate(`/?tab=ai-assistant&materialId=${selectedMaterial.id}`, { state: { materialId: selectedMaterial.id } });
+                  }}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Perguntar no Chatbot
+                </Button>
+
+                {selectedMaterial?.file_url && selectedMaterial.file_url.startsWith('http') && selectedMaterial.file_url !== 'ai-generated' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      asChild
+                    >
+                      <a href={selectedMaterial.file_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Abrir em nova aba
+                      </a>
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => handleDownload(selectedMaterial.file_url, selectedMaterial.file_name || `${selectedMaterial.title}.pdf`)}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Baixar
+                    </Button>
+                  </>
+                )}
+
+                {canDelete(selectedMaterial) && (
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="gap-1.5 text-xs"
-                    asChild
+                    className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setMaterialToDelete(selectedMaterial)}
                   >
-                    <a href={selectedMaterial.file_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Abrir em nova aba
-                    </a>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Excluir
                   </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    onClick={() => handleDownload(selectedMaterial.file_url, selectedMaterial.file_name || `${selectedMaterial.title}.pdf`)}
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Baixar
-                  </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </DialogHeader>
           
@@ -597,6 +717,47 @@ const Materials = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog for Material Deletion */}
+      <AlertDialog open={!!materialToDelete} onOpenChange={(open) => !open && !isDeleting && setMaterialToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Excluir Material
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Tem certeza de que deseja excluir permanentemente o material{" "}
+                <strong className="text-foreground">"{materialToDelete?.title}"</strong>?
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Esta ação não poderá ser desfeita. O arquivo original, resumos gerados e quizzes associados serão excluídos permanentemente.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteMaterial}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-1.5"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Excluindo...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Confirmar Exclusão</span>
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

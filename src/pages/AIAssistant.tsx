@@ -4,25 +4,41 @@ import AIChat from '@/components/AIChat';
 import AISummaryGenerator from '@/components/AISummaryGenerator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, MessageCircle, FileText, Sparkles } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const AIAssistant: React.FC = () => {
   const activeTab = 'ai-assistant';
-  const handleTabChange = () => {};
+  const navigate = useNavigate();
   const location = useLocation();
-  const { focusTopic, errorRate, materialId: stateMaterialId } = location.state || {};
-  const [initialMessage, setInitialMessage] = useState<string | undefined>();
-  const [initialMaterialId, setInitialMaterialId] = useState<string | undefined>();
+  const searchParams = new URLSearchParams(location.search);
+  const { focusTopic, errorRate, materialId: stateMaterialId, initialMessage: stateInitialMessage } = location.state || {};
+  const queryMaterialId = searchParams.get('materialId');
+  const effectiveMaterialId = stateMaterialId || queryMaterialId || undefined;
+
+  const handleTabChange = (tab: string) => {
+    navigate(`/?tab=${tab}`);
+  };
+
+  const [initialMessage, setInitialMessage] = useState<string | undefined>(() => {
+    if (stateInitialMessage) return stateInitialMessage;
+    if (focusTopic && errorRate !== undefined) {
+      return `Preciso estudar sobre "${focusTopic}". Tive ${errorRate.toFixed(0)}% de erro nesse tópico nos meus quizzes. Pode me explicar de forma clara esse conceito e dar exemplos práticos para eu entender melhor?`;
+    }
+    return undefined;
+  });
+  const [initialMaterialId, setInitialMaterialId] = useState<string | undefined>(effectiveMaterialId);
 
   useEffect(() => {
-    if (stateMaterialId) {
-      setInitialMaterialId(stateMaterialId);
+    if (effectiveMaterialId) {
+      setInitialMaterialId(effectiveMaterialId);
     }
-    if (focusTopic && errorRate !== undefined) {
+    if (stateInitialMessage) {
+      setInitialMessage(stateInitialMessage);
+    } else if (focusTopic && errorRate !== undefined) {
       const message = `Preciso estudar sobre "${focusTopic}". Tive ${errorRate.toFixed(0)}% de erro nesse tópico nos meus quizzes. Pode me explicar de forma clara esse conceito e dar exemplos práticos para eu entender melhor?`;
       setInitialMessage(message);
     }
-  }, [focusTopic, errorRate, stateMaterialId]);
+  }, [focusTopic, errorRate, effectiveMaterialId, stateInitialMessage]);
 
   return (
     <div className="min-h-screen bg-background">
