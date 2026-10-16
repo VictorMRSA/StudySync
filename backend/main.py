@@ -60,8 +60,13 @@ app.include_router(flashcards.router)
 app.include_router(documents.router)
 
 
-# ── Health Check ─────────────────────────────────────────────────────────────
+# ── Health Checks ────────────────────────────────────────────────────────────
+@app.get("/", tags=["Health"])
+@app.get("/health", tags=["Health"])
 @app.get("/api/health", tags=["Health"])
+@app.head("/", tags=["Health"])
+@app.head("/health", tags=["Health"])
+@app.head("/api/health", tags=["Health"])
 async def health_check() -> dict:
     """Verifica se o backend está ativo e operacional."""
     return {
