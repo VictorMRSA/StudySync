@@ -28,7 +28,8 @@ import {
   Sparkles,
   ThumbsUp,
   ExternalLink,
-  Download
+  Download,
+  MessageSquare
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -352,6 +353,16 @@ const Materials = () => {
                         <span className="text-xs">Flashcards</span>
                       </Button>
                     </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs text-primary hover:bg-primary/10 hover:text-primary gap-1.5 h-8 border border-dashed border-primary/30"
+                      onClick={() => navigate('/ai-assistant', { state: { materialId: material.id } })}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Perguntar no Chatbot (RAG)</span>
+                    </Button>
                   </div>
 
                   {/* Author and Upvotes */}
