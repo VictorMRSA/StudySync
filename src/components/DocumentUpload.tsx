@@ -32,32 +32,23 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
 
   const supportedFormats = [
     'application/pdf',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/msword',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-excel',
-    'text/plain',
-    'audio/mpeg',
-    'audio/wav'
+    'text/plain'
   ];
 
   const getFileIcon = (file: File) => {
     if (file.type.includes('pdf')) return <FileText className="h-5 w-5 text-red-500" />;
-    if (file.type.includes('presentation')) return <FileText className="h-5 w-5 text-orange-500" />;
     if (file.type.includes('word')) return <FileText className="h-5 w-5 text-blue-500" />;
-    if (file.type.includes('sheet')) return <FileText className="h-5 w-5 text-green-500" />;
-    if (file.type.includes('audio')) return <FileText className="h-5 w-5 text-purple-500" />;
     return <File className="h-5 w-5 text-muted-foreground" />;
   };
 
   const handleFiles = useCallback(async (files: FileList) => {
     const validFiles = Array.from(files).filter(file => {
-      if (!supportedFormats.includes(file.type) && !file.name.endsWith('.txt')) {
+      if (!supportedFormats.includes(file.type) && !file.name.endsWith('.txt') && !file.name.endsWith('.docx') && !file.name.endsWith('.pdf')) {
         toast({
           title: 'Formato não suportado',
-          description: `O arquivo ${file.name} não é suportado. Use PDF, PPT, Word, Excel, TXT ou MP3.`,
+          description: `O arquivo ${file.name} não é suportado. Use PDF, Word (.docx) ou TXT.`,
           variant: 'destructive'
         });
         return false;
@@ -283,7 +274,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
               onChange={handleFileInput}
               className="hidden"
               id="file-upload"
-              accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.txt,.mp3,.wav"
+              accept=".pdf,.doc,.docx,.txt"
             />
             <Button asChild>
               <label htmlFor="file-upload" className="cursor-pointer">
@@ -291,7 +282,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentParsed, isAna
               </label>
             </Button>
             <p className="text-xs text-muted-foreground mt-3">
-              Suporta: PDF, PPT, Word, Excel, TXT, MP3 (até 20MB cada)
+              Suporta: PDF, Word (.docx) ou TXT (até 20MB cada)
             </p>
           </div>
         </CardContent>

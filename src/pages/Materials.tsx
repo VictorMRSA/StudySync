@@ -51,6 +51,26 @@ const Materials = () => {
     return content.startsWith('%PDF-') || content.includes('endobj') || content.includes('/Type /Catalog');
   };
 
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Falha ao baixar arquivo');
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename || 'documento.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Erro ao baixar arquivo:', err);
+      // Fallback: abre direto em nova aba caso o fetch seja bloqueado
+      window.open(url, '_blank');
+    }
+  };
+
   useEffect(() => {
     loadMaterials();
     loadVotes();
@@ -418,12 +438,10 @@ const Materials = () => {
                     variant="secondary"
                     size="sm"
                     className="gap-1.5 text-xs"
-                    asChild
+                    onClick={() => handleDownload(selectedMaterial.file_url, selectedMaterial.file_name || `${selectedMaterial.title}.pdf`)}
                   >
-                    <a href={selectedMaterial.file_url} download={selectedMaterial.file_name || 'documento'}>
-                      <Download className="w-3.5 h-3.5" />
-                      Baixar
-                    </a>
+                    <Download className="w-3.5 h-3.5" />
+                    Baixar
                   </Button>
                 </div>
               )}
