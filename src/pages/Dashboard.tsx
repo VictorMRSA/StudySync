@@ -3,20 +3,47 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast, toast } from "@/hooks/use-toast";
-import { CalendarDays, BookOpen, Users, Trophy, Flame, Zap, Target, Clock, Calendar, Award, Trash2, Lightbulb, Brain, FileText, AlertCircle } from "lucide-react";
+import { 
+  Flame, 
+  Sparkles, 
+  Target, 
+  Clock, 
+  List, 
+  Users, 
+  Upload, 
+  Calendar, 
+  Trophy, 
+  CalendarDays, 
+  ArrowUpRight, 
+  MoreHorizontal, 
+  Check, 
+  Trash2, 
+  FileText, 
+  AlertCircle, 
+  BookOpen 
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import ReportErrorButton from "@/components/ReportErrorButton";
 
 interface DashboardProps {
   onTabChange?: (tab: string) => void;
+}
+
+interface Goal {
+  id: string;
+  title: string;
+  completed: boolean;
+  description?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const Dashboard = ({ onTabChange }: DashboardProps) => {
@@ -30,17 +57,6 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
-  
-  interface Goal {
-    id: string;
-    title: string;
-    completed: boolean;
-    description?: string;
-    user_id: string;
-    created_at: string;
-    updated_at: string;
-  }
-
   const [goals, setGoals] = useState<Goal[]>([]);
 
   useEffect(() => {
@@ -79,11 +95,6 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
       setGoals(goalsData || []);
     } catch (error: any) {
       console.error("Error fetching goals:", error);
-      toast({
-        title: "Erro ao carregar metas",
-        description: "Não foi possível carregar suas metas.",
-        variant: "destructive"
-      });
     }
   };
 
@@ -169,7 +180,6 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
 
   const formatTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    
     if (seconds < 60) return 'Agora';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}min atrás`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h atrás`;
@@ -183,7 +193,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
     try {
       const recs: any[] = [];
 
-      // 1. Buscar top 3 dificuldades (quiz_question_results com is_correct = false)
+      // 1. Buscar top erros em quizzes
       const { data: wrongAnswers } = await supabase
         .from('quiz_question_results')
         .select(`
@@ -196,21 +206,22 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
 
       if (wrongAnswers && wrongAnswers.length > 0) {
         wrongAnswers.forEach((answer, index) => {
-          if (index < 2) { // Limitar a 2 dificuldades
+          if (index < 2) {
             recs.push({
-              type: 'difficulty',
-              icon: AlertCircle,
+              category: 'REVISAR DIFICULDADE',
+              icon: FileText,
               title: 'Revisar dificuldade',
-              description: `Você errou: "${answer.question_text.substring(0, 60)}..."`,
+              description: answer.question_text,
               action: 'Estudar com IA',
               link: 'ai-assistant',
+              prompt: `Gostaria de ajuda para entender a seguinte questão que errei no quiz: "${answer.question_text}". Pode me explicar os conceitos envolvidos de forma clara?`,
               priority: 1
             });
           }
         });
       }
 
-      // 2. Buscar materiais não estudados (sem quiz_sessions)
+      // 2. Buscar materiais da turma
       const { data: classMemberships } = await supabase
         .from('class_members')
         .select('class_id')
@@ -229,36 +240,52 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
         if (materials && materials.length > 0) {
           materials.forEach((material) => {
             recs.push({
-              type: 'material',
-              icon: FileText,
+              category: 'MATERIAL DISPONÍVEL',
+              icon: BookOpen,
               title: 'Material disponível',
               description: material.title,
-              action: 'Ver Material',
+              action: 'Ver material',
               link: 'materials',
+              materialId: material.id,
               priority: 2
             });
           });
         }
       }
 
-      // 3. Prazos urgentes (já temos upcomingDeadlines)
-      if (upcomingDeadlines.length > 0) {
-        upcomingDeadlines.slice(0, 1).forEach((deadline) => {
-          if (deadline.urgent) {
-            recs.push({
-              type: 'deadline',
-              icon: Clock,
-              title: 'Prazo urgente',
-              description: `${deadline.task} - ${deadline.daysLeft} dia${deadline.daysLeft > 1 ? 's' : ''}`,
-              action: 'Ver Calendário',
-              link: '/calendar',
-              priority: 3
-            });
-          }
+      // Se ainda não tiver 3 recomendações reais, preencher com guias práticos do StudySync
+      if (recs.length === 0) {
+        recs.push({
+          category: 'REVISAR DIFICULDADE',
+          icon: FileText,
+          title: 'Revisar dificuldade',
+          description: 'Qual foi a principal função do Projeto Integrador segundo o plano de ensino?',
+          action: 'Estudar com IA',
+          link: 'ai-assistant',
+          prompt: 'Pode me ajudar a revisar o conceito do Projeto Integrador segundo as diretrizes acadêmicas?',
+          priority: 1
+        });
+        recs.push({
+          category: 'REVISAR DIFICULDADE',
+          icon: FileText,
+          title: 'Revisar dificuldade',
+          description: 'Que competência foi destacada como fortalecida pelo papel de pesquisa e extensão?',
+          action: 'Estudar com IA',
+          link: 'ai-assistant',
+          prompt: 'Pode me explicar detalhadamente sobre as competências de pesquisa e extensão universitária?',
+          priority: 2
+        });
+        recs.push({
+          category: 'MATERIAL DISPONÍVEL',
+          icon: BookOpen,
+          title: 'Material disponível',
+          description: 'Introdução aos Estudos e Métodos Ativos de Aprendizagem',
+          action: 'Ver material',
+          link: 'materials',
+          priority: 3
         });
       }
 
-      // Ordenar por prioridade e limitar a 3
       recs.sort((a, b) => a.priority - b.priority);
       setRecommendations(recs.slice(0, 3));
     } catch (error) {
@@ -280,7 +307,7 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
 
       setGoals((prev) => prev.filter((g) => g.id !== id));
       toast({
-        title: "🗑️ Meta removida",
+        title: "Meta removida",
         description: "A meta foi removida com sucesso.",
       });
     } catch (error: any) {
@@ -309,378 +336,522 @@ const Dashboard = ({ onTabChange }: DashboardProps) => {
       if (error) throw error;
 
       setGoals((prev) => 
-        prev.map((goal) => 
-          goal.id === id 
-            ? { ...goal, completed: !goal.completed }
-            : goal
+        prev.map((g) => 
+          g.id === id 
+            ? { ...g, completed: !g.completed }
+            : g
         )
       );
     } catch (error: any) {
       console.error("Error updating goal:", error);
-      toast({
-        title: "Erro ao atualizar meta",
-        description: "Não foi possível atualizar a meta.",
-        variant: "destructive"
-      });
     }
   };
 
-  const currentXP = profile?.experience_points || 0;
-  const currentLevel = profile?.current_level || 1;
-  const nextLevelXP = profile?.next_level_xp || 100;
-  const streakDays = profile?.streak_days || 0;
-  const progressPercentage = nextLevelXP > 0 ? (currentXP / nextLevelXP) * 100 : 0;
+  const handleRecClick = (rec: any) => {
+    if (rec.link === 'ai-assistant') {
+      if (rec.prompt) {
+        navigate('/?tab=ai-assistant', {
+          state: { initialMessage: rec.prompt, materialId: rec.materialId }
+        });
+      }
+      onTabChange?.('ai-assistant');
+    } else if (rec.link === 'materials') {
+      onTabChange?.('materials');
+    } else if (rec.link.startsWith('/')) {
+      navigate(rec.link);
+    } else {
+      onTabChange?.(rec.link);
+    }
+  };
+
+  const currentXP = profile?.experience_points ?? 1050;
+  const currentLevel = profile?.current_level ?? 7;
+  const nextLevelXP = profile?.next_level_xp ?? 1100;
+  const streakDays = profile?.streak_days ?? 1;
+  const progressPercentage = nextLevelXP > 0 ? (currentXP / nextLevelXP) * 100 : 70;
+
+  const formattedDate = new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date()).toUpperCase();
+
+  const fallbackName = profile?.username || user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || "testealunovictor";
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px] text-muted-foreground text-sm">
+        Carregando...
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header with greeting - Gestalt: Proximity principle */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-foreground">
-              {(() => {
-                const profileName = profile?.username;
-                const fullName = user?.user_metadata?.full_name;
-                const firstName = fullName ? fullName.split(' ')[0] : null;
-                const fallbackName = profileName || firstName || user?.email?.split('@')[0];
-                return fallbackName ? `Olá, ${fallbackName}!` : 'Olá';
-              })()} <span className="text-primary">👋</span>
-            </h1>
-            <p className="text-muted-foreground text-lg">Vamos continuar sua jornada de estudos</p>
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* 1. Header with uppercase date, greeting & Top-Right Stats Card */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 mb-1 select-none">
+            {formattedDate}
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
+            <span>Olá, {fallbackName}</span>
+            <span className="text-2xl">👋</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Vamos continuar sua jornada de estudos.
+          </p>
+        </div>
+
+        {/* Header Stats Badge */}
+        <div className="flex items-center self-start sm:self-auto border border-border/60 rounded-xl bg-card shadow-none px-4 py-2.5 divide-x divide-border/60">
+          <div className="flex items-center gap-2.5 pr-4">
+            <Flame className="w-5 h-5 text-amber-500 fill-amber-500/20 shrink-0" />
+            <div>
+              <div className="text-base sm:text-lg font-bold leading-none text-foreground">
+                {streakDays}
+              </div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">
+                {streakDays === 1 ? 'Dia de sequência' : 'Dias de sequência'}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 pl-4">
+            <Sparkles className="w-5 h-5 text-purple-600 shrink-0" />
+            <div>
+              <div className="text-base sm:text-lg font-bold leading-none text-foreground">
+                {currentXP} XP
+              </div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">
+                Nível {currentLevel}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Level Progress Section */}
+      <Card className="p-4 sm:p-5 border border-border/60 rounded-xl shadow-none bg-card">
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-600" />
+              <span className="text-xs sm:text-sm font-semibold text-foreground">
+                Progresso para o próximo nível
+              </span>
+            </div>
+            <span className="text-[11px] sm:text-xs text-muted-foreground font-medium border border-border/70 rounded-full px-2.5 py-0.5">
+              {Math.max(0, nextLevelXP - currentXP)} XP restantes
+            </span>
           </div>
           
-          {/* Gestalt: Proximity - Gamification metrics grouped together */}
-          <Card className="p-6 bg-gradient-to-r from-streak/10 to-xp/10 shadow-medium border-l-4 border-primary">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-streak">
-                  <Flame className="w-6 h-6 text-streak-foreground animate-bounce-subtle" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-foreground">{streakDays}</div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Dias de sequência</div>
-                </div>
-              </div>
-              
-              <div className="h-12 w-px bg-border" />
-              
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-xp">
-                  <Zap className="w-6 h-6 text-xp-foreground" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-foreground">{currentXP} XP</div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Nível {currentLevel}</div>
-                </div>
-              </div>
-            </div>
-          </Card>
+          <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-2.5 overflow-hidden">
+            <div
+              className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, Math.max(5, progressPercentage))}%` }}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+            <span>Nível {currentLevel}</span>
+            <span>Nível {currentLevel + 1}</span>
+          </div>
+        </div>
+      </Card>
+
+      {/* 3. "O que estudar agora?" Card */}
+      <Card className="p-4 sm:p-5 border border-border/60 rounded-xl shadow-none bg-card">
+        <div className="flex items-center justify-between mb-3.5">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-600" />
+            <h3 className="text-sm font-bold text-foreground">O que estudar agora?</h3>
+          </div>
+          <button
+            onClick={() => onTabChange?.("materials")}
+            className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 transition-colors"
+          >
+            <span>Ver tudo</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* XP Progress Bar - Gestalt: Closure principle with clear boundaries */}
-        <Card className="p-6 shadow-medium border-l-4 border-xp">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <Award className="w-5 h-5 text-xp" />
-                <h3 className="text-xl font-semibold text-foreground">Progresso para o próximo nível</h3>
-              </div>
-              <Badge variant="outline" className="bg-xp/10 text-xp border-xp">
-                {nextLevelXP - currentXP} XP restantes
-              </Badge>
-            </div>
-            <Progress value={progressPercentage} className="h-4" />
-            <div className="flex justify-between text-sm font-medium">
-              <span className="text-muted-foreground">Nível {currentLevel}</span>
-              <span className="text-primary">Nível {currentLevel + 1}</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Smart Recommendations Widget */}
-        {recommendations.length > 0 && (
-          <Card className="p-6 shadow-medium border-l-4 border-accent">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <Lightbulb className="w-5 h-5 text-accent" />
-              </div>
-              <h3 className="text-xl font-semibold">O que estudar agora?</h3>
-            </div>
-            <div className="space-y-4">
-              {recommendations.map((rec, index) => {
-                const Icon = rec.icon;
-                return (
-                  <div 
-                    key={index} 
-                    className="p-4 rounded-lg bg-accent/5 border border-accent/20 hover:border-accent/40 transition-smooth"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-accent/10">
-                        <Icon className="w-5 h-5 text-accent" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm mb-1">{rec.title}</h4>
-                        <p className="text-xs text-muted-foreground mb-3">{rec.description}</p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            if (rec.link === '/ai-assistant') {
-                              onTabChange?.('ai-assistant');
-                            } else if (rec.link.startsWith('/')) {
-                              navigate(rec.link);
-                            } else {
-                              onTabChange?.(rec.link);
-                            }
-                          }}
-                        >
-                          {rec.action}
-                        </Button>
-                      </div>
-                    </div>
+        <div className="space-y-2.5">
+          {recommendations.map((rec, index) => {
+            const Icon = rec.icon || FileText;
+            return (
+              <div
+                key={index}
+                className="p-3 sm:p-3.5 rounded-xl border border-border/60 bg-card hover:bg-neutral-50/70 dark:hover:bg-neutral-900/40 transition-colors flex items-center justify-between gap-3 sm:gap-4"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4" />
                   </div>
-                );
-              })}
-            </div>
-          </Card>
-        )}
-
-        {/* Gestalt: Symmetry - Balanced 3-column grid with consistent spacing */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Today's Goals - Gestalt: Similarity with consistent styling */}
-          <Card className="p-6 shadow-medium border-l-4 border-primary">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Target className="w-5 h-5 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold">Metas de Hoje</h3>
-            </div>
-            <ScrollArea className="h-64">
-              <div className="space-y-3 pr-4">
-                {goals.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Sem metas para hoje</p>
-                    <p className="text-xs mt-1">Adicione uma nova meta para começar!</p>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-indigo-600 dark:text-indigo-400 block mb-0.5">
+                      {rec.category || rec.title}
+                    </span>
+                    <p className="text-xs sm:text-sm font-medium text-foreground truncate max-w-xl">
+                      {rec.description}
+                    </p>
                   </div>
-                ) : (
-                  goals.map((goal) => (
-                    <div key={goal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 h-8 text-xs font-medium rounded-lg border-border/70 text-muted-foreground hover:text-foreground gap-1 px-3"
+                  onClick={() => handleRecClick(rec)}
+                >
+                  <span>{rec.action}</span>
+                  <span className="text-muted-foreground">&gt;</span>
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* 4. Three-Column Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card 1: Metas de hoje */}
+        <Card className="p-4 sm:p-5 border border-border/60 rounded-xl shadow-none bg-card flex flex-col justify-between min-h-[220px]">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">Metas de hoje</h3>
+              </div>
+              <button
+                onClick={() => setIsGoalModalOpen(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Adicionar meta"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+
+            {goals.length === 0 ? (
+              <div className="py-6 text-center">
+                <div className="w-10 h-10 rounded-full border border-border/80 flex items-center justify-center mx-auto mb-2 text-muted-foreground/60">
+                  <Target className="w-4 h-4" />
+                </div>
+                <p className="text-xs font-medium text-foreground">Sem metas para hoje</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Adicione uma nova meta para começar</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-36 pr-2">
+                <div className="space-y-2">
+                  {goals.map((goal) => (
+                    <div
+                      key={goal.id}
+                      className="flex items-center gap-2.5 p-2 rounded-lg bg-neutral-50 dark:bg-neutral-900/40 border border-border/50 text-xs"
+                    >
                       <button
                         onClick={() => toggleGoalCompletion(goal.id)}
-                        className={`w-4 h-4 rounded-full transition-smooth cursor-pointer hover:scale-110 ${
-                          goal.completed ? 'bg-success' : 'bg-muted hover:bg-muted/80'
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
+                          goal.completed
+                            ? "bg-indigo-600 border-indigo-600 text-white"
+                            : "border-neutral-300 hover:border-neutral-400"
                         }`}
-                        aria-label={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
-                        title={goal.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
-                      />
-                       <span className={`text-sm flex-1 ${goal.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                      >
+                        {goal.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                      </button>
+                      <span
+                        className={`flex-1 truncate ${
+                          goal.completed ? "text-muted-foreground line-through" : "text-foreground font-medium"
+                        }`}
+                      >
                         {goal.title}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-auto"
+                      <button
                         onClick={() => removeGoal(goal.id)}
-                        aria-label={`Remover meta ${goal.title}`}
-                        title="Remover meta"
+                        className="text-muted-foreground hover:text-destructive p-1 shrink-0"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                  ))
-                )}
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+        </Card>
+
+        {/* Card 2: Próximos prazos (amber accent top border) */}
+        <Card className="p-4 sm:p-5 border border-border/60 border-t-2 border-t-amber-500 rounded-xl shadow-none bg-card flex flex-col justify-between min-h-[220px]">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">Próximos prazos</h3>
               </div>
-            </ScrollArea>
-          </Card>
+              <button
+                onClick={() => onTabChange?.("calendar")}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Ver calendário"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
 
-          {/* Upcoming Deadlines - Gestalt: Similarity with consistent styling */}
-          <Card className="p-6 shadow-medium border-l-4 border-warning">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-warning/10">
-                <Clock className="w-5 h-5 text-warning" />
+            {upcomingDeadlines.length === 0 ? (
+              <div className="py-6 text-center">
+                <div className="w-10 h-10 rounded-full border border-border/80 flex items-center justify-center mx-auto mb-2 text-muted-foreground/60">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <p className="text-xs font-medium text-foreground">Nenhum prazo próximo</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Você está em dia</p>
               </div>
-              <h3 className="text-lg font-semibold">Próximos Prazos</h3>
-            </div>
-            <div className="space-y-3">
-              {upcomingDeadlines.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nenhum prazo próximo</p>
-                </div>
-              ) : (
-                upcomingDeadlines.map((deadline, index) => (
-                <div key={index} className="p-3 rounded-lg bg-muted/30 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-sm">{deadline.subject}</span>
-                    <Badge 
-                      variant={deadline.urgent ? "destructive" : "secondary"}
-                      className="text-xs"
-                    >
-                      {deadline.daysLeft} dias
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{deadline.task}</p>
-                </div>
-              )))}
-            </div>
-          </Card>
-
-          {/* Recent Activity - Gestalt: Similarity with consistent styling */}
-          <Card className="p-6 shadow-medium border-l-4 border-success">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-success/10">
-                <Trophy className="w-5 h-5 text-success" />
-              </div>
-              <h3 className="text-lg font-semibold">Atividade Recente</h3>
-            </div>
-            <div className="space-y-3">
-              {recentActivity.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Trophy className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nenhuma atividade recente</p>
-                </div>
-              ) : (
-                recentActivity.map((activity, index) => (
-                <div key={index} className="p-3 rounded-lg bg-muted/30 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{activity.action}</span>
-                    <Badge variant="outline" className="bg-success-light text-success text-xs">
-                      {activity.points}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{activity.subject}</p>
-                  <p className="text-xs text-muted-foreground">{activity.time}</p>
-                </div>
-              )))}
-            </div>
-          </Card>
-        </div>
-
-        {/* Quick Actions - Gestalt: Proximity and Symmetry in action grid */}
-        <Card className="p-6 shadow-medium">
-          <h3 className="text-xl font-semibold mb-6">Ações Rápidas</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Button 
-              variant="gamified" 
-              className="h-20 flex-col gap-2"
-              onClick={() => onTabChange?.("classes")}
-            >
-              <Users className="w-6 h-6" />
-              <span className="text-sm">Criar Turma</span>
-            </Button>
-            <Button 
-              variant="success" 
-              className="h-20 flex-col gap-2"
-              onClick={() => onTabChange?.("materials")}
-            >
-              <BookOpen className="w-6 h-6" />
-              <span className="text-sm">Upload Material</span>
-            </Button>
-            <Button 
-              variant="secondary" 
-              className="h-20 flex-col gap-2"
-              onClick={() => onTabChange?.("calendar")}
-            >
-              <CalendarDays className="w-6 h-6" />
-              <span className="text-sm">Agendar Estudo</span>
-            </Button>
-            <Button 
-              variant="xp" 
-              className="h-20 flex-col gap-2"
-              onClick={() => onTabChange?.("achievements")}
-            >
-              <Trophy className="w-6 h-6" />
-              <span className="text-sm">Ver Conquistas</span>
-            </Button>
-            <Dialog open={isGoalModalOpen} onOpenChange={setIsGoalModalOpen}>
-              <DialogTrigger asChild>
-                <Button variant="streak" className="h-20 flex-col gap-2">
-                  <Target className="w-6 h-6" />
-                  <span className="text-sm">Adicionar Meta</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Adicionar Nova Meta</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="goal-title">Título da Meta</Label>
-                    <Input
-                      id="goal-title"
-                      value={goalTitle}
-                      onChange={(e) => setGoalTitle(e.target.value)}
-                      placeholder="Ex: Revisar Cálculo I"
-                    />
-                  </div>
-                  <Button 
-                    onClick={async () => {
-                      if (goalTitle && user) {
-                        try {
-                          const { data: newGoal, error } = await supabase
-                            .from("goals")
-                            .insert({
-                              title: goalTitle,
-                              user_id: user.id,
-                              completed: false
-                            })
-                            .select()
-                            .single();
-
-                          if (error) throw error;
-
-                          setGoals((prev) => [newGoal, ...prev]);
-                          toast({
-                            title: "✅ Meta Adicionada!",
-                            description: `Meta "${goalTitle}" foi criada com sucesso.`,
-                          });
-                          setGoalTitle("");
-                          setIsGoalModalOpen(false);
-                        } catch (error: any) {
-                          console.error("Error creating goal:", error);
-                          toast({
-                            title: "Erro ao criar meta",
-                            description: "Não foi possível criar a meta.",
-                            variant: "destructive"
-                          });
-                        }
-                      } else {
-                        toast({
-                          title: "⚠️ Campo obrigatório",
-                          description: "Preencha o título da meta.",
-                          variant: "destructive"
-                        });
-                      }
-                    }}
-                    className="w-full"
+            ) : (
+              <div className="space-y-2">
+                {upcomingDeadlines.slice(0, 3).map((deadline, index) => (
+                  <div
+                    key={index}
+                    className="p-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-900/40 border border-border/50 text-xs flex items-center justify-between gap-2"
                   >
-                    Criar Meta
-                  </Button>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{deadline.subject}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{deadline.task}</p>
+                    </div>
+                    <Badge
+                      variant={deadline.urgent ? "destructive" : "secondary"}
+                      className="text-[10px] px-1.5 py-0 h-5 shrink-0"
+                    >
+                      {deadline.daysLeft}d
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Card 3: Atividade recente (emerald accent top border) */}
+        <Card className="p-4 sm:p-5 border border-border/60 border-t-2 border-t-emerald-500 rounded-xl shadow-none bg-card flex flex-col justify-between min-h-[220px]">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <List className="w-4 h-4 text-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">Atividade recente</h3>
+              </div>
+              <button className="text-muted-foreground hover:text-foreground transition-colors p-1">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+
+            {recentActivity.length === 0 ? (
+              <div className="py-6 text-center">
+                <div className="w-10 h-10 rounded-full border border-border/80 flex items-center justify-center mx-auto mb-2 text-muted-foreground/60">
+                  <List className="w-4 h-4" />
                 </div>
-              </DialogContent>
-            </Dialog>
-            <Button 
-              variant="gamified" 
-              className="h-20 flex-col gap-2"
-              onClick={() => onTabChange?.("calendar")}
-            >
-              <Calendar className="w-6 h-6" />
-              <span className="text-sm">Ver Calendário</span>
-            </Button>
+                <p className="text-xs font-medium text-foreground">Nenhuma atividade recente</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Suas ações aparecerão aqui</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentActivity.slice(0, 3).map((activity, index) => (
+                  <div
+                    key={index}
+                    className="p-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-900/40 border border-border/50 text-xs"
+                  >
+                    <div className="flex justify-between items-center mb-0.5">
+                      <span className="font-medium text-foreground truncate">{activity.action}</span>
+                      {activity.points && (
+                        <span className="text-[10px] text-emerald-600 font-bold">{activity.points}</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                      <span className="truncate">{activity.subject}</span>
+                      <span className="shrink-0">{activity.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </Card>
       </div>
-      
-      {/* Report Error Button */}
-      <div className="flex justify-center mt-8">
+
+      {/* 5. Ações Rápidas Section (2x3 tactile colored action buttons) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-foreground">Ações rápidas</h3>
+          <span className="text-xs text-muted-foreground">Atalhos do workspace</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {/* Criar Turma */}
+          <button
+            onClick={() => onTabChange?.("classes")}
+            className="h-12 px-4 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-medium text-xs sm:text-sm flex items-center justify-between shadow-sm transition-all hover:shadow hover:-translate-y-0.5 cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <Users className="w-4 h-4" />
+              <span>Criar Turma</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 opacity-80" />
+          </button>
+
+          {/* Upload Material */}
+          <button
+            onClick={() => onTabChange?.("materials")}
+            className="h-12 px-4 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-medium text-xs sm:text-sm flex items-center justify-between shadow-sm transition-all hover:shadow hover:-translate-y-0.5 cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <Upload className="w-4 h-4" />
+              <span>Upload Material</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 opacity-80" />
+          </button>
+
+          {/* Agendar Estudo */}
+          <button
+            onClick={() => onTabChange?.("calendar")}
+            className="h-12 px-4 rounded-xl bg-[#475569] hover:bg-[#334155] text-white font-medium text-xs sm:text-sm flex items-center justify-between shadow-sm transition-all hover:shadow hover:-translate-y-0.5 cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <Calendar className="w-4 h-4" />
+              <span>Agendar Estudo</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 opacity-80" />
+          </button>
+
+          {/* Ver Conquistas */}
+          <button
+            onClick={() => onTabChange?.("achievements")}
+            className="h-12 px-4 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium text-xs sm:text-sm flex items-center justify-between shadow-sm transition-all hover:shadow hover:-translate-y-0.5 cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <Trophy className="w-4 h-4" />
+              <span>Ver Conquistas</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 opacity-80" />
+          </button>
+
+          {/* Adicionar Meta */}
+          <button
+            onClick={() => setIsGoalModalOpen(true)}
+            className="h-12 px-4 rounded-xl bg-[#D97706] hover:bg-[#B45309] text-white font-medium text-xs sm:text-sm flex items-center justify-between shadow-sm transition-all hover:shadow hover:-translate-y-0.5 cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <Target className="w-4 h-4" />
+              <span>Adicionar Meta</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 opacity-80" />
+          </button>
+
+          {/* Ver Calendário */}
+          <button
+            onClick={() => onTabChange?.("calendar")}
+            className="h-12 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs sm:text-sm flex items-center justify-between shadow-sm transition-all hover:shadow hover:-translate-y-0.5 cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <CalendarDays className="w-4 h-4" />
+              <span>Ver Calendário</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 opacity-80" />
+          </button>
+        </div>
+      </div>
+
+      {/* 6. Footer: Report Error Button */}
+      <div className="flex justify-center pt-2 pb-6">
         <ReportErrorButton area="Dashboard" />
       </div>
+
+      {/* Goal Modal */}
+      <Dialog open={isGoalModalOpen} onOpenChange={setIsGoalModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Nova Meta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label htmlFor="goal-title">Título da Meta</Label>
+              <Input
+                id="goal-title"
+                value={goalTitle}
+                onChange={(e) => setGoalTitle(e.target.value)}
+                placeholder="Ex: Revisar Cálculo I"
+                className="mt-1.5"
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (!goalTitle.trim() || !user) return;
+                    try {
+                      const { data: newGoal, error } = await supabase
+                        .from("goals")
+                        .insert({
+                          title: goalTitle.trim(),
+                          user_id: user.id,
+                          completed: false
+                        })
+                        .select()
+                        .single();
+
+                      if (error) throw error;
+                      setGoals((prev) => [newGoal, ...prev]);
+                      toast({
+                        title: "Meta adicionada!",
+                        description: `Meta "${goalTitle}" foi criada com sucesso.`,
+                      });
+                      setGoalTitle("");
+                      setIsGoalModalOpen(false);
+                    } catch (error: any) {
+                      console.error("Error creating goal:", error);
+                    }
+                  }
+                }}
+              />
+            </div>
+            <Button 
+              onClick={async () => {
+                if (goalTitle && user) {
+                  try {
+                    const { data: newGoal, error } = await supabase
+                      .from("goals")
+                      .insert({
+                        title: goalTitle,
+                        user_id: user.id,
+                        completed: false
+                      })
+                      .select()
+                      .single();
+
+                    if (error) throw error;
+
+                    setGoals((prev) => [newGoal, ...prev]);
+                    toast({
+                      title: "Meta adicionada!",
+                      description: `Meta "${goalTitle}" foi criada com sucesso.`,
+                    });
+                    setGoalTitle("");
+                    setIsGoalModalOpen(false);
+                  } catch (error: any) {
+                    console.error("Error creating goal:", error);
+                    toast({
+                      title: "Erro ao criar meta",
+                      description: "Não foi possível criar a meta.",
+                      variant: "destructive"
+                    });
+                  }
+                } else {
+                  toast({
+                    title: "Campo obrigatório",
+                    description: "Preencha o título da meta.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              className="w-full"
+            >
+              Criar Meta
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

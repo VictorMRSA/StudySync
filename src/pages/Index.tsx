@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
+import { TopBar } from "@/components/TopBar";
 import { User } from "@supabase/supabase-js";
 import Dashboard from "./Dashboard";
 import Classes from "./Classes";
@@ -119,12 +120,15 @@ const Index = () => {
   // If user is logged in, show the app interface
   if (user) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[#F9FAFB] dark:bg-background">
         <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
         
         {/* Main content with proper spacing for navigation */}
-        <div className="lg:ml-64 pt-16 lg:pt-0 pb-16 lg:pb-0">
-          {renderContent()}
+        <div className="lg:ml-64 pt-14 lg:pt-0 pb-16 lg:pb-0 min-h-screen flex flex-col">
+          <TopBar activeTab={activeTab} onTabChange={setActiveTab} user={user} />
+          <main className="flex-1">
+            {renderContent()}
+          </main>
         </div>
       </div>
     );
