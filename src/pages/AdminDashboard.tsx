@@ -272,13 +272,14 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Dashboard Administrativo</h1>
-          <p className="text-muted-foreground">Gerencie reports e monitore o sistema</p>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 mb-1 select-none">Workspace</div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Dashboard Administrativo</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Gerencie reports e monitore o sistema.</p>
         </div>
-        <Button onClick={loadData} variant="outline" className="w-full sm:w-auto">
+        <Button onClick={loadData} variant="outline" size="sm" className="h-9">
           Atualizar Dados
         </Button>
       </div>
@@ -363,7 +364,7 @@ const AdminDashboard = () => {
                     </div>
                   ) : (
                     errorReports.map((report) => (
-                       <Card key={report.id} className="border-l-4 border-l-primary">
+                       <Card key={report.id} className="border border-border/60 rounded-xl bg-card shadow-none">
                         <CardHeader className="pb-3">
                           <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
                             <div className="space-y-1 flex-1 min-w-0">

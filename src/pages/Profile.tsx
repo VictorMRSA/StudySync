@@ -323,42 +323,36 @@ const Profile = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
+    return <div className="flex items-center justify-center min-h-[400px] text-sm text-muted-foreground">Carregando...</div>;
   }
 
   if (!profile) {
-    return <div className="flex items-center justify-center min-h-screen">Perfil não encontrado</div>;
+    return <div className="flex items-center justify-center min-h-[400px] text-sm text-muted-foreground">Perfil não encontrado</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-3xl mx-auto">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
           <div>
-            <h1 className="text-4xl font-bold text-primary">Meu Perfil</h1>
-            <p className="text-base text-muted-foreground">Gerencie suas informações pessoais</p>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 mb-1 select-none">Workspace</div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Meu Perfil</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Gerencie suas informações pessoais e preferências de conta.</p>
           </div>
           <Button
-            variant="ghost"
-            size="icon"
+            variant="outline"
+            size="sm"
             onClick={handleSignOut}
-            className="ml-auto"
-            title="Sair"
+            className="text-xs text-destructive hover:text-destructive gap-1.5 h-8"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sair da Conta</span>
           </Button>
         </div>
 
         <div className="space-y-6">
           {/* Avatar Section - Fechamento com border-l */}
-          <Card className="shadow-soft border-l-4 border-accent">
+          <Card className="border border-border/60 rounded-xl bg-card shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Camera className="h-5 w-5" />
@@ -372,7 +366,7 @@ const Profile = () => {
               <div className="relative">
                 <Avatar className="w-32 h-32">
                   <AvatarImage src={profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-2xl bg-gradient-primary text-primary-foreground">
+                  <AvatarFallback className="text-2xl bg-neutral-200 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 font-bold">
                     {getAvatarFallback()}
                   </AvatarFallback>
                 </Avatar>
@@ -410,7 +404,7 @@ const Profile = () => {
           </Card>
 
           {/* Profile Information - Fechamento com border-l */}
-          <Card className="shadow-soft border-l-4 border-primary">
+          <Card className="border border-border/60 rounded-xl bg-card shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5" />
@@ -472,7 +466,7 @@ const Profile = () => {
           </Card>
 
           {/* Change Password - Fechamento com border-l */}
-          <Card className="shadow-soft border-l-4 border-warning">
+          <Card className="border border-border/60 rounded-xl bg-card shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
@@ -555,7 +549,7 @@ const Profile = () => {
           </Card>
 
           {/* Account Information */}
-          <Card>
+          <Card className="border border-border/60 rounded-xl bg-card shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mail className="h-5 w-5" />
@@ -579,7 +573,7 @@ const Profile = () => {
       </div>
       
       {/* Report Error Button */}
-      <div className="flex justify-center mt-8">
+      <div className="flex justify-center pt-2 pb-6">
         <ReportErrorButton area="Perfil" />
       </div>
     </div>

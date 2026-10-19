@@ -485,25 +485,24 @@ const Calendar = () => {
   const urgentEvents = events.filter(event => getDaysUntil(event.start_date, event.all_day) <= 5 && getDaysUntil(event.start_date, event.all_day) >= 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
         {/* Header - Hierarquia */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-1">
-            <h1 className="text-4xl font-bold text-foreground">Calendário Acadêmico</h1>
-            <p className="text-base text-muted-foreground">Organize seus compromissos e nunca perca um prazo</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 mb-1 select-none">Workspace</div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Calendário Acadêmico</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Organize seus compromissos e nunca perca um prazo.</p>
           </div>
           
-          {/* Proximidade - botões relacionados agrupados */}
-          <div className="flex gap-3">
-            <Button variant="outline" size="lg">
-              <Filter className="w-5 h-5" />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-9">
+              <Filter className="w-4 h-4 mr-1.5" />
               Filtros
             </Button>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="gamified" size="lg">
-                  <Plus className="w-5 h-5" />
+                <Button size="sm" className="h-9">
+                  <Plus className="w-4 h-4 mr-1.5" />
                   Novo Evento
                 </Button>
               </DialogTrigger>
@@ -787,9 +786,9 @@ const Calendar = () => {
 
         {/* Urgent Events Alert */}
         {urgentEvents.length > 0 && (
-          <Card className="p-4 bg-gradient-to-r from-destructive/10 to-warning/10 border-destructive/20 shadow-medium">
+          <Card className="p-4 bg-red-50/60 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 shadow-none">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-destructive animate-bounce-subtle" />
+              <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
               <div>
                 <h3 className="font-semibold text-destructive">Atenção! Prazos próximos</h3>
                 <p className="text-sm text-muted-foreground">
@@ -802,7 +801,7 @@ const Calendar = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar Widget */}
-          <Card className="lg:col-span-1 p-6 shadow-medium">
+          <Card className="lg:col-span-1 p-5 shadow-none border border-border/60">
             <div className="flex items-center gap-2 mb-4">
               <CalendarIcon className="w-5 h-5 text-primary" />
               <h3 className="font-semibold">Calendário</h3>
@@ -876,7 +875,7 @@ const Calendar = () => {
           </Card>
 
           {/* Events List */}
-          <Card className="lg:col-span-2 p-6 shadow-medium">
+          <Card className="lg:col-span-2 p-5 shadow-none border border-border/60">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-semibold">Próximos Eventos</h3>
               <Badge variant="outline" className="bg-accent-light text-accent">
@@ -899,7 +898,7 @@ const Calendar = () => {
                   return (
                      <div
                        key={event.id}
-                       className="p-4 rounded-lg border border-border bg-card hover:shadow-medium transition-smooth"
+                       className="p-3.5 rounded-lg border border-border/60 bg-card hover:bg-neutral-50/60 dark:hover:bg-neutral-900/40 transition-colors"
                      >
                        <div className="flex items-start justify-between gap-4">
                          <div className="flex-1 space-y-2">
@@ -967,30 +966,29 @@ const Calendar = () => {
         </div>
 
         {/* Study Schedule Suggestion */}
-        <Card className="p-6 shadow-medium bg-gradient-to-r from-success/5 to-accent/5">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-gradient-success rounded-lg flex items-center justify-center flex-shrink-0">
-              <CalendarIcon className="w-6 h-6 text-success-foreground" />
+        <Card className="p-5 shadow-none border border-border/60 bg-card">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CalendarIcon className="w-5 h-5" />
             </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Sugestão de Cronograma Inteligente</h3>
-              <p className="text-muted-foreground">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">Sugestão de Cronograma Inteligente</h3>
+              <p className="text-xs text-muted-foreground">
                 Organize seus estudos com base nos eventos mais importantes e urgentes.
               </p>
-              <Button variant="success" size="sm" className="mt-3">
+              <Button variant="outline" size="sm" className="mt-2 text-xs h-8">
                 Ver Plano Completo
               </Button>
             </div>
           </div>
         </Card>
+        
+        {/* Report Error Button */}
+        <div className="flex justify-center pt-2 pb-6">
+          <ReportErrorButton area="Calendário" />
+        </div>
       </div>
-      
-      {/* Report Error Button */}
-      <div className="flex justify-center mt-8">
-        <ReportErrorButton area="Calendário" />
-      </div>
-    </div>
-  );
+    );
 };
 
 export default Calendar;

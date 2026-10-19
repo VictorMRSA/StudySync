@@ -289,27 +289,26 @@ const Materials = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="space-y-1">
-            <h1 className="text-4xl font-bold text-foreground flex items-center gap-3">
-              <BookOpen className="w-10 h-10 text-primary" />
-              Materiais
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 mb-1 select-none">Workspace</div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
+              <span>Materiais</span>
             </h1>
-            <p className="text-base text-muted-foreground">Biblioteca colaborativa de materiais de estudo</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Biblioteca colaborativa de materiais de estudo.</p>
           </div>
           
-          <Button variant="gamified" size="lg" className="shadow-medium" onClick={() => navigate('/?tab=ai-assistant')}>
-            <Upload className="w-5 h-5" />
+          <Button size="sm" className="h-9" onClick={() => navigate('/?tab=ai-assistant')}>
+            <Upload className="w-4 h-4 mr-1.5" />
             Enviar Material
           </Button>
         </div>
 
         {/* Stats Cards - Proximidade (gap-4) */}
         <div className="grid grid-cols-2 gap-4">
-          <Card className="p-4 shadow-soft border-l-4 border-primary">
+          <Card className="p-4 shadow-none border border-border/60 rounded-xl bg-card">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary" />
@@ -319,7 +318,7 @@ const Materials = () => {
             </div>
           </Card>
           
-          <Card className="p-4 shadow-soft border-l-4 border-accent">
+          <Card className="p-4 shadow-none border border-border/60 rounded-xl bg-card">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-accent" />
@@ -331,14 +330,14 @@ const Materials = () => {
         </div>
 
         {/* Search - Figura-fundo */}
-        <Card className="p-6 shadow-medium border-l-4 border-muted bg-card">
+        <Card className="p-4 shadow-none border border-border/60 rounded-xl bg-card">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Buscar materiais por título..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-background focus-visible:ring-2 focus-visible:ring-primary"
+              className="pl-9 h-10 bg-background border-border/70 rounded-lg text-sm"
             />
           </div>
         </Card>
@@ -349,9 +348,9 @@ const Materials = () => {
             <p className="text-muted-foreground">Carregando materiais...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredMaterials.map((material) => (
-              <Card key={material.id} className="p-6 shadow-soft border-l-4 border-primary group">
+              <Card key={material.id} className="p-5 shadow-none border border-border/60 rounded-xl group hover:border-border transition-colors">
                 <div className="space-y-4">
                   {/* Header */}
                   <div className="flex items-start justify-between">
@@ -420,7 +419,7 @@ const Materials = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full bg-gradient-to-r from-accent/10 to-primary/10 border-accent/20 hover:border-accent/40"
+                        className="w-full bg-neutral-50 dark:bg-neutral-900/40 border-border/70 hover:bg-neutral-100"
                         onClick={() => viewSummary(material)}
                       >
                         <Zap className="w-4 h-4 mr-2 text-accent" />
@@ -462,7 +461,7 @@ const Materials = () => {
                   <div className="flex items-center gap-2 pt-2 border-t">
                     <Avatar className="w-6 h-6">
                       <AvatarImage src={material.profiles?.avatar_url} />
-                      <AvatarFallback className="text-xs bg-gradient-primary text-primary-foreground">
+                      <AvatarFallback className="text-xs bg-neutral-200 text-neutral-800 font-bold">
                         {material.profiles?.username?.substring(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
@@ -489,7 +488,7 @@ const Materials = () => {
 
         {/* Empty State */}
         {filteredMaterials.length === 0 && (
-          <Card className="p-12 text-center shadow-medium">
+          <Card className="p-12 text-center shadow-none border border-dashed border-border/80 rounded-xl bg-card">
             <div className="space-y-4">
               <div className="w-16 h-16 mx-auto rounded-full bg-muted/30 flex items-center justify-center">
                 <Search className="w-8 h-8 text-muted-foreground" />
@@ -507,12 +506,11 @@ const Materials = () => {
             </div>
           </Card>
         )}
-      </div>
-      
-      {/* Report Error Button */}
-      <div className="flex justify-center mt-8">
-        <ReportErrorButton area="Materiais" />
-      </div>
+        
+        {/* Report Error Button */}
+        <div className="flex justify-center pt-2 pb-6">
+          <ReportErrorButton area="Materiais" />
+        </div>
 
       {/* Material Content Dialog - Leitor Fiel Estilo Google Drive */}
       <Dialog open={materialDialogOpen} onOpenChange={setMaterialDialogOpen}>

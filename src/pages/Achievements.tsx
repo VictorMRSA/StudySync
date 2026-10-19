@@ -167,25 +167,24 @@ const Achievements = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-accent/5 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-foreground flex items-center justify-center gap-3">
-            <Trophy className="w-10 h-10 text-warning" />
-            Conquistas
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 mb-1 select-none">Workspace</div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
+            <span>Conquistas</span>
           </h1>
-          <p className="text-base text-muted-foreground">
-            Acompanhe seu progresso e desbloqueie novas conquistas
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Acompanhe seu progresso e desbloqueie novas conquistas.
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-4 shadow-soft border-l-4 border-primary">
+          <Card className="p-4 shadow-none border border-border/60 rounded-xl bg-card">
             <div className="space-y-2 text-center">
-              <div className="w-10 h-10 mx-auto rounded-full bg-gradient-primary flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-primary-foreground" />
+              <div className="w-10 h-10 mx-auto rounded-xl bg-neutral-100 dark:bg-neutral-800 text-foreground flex items-center justify-center">
+                <Trophy className="w-5 h-5 " />
               </div>
               <div className="text-2xl font-bold text-foreground">
                 {loading ? <Skeleton className="h-8 w-10 mx-auto" /> : stats.unlocked}
@@ -194,10 +193,10 @@ const Achievements = () => {
             </div>
           </Card>
 
-          <Card className="p-4 shadow-soft border-l-4 border-xp">
+          <Card className="p-4 shadow-none border border-border/60 rounded-xl bg-card">
             <div className="space-y-2 text-center">
-              <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-r from-accent to-primary flex items-center justify-center">
-                <Zap className="w-5 h-5 text-primary-foreground" />
+              <div className="w-10 h-10 mx-auto rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center">
+                <Zap className="w-5 h-5 " />
               </div>
               <div className="text-2xl font-bold text-foreground">
                 {loading ? <Skeleton className="h-8 w-12 mx-auto" /> : stats.totalXP}
@@ -206,10 +205,10 @@ const Achievements = () => {
             </div>
           </Card>
 
-          <Card className="p-4 shadow-soft border-l-4 border-warning">
+          <Card className="p-4 shadow-none border border-border/60 rounded-xl bg-card">
             <div className="space-y-2 text-center">
-              <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-r from-warning to-success flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-primary-foreground" />
+              <div className="w-10 h-10 mx-auto rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 " />
               </div>
               <div className="text-2xl font-bold text-foreground">
                 {loading ? <Skeleton className="h-8 w-8 mx-auto" /> : stats.inProgress}
@@ -218,10 +217,10 @@ const Achievements = () => {
             </div>
           </Card>
 
-          <Card className="p-4 shadow-soft border-l-4 border-success">
+          <Card className="p-4 shadow-none border border-border/60 rounded-xl bg-card">
             <div className="space-y-2 text-center">
-              <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-r from-success to-accent flex items-center justify-center">
-                <Target className="w-5 h-5 text-primary-foreground" />
+              <div className="w-10 h-10 mx-auto rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
+                <Target className="w-5 h-5 " />
               </div>
               <div className="text-2xl font-bold text-foreground">
                 {loading ? (
@@ -238,7 +237,7 @@ const Achievements = () => {
         </div>
 
         {/* Progress overview */}
-        <Card className="p-6 shadow-medium">
+        <Card className="p-5 shadow-none border border-border/60 rounded-xl bg-card">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-foreground">Progresso Geral</h3>
@@ -257,7 +256,7 @@ const Achievements = () => {
         </Card>
 
         {/* Category filters */}
-        <Card className="p-4 shadow-medium border-l-4 border-muted">
+        <Card className="p-3 shadow-none border border-border/60 rounded-xl bg-card">
           <div className="flex flex-wrap gap-3">
             {categories.map((category) => {
               const Icon = category.icon;
@@ -310,10 +309,10 @@ const Achievements = () => {
               return (
                 <Card
                   key={achievement.id}
-                  className={`p-6 shadow-soft transition-smooth border-l-4 ${borderColor} ${
+                  className={`p-5 shadow-none border rounded-xl transition-colors ${
                     achievement.unlocked
-                      ? "bg-gradient-to-br from-success/5 to-accent/5"
-                      : ""
+                      ? "border-emerald-500/40 bg-card"
+                      : "border-border/60 bg-card"
                   }`}
                 >
                   <div className="space-y-4">
@@ -416,29 +415,27 @@ const Achievements = () => {
         )}
 
         {/* Motivational */}
-        <Card className="p-6 shadow-medium bg-gradient-to-r from-accent/5 to-primary/5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <Medal className="w-6 h-6 text-primary-foreground" />
+        <Card className="p-5 shadow-none border border-border/60 rounded-xl bg-card">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
+              <Medal className="w-5 h-5" />
             </div>
-            <div className="space-y-1">
-              <h3 className="font-semibold text-foreground">
+            <div className="space-y-0.5">
+              <h3 className="text-sm font-semibold text-foreground">
                 Continue conquistando! 🎉
               </h3>
-              <p className="text-muted-foreground">
-                Cada conquista desbloqueada te dá mais XP e te aproxima de novos
-                níveis. Continue estudando!
+              <p className="text-xs text-muted-foreground">
+                Cada conquista desbloqueada te dá mais XP e te aproxima de novos níveis. Continue estudando!
               </p>
             </div>
           </div>
         </Card>
-      </div>
 
-      <div className="flex justify-center mt-8">
-        <ReportErrorButton area="Conquistas" />
+        <div className="flex justify-center pt-2 pb-6">
+          <ReportErrorButton area="Conquistas" />
+        </div>
       </div>
-    </div>
-  );
+    );
 };
 
 export default Achievements;

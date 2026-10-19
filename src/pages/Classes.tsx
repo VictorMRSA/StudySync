@@ -295,22 +295,23 @@ const Classes = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
+    return <div className="flex items-center justify-center min-h-[400px] text-sm text-muted-foreground">Carregando...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
+    <div className="p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Gestalt: Hierarchy - Clear visual hierarchy in header */}
-        <div className="mb-8 space-y-3">
-          <h1 className="text-4xl font-bold text-foreground">Minhas Turmas</h1>
-          <p className="text-muted-foreground text-lg">
-            Gerencie seus estudos e colabore com seus colegas
+        <div className="mb-6">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 mb-1 select-none">Workspace</div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Minhas Turmas</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Gerencie seus estudos e colabore com seus colegas.
           </p>
         </div>
 
         {/* Gestalt: Proximity - Action buttons grouped */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-2 mb-6">
           <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
             <DialogTrigger asChild>
               <Button variant="outline" className="flex-1 sm:flex-none">
@@ -357,7 +358,7 @@ const Classes = () => {
 
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
-              <Button className="flex-1 sm:flex-none bg-gradient-primary hover:bg-gradient-primary/90">
+              <Button className="flex-1 sm:flex-none">
                 <Plus className="mr-2 h-4 w-4" />
                 Criar Turma
               </Button>
@@ -453,27 +454,29 @@ const Classes = () => {
         </div>
 
         {/* Gestalt: Figure-ground - Clear search input with icon */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Pesquisar turmas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-11 h-12"
+              className="pl-9 h-10 bg-card border-border/70 rounded-lg"
             />
           </div>
         </div>
 
         {filteredClasses.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="mb-4">
-              <GraduationCap className="mx-auto h-16 w-16 text-muted-foreground" />
+          <div className="text-center py-14 rounded-xl border border-dashed border-border/80 bg-card">
+            <div className="mb-3">
+              <div className="w-12 h-12 rounded-full border border-border/80 flex items-center justify-center mx-auto text-muted-foreground/70">
+                <GraduationCap className="h-5 w-5" />
+              </div>
             </div>
-            <h3 className="text-xl font-semibold mb-2">
+            <h3 className="text-sm font-semibold mb-1">
               {searchTerm ? "Nenhuma turma encontrada" : "Você ainda não está em nenhuma turma"}
             </h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            <p className="text-xs text-muted-foreground mb-5 max-w-md mx-auto">
               {searchTerm 
                 ? "Tente pesquisar com termos diferentes ou verifique a ortografia."
                 : "Comece criando sua primeira turma ou entrando em uma turma existente usando um código de convite."
@@ -490,7 +493,6 @@ const Classes = () => {
                 </Button>
                 <Button
                   onClick={() => setShowCreateDialog(true)}
-                  className="bg-gradient-primary hover:bg-gradient-primary/90"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Turma
@@ -500,16 +502,16 @@ const Classes = () => {
           </div>
         ) : (
           // Gestalt: Symmetry - Balanced grid layout
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {filteredClasses.map((classItem) => (
-              <Card key={classItem.id} className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+              <Card key={classItem.id} className="group hover:border-border transition-colors flex flex-col">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <CardTitle className="text-xl mb-1 text-primary group-hover:text-primary/80 transition-colors">
+                      <CardTitle className="text-base font-bold mb-1 text-foreground">
                         {classItem.name}
                       </CardTitle>
-                      <CardDescription className="text-sm font-medium text-secondary">
+                      <CardDescription className="text-[11px] font-bold uppercase tracking-wider text-primary">
                         {classItem.subject}
                       </CardDescription>
                     </div>
@@ -518,13 +520,13 @@ const Classes = () => {
                     </Badge>
                   </div>
                   {classItem.description && (
-                    <p className="text-sm text-muted-foreground mt-2">
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
                       {classItem.description}
                     </p>
                   )}
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                <CardContent className="space-y-4 mt-auto">
+                  <div className="grid grid-cols-3 gap-2 text-center rounded-lg border border-border/60 bg-neutral-50/60 dark:bg-neutral-900/30 py-2.5">
                     <div className="flex flex-col items-center space-y-1">
                       <Users className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">{classItem.members || 0}</span>
@@ -545,7 +547,7 @@ const Classes = () => {
                   </div>
                   
                   <Button 
-                    className="w-full bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground shadow-medium hover:shadow-glow transition-all"
+                    className="w-full"
                     onClick={() => handleOpenClass(classItem.id)}
                   >
                     <ExternalLink className="mr-2 h-4 w-4" />
@@ -557,37 +559,37 @@ const Classes = () => {
           </div>
         )}
 
-        <div className="mt-12 p-6 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl border border-primary/20">
-          <h2 className="text-2xl font-bold text-primary mb-4 flex items-center">
-            <Target className="mr-2 h-6 w-6" />
+        <div className="mt-8 p-5 bg-card rounded-xl border border-border/60">
+          <h2 className="text-sm font-bold text-foreground mb-4 flex items-center">
+            <Target className="mr-2 h-4 w-4" />
             Dicas para um Estudo Eficaz
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-start space-x-3">
-              <div className="bg-primary/20 p-2 rounded-lg">
-                <Clock className="h-5 w-5 text-primary" />
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <Clock className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-primary">Organize seu Tempo</h3>
-                <p className="text-sm text-muted-foreground">Mantenha um cronograma regular de estudos</p>
+                <h3 className="text-sm font-semibold text-foreground">Organize seu Tempo</h3>
+                <p className="text-xs text-muted-foreground">Mantenha um cronograma regular de estudos</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
-              <div className="bg-primary/20 p-2 rounded-lg">
-                <Users className="h-5 w-5 text-primary" />
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <Users className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-primary">Colabore</h3>
-                <p className="text-sm text-muted-foreground">Participe ativamente das discussões da turma</p>
+                <h3 className="text-sm font-semibold text-foreground">Colabore</h3>
+                <p className="text-xs text-muted-foreground">Participe ativamente das discussões da turma</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
-              <div className="bg-primary/20 p-2 rounded-lg">
-                <BookOpen className="h-5 w-5 text-primary" />
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <BookOpen className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-primary">Revise Materiais</h3>
-                <p className="text-sm text-muted-foreground">Acesse regularmente os conteúdos compartilhados</p>
+                <h3 className="text-sm font-semibold text-foreground">Revise Materiais</h3>
+                <p className="text-xs text-muted-foreground">Acesse regularmente os conteúdos compartilhados</p>
               </div>
             </div>
           </div>
@@ -595,7 +597,7 @@ const Classes = () => {
       </div>
       
       {/* Report Error Button */}
-      <div className="flex justify-center mt-8">
+      <div className="flex justify-center mt-8 pb-6">
         <ReportErrorButton area="Classes" />
       </div>
     </div>
