@@ -74,4 +74,5 @@ async def health_check() -> dict:
         "status": "healthy",
         "service": "Study Sync Backend",
         "model": settings.MODEL_NAME,
+        "build": "2026-11-06-v1beta",
     }
