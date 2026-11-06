@@ -32,8 +32,9 @@ class LangChainService:
             google_api_key=settings.GEMINI_API_KEY,
             temperature=0.7,
             max_output_tokens=4096,
+            api_version="v1beta",
         )
-        logger.info("LangChainService inicializado — Gemini API | modelo: %s", settings.MODEL_NAME)
+        logger.info("LangChainService inicializado — Gemini API | modelo: %s | api_version: v1beta", settings.MODEL_NAME)
 
     # ── Utilitário: parse de JSON da resposta do LLM ────────────────────
 
@@ -460,17 +461,17 @@ class LangChainService:
         """Gera a ficha {subject, summary, topics[]} de um material."""
         prompt = build_catalog_prompt(content, title, description, class_name)
         llm = self._llm.bind(temperature=0.1, max_output_tokens=768)
-        response = await llm.ainvoke([HumanMessage(content=prompt)])
 
         try:
+            response = await llm.ainvoke([HumanMessage(content=prompt)])
             raw = self._parse_json_response(response.text)
             if not isinstance(raw, dict):
                 raise ValueError("JSON não é um objeto")
-        except ValueError:
-            logger.warning("Falha ao fazer parse da ficha de catálogo, usando fallback")
+        except Exception as exc:
+            logger.warning("Falha ao gerar ficha de catálogo via LLM (%s), usando fallback", exc)
             raw = {
-                "subject": "",
-                "summary": (description or title or "").strip(),
+                "subject": class_name or "",
+                "summary": (description or title or content[:200]).strip(),
                 "topics": [],
             }
         return normalize_entry(raw)
