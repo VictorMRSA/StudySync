@@ -7,6 +7,15 @@ import { useToast } from '@/components/ui/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import {
+  buildCatalogEntries,
+  groupByClass,
+  needsIndexing,
+  resolveStudySet,
+  stripStudySet,
+  type CatalogMaterialRow,
+} from '@/lib/catalog';
+import { indexMaterial } from '@/lib/catalogIndexer';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   MessageCircle, 
@@ -20,7 +29,9 @@ import {
   CheckSquare, 
   Square,
   Sparkles,
-  Info
+  Info,
+  Library,
+  RefreshCw
 } from 'lucide-react';
 import { MarkdownContentCompact } from '@/components/MarkdownContentCompact';
 import { useLocation } from 'react-router-dom';
@@ -30,8 +41,9 @@ interface Message {
   role: 'user' | 'model';
   parts: { text: string }[];
   timestamp: Date;
-  mode?: 'general' | 'sources';
+  mode?: 'general' | 'sources' | 'library';
   sourcesUsed?: string[];
+  studySetIds?: string[];
 }
 
 interface MaterialSource {
@@ -39,7 +51,14 @@ interface MaterialSource {
   title: string;
   content: string;
   file_type?: string;
+  class_name?: string | null;
 }
+
+// Acima disso o modo SyncDocs (texto completo) tende a ficar lento/truncado
+const LARGE_CONTEXT_CHARS = 150_000;
+
+// Remove o bloco <studyset> (inclusive incompleto durante o streaming) do texto exibido
+const displayText = (text: string) => stripStudySet(text).replace(/<studyset[\s\S]*$/i, '').trim();
 
 interface AIChatProps {
   initialMessage?: string;
@@ -54,7 +73,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [chatMode, setChatMode] = useState<'general' | 'sources'>(() => {
+  const [chatMode, setChatMode] = useState<'general' | 'sources' | 'library'>(() => {
     return effectiveMaterialId ? 'sources' : 'general';
   });
   const [materials, setMaterials] = useState<MaterialSource[]>([]);
@@ -62,6 +81,9 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
     return effectiveMaterialId ? new Set([effectiveMaterialId]) : new Set();
   });
   const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [catalogRows, setCatalogRows] = useState<CatalogMaterialRow[]>([]);
+  const [indexing, setIndexing] = useState<{ done: number; total: number } | null>(null);
+  const refToIdRef = useRef<Record<string, string>>({});
   const [showSourcesPanel, setShowSourcesPanel] = useState(false);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -90,19 +112,34 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
   const loadUserMaterials = async () => {
     setLoadingMaterials(true);
     try {
-      const { data, error } = await supabase
+      // Tenta com os campos da Biblioteca; se a migração ainda não foi aplicada, cai no select antigo
+      let rows: any[] = [];
+      const full = await supabase
         .from('materials')
-        .select('id, title, extracted_text, file_type, description')
+        .select('id, title, extracted_text, file_type, description, class_id, created_at, subject, catalog_summary, topics, catalog_status, catalog_edited, classes(name)' as any)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (full.error) {
+        const legacy = await supabase
+          .from('materials')
+          .select('id, title, extracted_text, file_type, description, class_id, created_at, classes(name)' as any)
+          .order('created_at', { ascending: false });
+        if (legacy.error) throw legacy.error;
+        rows = (legacy.data as any[]) || [];
+      } else {
+        rows = (full.data as any[]) || [];
+      }
+
+      const data = rows;
+      setCatalogRows(rows as CatalogMaterialRow[]);
 
       const validMaterials: MaterialSource[] = (data || [])
         .map(m => ({
           id: m.id,
           title: m.title,
           content: m.extracted_text || m.description || m.title || '',
-          file_type: m.file_type || 'DOC'
+          file_type: m.file_type || 'DOC',
+          class_name: m.classes?.name ?? null
         }))
         .filter(m => m.content && m.content.trim() && m.content !== 'ai-generated');
 
@@ -114,7 +151,8 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
             id: found.id,
             title: found.title,
             content: found.extracted_text || found.description || found.title || 'Conteúdo do documento',
-            file_type: found.file_type || 'DOC'
+            file_type: found.file_type || 'DOC',
+            class_name: found.classes?.name ?? null
           });
         }
       }
@@ -160,6 +198,60 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
     }
   };
 
+  // Abre o SyncDocs já com um conjunto de documentos marcados (vindo da Biblioteca)
+  const studyDocs = (ids: string[], label?: string) => {
+    const usable = ids.filter(id => materials.some(m => m.id === id));
+    if (usable.length === 0) {
+      toast({
+        title: 'Nada para estudar',
+        description: 'Esses documentos ainda não têm texto extraído para o SyncDocs.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    const totalChars = materials
+      .filter(m => usable.includes(m.id))
+      .reduce((sum, m) => sum + m.content.length, 0);
+
+    setSelectedSourceIds(new Set(usable));
+    setChatMode('sources');
+    setShowSourcesPanel(false);
+    toast({
+      title: 'Modo SyncDocs ativado',
+      description: `${usable.length} documento(s) ${label ? `de ${label} ` : ''}marcado(s) para estudo.` +
+        (usable.length < ids.length ? ` ${ids.length - usable.length} sem texto foram ignorados.` : '') +
+        (totalChars > LARGE_CONTEXT_CHARS ? ' Atenção: muito conteúdo — as respostas podem ficar lentas.' : '')
+    });
+  };
+
+  const pendingIndexRows = catalogRows.filter(needsIndexing);
+
+  const indexPending = async () => {
+    const queue = catalogRows.filter(needsIndexing);
+    if (queue.length === 0 || indexing) return;
+    setIndexing({ done: 0, total: queue.length });
+    let ok = 0;
+    for (let i = 0; i < queue.length; i++) {
+      const row = queue[i];
+      const success = await indexMaterial({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        extracted_text: row.extracted_text,
+        className: row.classes?.name
+      });
+      if (success) ok++;
+      setIndexing({ done: i + 1, total: queue.length });
+    }
+    setIndexing(null);
+    toast({
+      title: 'Indexação concluída',
+      description: `${ok} de ${queue.length} documento(s) catalogados.` +
+        (ok < queue.length ? ' Os demais podem ser tentados novamente.' : '')
+    });
+    await loadUserMaterials();
+  };
+
   useEffect(() => {
     if (initialMessage && !isLoading) {
       setMessages([]);
@@ -175,6 +267,15 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
   const sendMessageWithText = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
 
+    if (chatMode === 'library' && catalogRows.length === 0) {
+      toast({
+        title: 'Biblioteca vazia',
+        description: 'Você ainda não tem documentos nas suas turmas para a IA consultar.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     if (chatMode === 'sources' && selectedSourceIds.size === 0) {
       toast({
         title: 'Nenhuma fonte selecionada',
@@ -188,6 +289,9 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
     const activeSources = materials
       .filter(m => selectedSourceIds.has(m.id))
       .map(m => ({ title: m.title, content: m.content }));
+
+    const { entries: catalogEntries, refToId } = buildCatalogEntries(catalogRows);
+    refToIdRef.current = refToId;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -214,6 +318,8 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
     
     setMessages(prev => [...prev, initialBotMessage]);
 
+    let fullText = '';
+
     try {
       const data = await api.chat(
         messageText, 
@@ -223,6 +329,7 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
         })),
         // onChunk: preenche a mensagem do bot em tempo real
         (chunk: string) => {
+          fullText += chunk;
           setMessages(prev => prev.map(msg => {
             if (msg.id === botMessageId) {
               return {
@@ -234,11 +341,23 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
           }));
         },
         chatMode,
-        activeSources
+        chatMode === 'sources' ? activeSources : [],
+        chatMode === 'library' ? catalogEntries : []
       );
 
       if (!data.success) {
         throw new Error(data.error || 'Erro desconhecido');
+      }
+
+      // Biblioteca: resolve a seleção sugerida pela IA (<studyset>D1,D4</studyset>) em ids reais
+      if (chatMode === 'library') {
+        const finalText = (data as any).response || fullText;
+        const ids = resolveStudySet(finalText, refToIdRef.current);
+        if (ids.length > 0) {
+          setMessages(prev => prev.map(msg =>
+            msg.id === botMessageId ? { ...msg, studySetIds: ids } : msg
+          ));
+        }
       }
 
     } catch (error) {
@@ -322,6 +441,21 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
               <BookOpen className="w-3.5 h-3.5 text-accent" />
               SyncDocs (Documentos)
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setChatMode('library');
+                setShowSourcesPanel(false);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-colors ${
+                chatMode === 'library'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Library className="w-3.5 h-3.5 text-accent" />
+              Biblioteca
+            </button>
           </div>
 
           {/* Botão de Abrir Gaveta de Fontes quando estiver no modo Sources */}
@@ -357,6 +491,53 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
         )}
       </CardHeader>
       
+      {/* Painel da Biblioteca: visão geral do acervo + atalhos por turma */}
+      {chatMode === 'library' && (
+        <div className="bg-muted/40 border-b p-3 space-y-2.5 animate-in fade-in duration-150">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-xs">
+              <Library className="w-4 h-4 text-accent" />
+              <span className="font-semibold">
+                {catalogRows.length} {catalogRows.length === 1 ? 'documento' : 'documentos'} em {groupByClass(catalogRows).length} {groupByClass(catalogRows).length === 1 ? 'turma' : 'turmas'}
+              </span>
+            </div>
+            {pendingIndexRows.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={indexPending}
+                disabled={!!indexing}
+                className="text-[11px] h-7 gap-1.5"
+              >
+                {indexing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                {indexing
+                  ? `Indexando ${indexing.done}/${indexing.total}...`
+                  : `Indexar ${pendingIndexRows.length} pendente${pendingIndexRows.length > 1 ? 's' : ''}`}
+              </Button>
+            )}
+          </div>
+          {groupByClass(catalogRows).length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] text-muted-foreground">Estudar uma turma inteira:</span>
+              {groupByClass(catalogRows).map(group => (
+                <Button
+                  key={group.classId}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => studyDocs(group.ids, group.className)}
+                  className="text-[11px] h-6 px-2"
+                >
+                  {group.className} ({group.ids.length})
+                </Button>
+              ))}
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            A IA enxerga as fichas (turma, matéria, resumo e tópicos) de todos os seus documentos. Ex.: "Quais documentos contemplam as unidades 3, 4 e 5 de Cálculo?"
+          </p>
+        </div>
+      )}
+
       {/* Gaveta / Painel Retrátil de Seleção de Fontes */}
       {showSourcesPanel && chatMode === 'sources' && (
         <div className="bg-muted/40 border-b p-3 space-y-3 animate-in fade-in duration-150">
@@ -402,6 +583,11 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                   />
                   <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <span className="truncate flex-1">{material.title}</span>
+                  {material.class_name && (
+                    <Badge variant="secondary" className="text-[10px] py-0 px-1.5 max-w-[110px] truncate">
+                      {material.class_name}
+                    </Badge>
+                  )}
                   <Badge variant="outline" className="text-[10px] py-0 px-1.5">
                     {material.file_type}
                   </Badge>
@@ -432,11 +618,15 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                 <p className="font-medium text-foreground">
                   {chatMode === 'sources'
                     ? 'Modo SyncDocs Ativo 📚'
+                    : chatMode === 'library'
+                    ? 'Biblioteca Ativa 🗂️'
                     : 'Olá! Sou seu assistente educacional.'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
                   {chatMode === 'sources'
                     ? 'Pergunte qualquer coisa sobre os materiais selecionados no SyncDocs. Responderei citando exatamente os trechos dos seus documentos!'
+                    : chatMode === 'library'
+                    ? 'Pergunte quais documentos cobrem um tema ou unidade, ou peça para separar os documentos de uma turma para estudar.'
                     : 'Como posso ajudá-lo com seus estudos hoje? Faça perguntas livres sobre qualquer matéria.'}
                 </p>
               </div>
@@ -463,6 +653,12 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                   }`}
                 >
                   {/* Badge de contexto no topo da mensagem */}
+                  {message.mode === 'library' && message.role === 'model' && (
+                    <div className="flex items-center gap-1 text-[10px] text-accent font-medium mb-1.5 border-b border-accent/20 pb-1">
+                      <Library className="w-3 h-3" />
+                      <span>Baseado no catálogo da Biblioteca</span>
+                    </div>
+                  )}
                   {message.mode === 'sources' && message.role === 'model' && (
                     <div className="flex items-center gap-1 text-[10px] text-accent font-medium mb-1.5 border-b border-accent/20 pb-1">
                       <BookOpen className="w-3 h-3" />
@@ -473,7 +669,17 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                   {message.role === 'user' ? (
                     <p className="whitespace-pre-wrap">{message.parts[0].text}</p>
                   ) : (
-                    <MarkdownContentCompact content={message.parts[0].text} />
+                    <MarkdownContentCompact content={message.mode === 'library' ? displayText(message.parts[0].text) : message.parts[0].text} />
+                  )}
+                  {message.role === 'model' && message.studySetIds && message.studySetIds.length > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={() => studyDocs(message.studySetIds!)}
+                      className="mt-2 h-7 text-xs gap-1.5"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      Estudar estes {message.studySetIds.length} documentos
+                    </Button>
                   )}
                   <span className="text-[10px] opacity-70 mt-1 block">
                     {message.timestamp.toLocaleTimeString()}
@@ -497,7 +703,11 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                   <div className="flex items-center gap-2 text-xs">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     <span>
-                      {chatMode === 'sources' ? 'Consultando documentos no SyncDocs...' : 'Digitando resposta...'}
+                      {chatMode === 'sources'
+                        ? 'Consultando documentos no SyncDocs...'
+                        : chatMode === 'library'
+                        ? 'Consultando o catálogo da Biblioteca...'
+                        : 'Digitando resposta...'}
                     </span>
                   </div>
                 </div>
@@ -515,6 +725,8 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                 ? selectedSourceIds.size === 0
                   ? 'Selecione documentos acima para perguntar...'
                   : `Pergunte sobre os ${selectedSourceIds.size} documentos do SyncDocs...`
+                : chatMode === 'library'
+                ? 'Ex.: Quais documentos contemplam as unidades 3, 4 e 5?'
                 : 'Digite sua dúvida de estudos...'
             }
             value={inputMessage}

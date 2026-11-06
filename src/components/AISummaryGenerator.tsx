@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 import { supabase } from '@/integrations/supabase/client';
 import { api } from '@/lib/api';
+import { indexMaterial } from '@/lib/catalogIndexer';
 import { FileText, Loader2, Sparkles, Upload, Save, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
 import { Input } from '@/components/ui/input';
@@ -166,6 +167,16 @@ const AISummaryGenerator: React.FC = () => {
         .single();
 
       if (materialError) throw materialError;
+
+      // Biblioteca IA: gera a ficha de catálogo em segundo plano (não bloqueia o salvamento)
+      const savedClassName = userClasses.find(c => String(c.id) === String(selectedClassId))?.name;
+      void indexMaterial({
+        id: material.id,
+        title: materialTitle,
+        description: `Resumo de IA gerado: ${summaryType}`,
+        extracted_text: content,
+        className: savedClassName,
+      });
 
       // Save AI summary
       const { data: summaryData, error: summaryError } = await (supabase

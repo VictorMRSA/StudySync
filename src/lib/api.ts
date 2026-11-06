@@ -1,5 +1,15 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+export interface CatalogPayloadEntry {
+  ref: string;
+  title: string;
+  class_name: string | null;
+  subject: string | null;
+  summary: string | null;
+  topics: string[];
+  date: string | null;
+}
+
 interface ApiOptions {
   method?: string;
   body?: any;
@@ -47,7 +57,8 @@ async function summarizeStream(
   endpoint: string = '/api/summarize',
   history?: any[],
   mode: string = 'general',
-  sources?: Array<{ title: string; content: string }>
+  sources?: Array<{ title: string; content: string }>,
+  catalog?: CatalogPayloadEntry[]
 ): Promise<{ result?: string; response?: string; type: string; success: boolean }> {
   const payload: any = { content, type, feedback };
   // Para chat
@@ -56,6 +67,7 @@ async function summarizeStream(
     payload.history = history || [];
     payload.mode = mode;
     payload.sources = sources || [];
+    payload.catalog = catalog || [];
   }
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -176,10 +188,11 @@ export const api = {
     message: string,
     history: any[],
     onChunk?: (c: string) => void,
-    mode: 'general' | 'sources' = 'general',
-    sources?: Array<{ title: string; content: string }>
+    mode: 'general' | 'sources' | 'library' = 'general',
+    sources?: Array<{ title: string; content: string }>,
+    catalog?: CatalogPayloadEntry[]
   ) => {
-    return summarizeStream(message, 'chat', '', onChunk, '/api/chat', history, mode, sources);
+    return summarizeStream(message, 'chat', '', onChunk, '/api/chat', history, mode, sources, catalog);
   },
 
   // Usa streaming para evitar timeout do Cloudflare em CPU lento
@@ -192,6 +205,13 @@ export const api = {
 
   analyze: (content: string, title?: string) =>
     apiRequest<{ analysis: any; success: boolean }>('/api/analyze', { body: { content, title } }),
+
+  // Ficha de catálogo (matéria, resumo, tópicos/unidades) para a Biblioteca IA
+  catalogGenerate: (content: string, title?: string, className?: string, description?: string) =>
+    apiRequest<{ subject: string; summary: string; topics: string[]; success: boolean }>(
+      '/api/catalog/generate',
+      { body: { content, title, class_name: className, description } }
+    ),
 
   // Usa streaming SSE para evitar timeout do Cloudflare
   generateQuiz: (content: string, title: string) =>

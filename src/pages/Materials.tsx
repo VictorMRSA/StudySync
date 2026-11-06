@@ -21,6 +21,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { useAdmin } from "@/hooks/useAdmin";
+import { Textarea } from "@/components/ui/textarea";
+import { indexMaterial } from "@/lib/catalogIndexer";
+import { normalizeTopics, topicsToText } from "@/lib/catalog";
 import { 
   Upload, 
   FileText, 
@@ -41,7 +44,8 @@ import {
   ExternalLink,
   MessageSquare,
   Trash2,
-  Loader2
+  Loader2,
+  Pencil
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -59,6 +63,13 @@ const Materials = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [materialToDelete, setMaterialToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editSubject, setEditSubject] = useState("");
+  const [editSummary, setEditSummary] = useState("");
+  const [editTopicsText, setEditTopicsText] = useState("");
+  const [isSavingCatalog, setIsSavingCatalog] = useState(false);
+  const [isReindexing, setIsReindexing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
@@ -109,6 +120,10 @@ const Materials = () => {
             username,
             full_name,
             avatar_url
+          ),
+          classes (
+            id,
+            name
           )
         `)
         .eq('status', 'approved')
@@ -183,6 +198,130 @@ const Materials = () => {
   const canDelete = (material: any) => {
     if (!currentUser || !material) return false;
     return material.uploaded_by === currentUser.id || isAdmin;
+  };
+
+  const canEditCatalog = (material: any) => {
+    if (!currentUser || !material) return false;
+    return material.uploaded_by === currentUser.id || isAdmin;
+  };
+
+  const openEditCatalog = (material: any) => {
+    setEditingMaterial(material);
+    setEditSubject(material.subject || "");
+    setEditSummary(material.catalog_summary || "");
+    const topicsArr = Array.isArray(material.topics) ? material.topics : [];
+    setEditTopicsText(topicsArr.join("\n"));
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveCatalog = async () => {
+    if (!editingMaterial) return;
+    try {
+      setIsSavingCatalog(true);
+      const cleanTopics = normalizeTopics(editTopicsText.split("\n"));
+      const cleanSubject = editSubject.trim() || null;
+      const cleanSummary = editSummary.trim() || null;
+
+      const { error } = await supabase
+        .from('materials')
+        .update({
+          subject: cleanSubject,
+          catalog_summary: cleanSummary,
+          topics: cleanTopics,
+          catalog_edited: true,
+          catalog_status: 'ready',
+          catalog_updated_at: new Date().toISOString()
+        })
+        .eq('id', editingMaterial.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Catálogo atualizado',
+        description: 'Informações de catalogação salvas com sucesso.'
+      });
+
+      setMaterials(prev => prev.map(m => {
+        if (m.id === editingMaterial.id) {
+          return {
+            ...m,
+            subject: cleanSubject,
+            catalog_summary: cleanSummary,
+            topics: cleanTopics,
+            catalog_edited: true,
+            catalog_status: 'ready',
+            catalog_updated_at: new Date().toISOString()
+          };
+        }
+        return m;
+      }));
+
+      if (selectedMaterial?.id === editingMaterial.id) {
+        setSelectedMaterial(prev => ({
+          ...prev,
+          subject: cleanSubject,
+          catalog_summary: cleanSummary,
+          topics: cleanTopics,
+          catalog_edited: true,
+          catalog_status: 'ready'
+        }));
+      }
+
+      setIsEditDialogOpen(false);
+      setEditingMaterial(null);
+    } catch (err: any) {
+      console.error('Erro ao salvar catálogo:', err);
+      toast({
+        title: 'Erro ao salvar catálogo',
+        description: err.message || 'Não foi possível atualizar o catálogo.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSavingCatalog(false);
+    }
+  };
+
+  const handleReindexWithAI = async () => {
+    if (!editingMaterial) return;
+    try {
+      setIsReindexing(true);
+      toast({
+        title: 'Indexando com IA...',
+        description: 'Analisando o documento para extrair matéria, resumo e tópicos.'
+      });
+
+      const updated = await indexMaterial(editingMaterial.id, true);
+      if (updated) {
+        setEditSubject(updated.subject || "");
+        setEditSummary(updated.catalog_summary || "");
+        setEditTopicsText(topicsToText(updated.topics || []));
+
+        setMaterials(prev => prev.map(m => m.id === updated.id ? { ...m, ...updated } : m));
+        if (selectedMaterial?.id === updated.id) {
+          setSelectedMaterial(prev => ({ ...prev, ...updated }));
+        }
+
+        toast({
+          title: 'Catalogação concluída!',
+          description: 'Campos atualizados com a análise da IA. Clique em "Salvar" para confirmar.'
+        });
+      } else {
+        toast({
+          title: 'Não foi possível indexar',
+          description: 'Verifique se o backend está ativo ou se o documento possui texto legível.',
+          variant: 'destructive'
+        });
+      }
+    } catch (err: any) {
+      console.error('Erro ao reindexar:', err);
+      toast({
+        title: 'Erro ao reindexar',
+        description: err.message || 'Falha ao comunicar com o serviço de IA.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsReindexing(false);
+    }
   };
 
   const handleDeleteMaterial = async () => {
@@ -279,8 +418,13 @@ const Materials = () => {
   const subjects = ["Todos"];
   
   const filteredMaterials = materials.filter(material => {
-    const matchesSearch = material.title.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const matchesTitle = material.title?.toLowerCase().includes(term);
+    const matchesSubject = material.subject?.toLowerCase().includes(term);
+    const matchesClass = material.classes?.name?.toLowerCase().includes(term);
+    const matchesTopics = Array.isArray(material.topics) && material.topics.some((t: string) => t?.toLowerCase().includes(term));
+    return Boolean(matchesTitle || matchesSubject || matchesClass || matchesTopics);
   });
 
   const stats = {
@@ -368,33 +512,75 @@ const Materials = () => {
                       </div>
                     </div>
 
-                    {canDelete(material) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mr-2 -mt-1 transition-colors"
-                        title="Excluir material"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMaterialToDelete(material);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-1 -mr-2 -mt-1">
+                      {canEditCatalog(material) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="Editar catalogação para IA"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditCatalog(material);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {canDelete(material) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title="Excluir material"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMaterialToDelete(material);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Title and Class */}
+                  {/* Title, Class and Subject */}
                   <div className="space-y-2">
                     <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-smooth">
                       {material.title}
                     </h3>
-                    {material.classes && (
-                      <Badge variant="secondary" className="bg-accent/10 text-accent">
-                        {material.classes.name}
-                      </Badge>
-                    )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {material.classes && (
+                        <Badge variant="secondary" className="bg-accent/10 text-accent">
+                          {material.classes.name}
+                        </Badge>
+                      )}
+                      {material.subject && (
+                        <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-xs font-normal">
+                          📚 {material.subject}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Topics Chips */}
+                  {Array.isArray(material.topics) && material.topics.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {material.topics.slice(0, 3).map((topic: string, idx: number) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-muted/70 text-muted-foreground font-mono"
+                        >
+                          #{topic}
+                        </span>
+                      ))}
+                      {material.topics.length > 3 && (
+                        <span className="text-[10px] text-muted-foreground self-center">
+                          +{material.topics.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Description */}
                   {material.description && (
@@ -536,6 +722,18 @@ const Materials = () => {
                   <MessageSquare className="w-3.5 h-3.5" />
                   Perguntar no SyncDocs
                 </Button>
+
+                {canEditCatalog(selectedMaterial) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/10"
+                    onClick={() => openEditCatalog(selectedMaterial)}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Editar Catálogo IA
+                  </Button>
+                )}
 
                 {selectedMaterial?.file_url && selectedMaterial.file_url.startsWith('http') && selectedMaterial.file_url !== 'ai-generated' && (
                   <>
@@ -756,6 +954,156 @@ const Materials = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Catalog Edit Dialog - IA & Biblioteca */}
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => !isSavingCatalog && !isReindexing && setIsEditDialogOpen(open)}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <span>Catalogação para IA</span>
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Estes campos são consultados pela IA no modo <strong>Biblioteca</strong> para encontrar e agrupar documentos por matéria, unidade e tópicos.
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Document title indicator */}
+            <div className="text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg border">
+              Documento: <strong className="text-foreground">{editingMaterial?.title}</strong>
+            </div>
+
+            {/* Status & Re-index banner */}
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border text-xs gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-muted-foreground font-medium">Status:</span>
+                <Badge
+                  variant={
+                    editingMaterial?.catalog_status === 'ready'
+                      ? 'secondary'
+                      : editingMaterial?.catalog_status === 'failed'
+                      ? 'destructive'
+                      : 'outline'
+                  }
+                  className="text-[11px]"
+                >
+                  {editingMaterial?.catalog_status === 'ready'
+                    ? '✓ Catalogado'
+                    : editingMaterial?.catalog_status === 'failed'
+                    ? 'Erro'
+                    : 'Pendente'}
+                </Badge>
+                {editingMaterial?.catalog_edited && (
+                  <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-600 dark:text-amber-400">
+                    Editado Manualmente
+                  </Badge>
+                )}
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                disabled={isReindexing || isSavingCatalog}
+                onClick={handleReindexWithAI}
+              >
+                {isReindexing ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Analisando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3 text-primary" />
+                    <span>Auto-preencher c/ IA</span>
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Disciplina / Matéria */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <span>Disciplina / Matéria</span>
+                <span className="text-[10px] text-muted-foreground font-normal">Ex: Banco de Dados II</span>
+              </label>
+              <Input
+                placeholder="Ex: Banco de Dados II, Cálculo I..."
+                value={editSubject}
+                onChange={(e) => setEditSubject(e.target.value)}
+                disabled={isSavingCatalog || isReindexing}
+              />
+            </div>
+
+            {/* Resumo curto do documento */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <span>Resumo do Documento (1-3 frases)</span>
+                <span className="text-[10px] text-muted-foreground font-normal">Visão geral do conteúdo</span>
+              </label>
+              <Textarea
+                placeholder="Resumo conciso sobre o que o material aborda..."
+                value={editSummary}
+                onChange={(e) => setEditSummary(e.target.value)}
+                rows={3}
+                disabled={isSavingCatalog || isReindexing}
+                className="text-xs resize-none"
+              />
+            </div>
+
+            {/* Unidades / Tópicos */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <span>Unidades e Tópicos (um por linha)</span>
+                <span className="text-[10px] text-muted-foreground font-normal">Termos de busca da IA</span>
+              </label>
+              <Textarea
+                placeholder="Unidade 1 - Introdução ao Modelo Relacional&#10;Unidade 2 - Formas Normais e Álgebra&#10;SQL Avançado"
+                value={editTopicsText}
+                onChange={(e) => setEditTopicsText(e.target.value)}
+                rows={4}
+                disabled={isSavingCatalog || isReindexing}
+                className="text-xs font-mono resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditDialogOpen(false)}
+              disabled={isSavingCatalog || isReindexing}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveCatalog}
+              disabled={isSavingCatalog || isReindexing}
+              className="gap-1.5"
+            >
+              {isSavingCatalog ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <span>Salvar Alterações</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

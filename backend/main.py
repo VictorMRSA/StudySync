@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import chat, summarize, analyze, quiz, flashcards, documents
+from routers import chat, summarize, analyze, quiz, flashcards, documents, catalog
 
 # Configuração de logging
 logging.basicConfig(
@@ -58,6 +58,7 @@ app.include_router(analyze.router)
 app.include_router(quiz.router)
 app.include_router(flashcards.router)
 app.include_router(documents.router)
+app.include_router(catalog.router)
 
 
 # ── Health Checks ────────────────────────────────────────────────────────────

@@ -57,6 +57,7 @@ async def chat(request: ChatRequest):
                 history=request.history,
                 mode=request.mode,
                 sources=sources_payload,
+                catalog=[entry.model_dump() for entry in request.catalog],
             ):
                 full_text += chunk
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"

@@ -12,6 +12,13 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 from config import settings
+from services.catalog import (
+    DEFAULT_BUDGET_CHARS,
+    build_catalog_prompt,
+    build_library_instruction,
+    format_catalog,
+    normalize_entry,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +139,8 @@ class LangChainService:
         message: str,
         history: list[dict] = None,
         mode: str = "general",
-        sources: list[dict] = None
+        sources: list[dict] = None,
+        catalog: list[dict] = None,
     ):
         """
         Versão streaming do chat — gera tokens progressivamente.
@@ -140,10 +148,15 @@ class LangChainService:
         """
         history = history or []
         sources = sources or []
+        catalog = catalog or []
         sanitized = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", message.strip())
 
         # Configuração das instruções do sistema de acordo com o modo
-        if mode == "sources" and sources:
+        if mode == "library" and catalog:
+            catalog_text, truncated = format_catalog(catalog, DEFAULT_BUDGET_CHARS)
+            system_instruction = build_library_instruction(catalog_text, truncated)
+            welcome_msg = "Olá! Conheço o catálogo dos documentos das suas turmas. O que você quer encontrar?"
+        elif mode == "sources" and sources:
             # Formata os documentos fontes fornecidos
             formatted_sources = []
             for idx, src in enumerate(sources, start=1):
@@ -434,6 +447,33 @@ class LangChainService:
             }
 
         return analysis
+
+    # ── Catálogo da Biblioteca ───────────────────────────────────────────
+
+    async def catalog_entry(
+        self,
+        content: str,
+        title: str | None = None,
+        description: str | None = None,
+        class_name: str | None = None,
+    ) -> dict:
+        """Gera a ficha {subject, summary, topics[]} de um material."""
+        prompt = build_catalog_prompt(content, title, description, class_name)
+        llm = self._llm.bind(temperature=0.1, max_output_tokens=768)
+        response = await llm.ainvoke([HumanMessage(content=prompt)])
+
+        try:
+            raw = self._parse_json_response(response.text)
+            if not isinstance(raw, dict):
+                raise ValueError("JSON não é um objeto")
+        except ValueError:
+            logger.warning("Falha ao fazer parse da ficha de catálogo, usando fallback")
+            raw = {
+                "subject": "",
+                "summary": (description or title or "").strip(),
+                "topics": [],
+            }
+        return normalize_entry(raw)
 
     # ── Quiz ─────────────────────────────────────────────────────────────
 

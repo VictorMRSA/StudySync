@@ -20,12 +20,24 @@ class ChatSource(BaseModel):
     content: str = Field(..., description="Conteúdo textual do documento")
 
 
+class CatalogEntry(BaseModel):
+    """Ficha de catálogo de um documento (modo 'library')."""
+    ref: str = Field(..., description="Código curto do documento no catálogo, ex: D1")
+    title: str = "Documento sem título"
+    class_name: str | None = None
+    subject: str | None = None
+    summary: str | None = None
+    topics: list[str] = Field(default_factory=list)
+    date: str | None = None
+
+
 class ChatRequest(BaseModel):
     """Requisição para o endpoint de chat."""
     message: str
     history: list[ChatMessagePart] = Field(default_factory=list)
-    mode: str = Field(default="general", description="'general' para conhecimento amplo ou 'sources' para RAG")
+    mode: str = Field(default="general", description="'general', 'sources' (SyncDocs) ou 'library' (catálogo)")
     sources: list[ChatSource] = Field(default_factory=list, description="Lista de materiais para embasar a resposta no modo 'sources'")
+    catalog: list[CatalogEntry] = Field(default_factory=list, description="Fichas dos documentos no modo 'library'")
 
 
 class ChatResponse(BaseModel):
@@ -90,6 +102,24 @@ class FlashcardRequest(BaseModel):
 class FlashcardResponse(BaseModel):
     """Resposta com flashcards gerados."""
     flashcards: list
+    success: bool = True
+
+
+# ─── Catálogo da Biblioteca ──────────────────────────────────────────────────
+
+class CatalogGenerateRequest(BaseModel):
+    """Requisição para gerar a ficha de catálogo de um material."""
+    content: str
+    title: str | None = None
+    description: str | None = None
+    class_name: str | None = None
+
+
+class CatalogGenerateResponse(BaseModel):
+    """Ficha de catálogo gerada pela IA."""
+    subject: str
+    summary: str
+    topics: list[str]
     success: bool = True
 
 
