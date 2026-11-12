@@ -57,6 +57,55 @@ interface MaterialSource {
 // Acima disso o modo SyncDocs (texto completo) tende a ficar lento/truncado
 const LARGE_CONTEXT_CHARS = 150_000;
 
+// Armazenamento temporário do histórico (retenção de 1 hora)
+const CHAT_STORAGE_KEY = 'studyflash_ai_chat_session';
+const CHAT_STORAGE_TTL_MS = 60 * 60 * 1000; // 1 hora em milissegundos
+
+interface SavedChatSession {
+  messages: Array<Omit<Message, 'timestamp'> & { timestamp: string }>;
+  savedAt: number;
+  chatMode?: 'general' | 'sources' | 'library';
+  selectedSourceIds?: string[];
+}
+
+function getSavedChatSession(): {
+  messages: Message[];
+  chatMode?: 'general' | 'sources' | 'library';
+  selectedSourceIds?: string[];
+} {
+  try {
+    const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (!raw) return { messages: [] };
+
+    const parsed: SavedChatSession = JSON.parse(raw);
+    const now = Date.now();
+
+    // Se passou mais de 1 hora desde a última mensagem / interação, descarta
+    if (!parsed.savedAt || now - parsed.savedAt > CHAT_STORAGE_TTL_MS) {
+      localStorage.removeItem(CHAT_STORAGE_KEY);
+      return { messages: [] };
+    }
+
+    if (Array.isArray(parsed.messages)) {
+      const restored: Message[] = parsed.messages
+        .filter(m => m && m.parts && m.parts.length > 0 && m.parts[0]?.text)
+        .map(m => ({
+          ...m,
+          timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+        }));
+
+      return {
+        messages: restored,
+        chatMode: parsed.chatMode,
+        selectedSourceIds: parsed.selectedSourceIds,
+      };
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar histórico temporário do chat:', err);
+  }
+  return { messages: [] };
+}
+
 // Remove o bloco <studyset> (inclusive incompleto durante o streaming) do texto exibido
 const displayText = (text: string) => stripStudySet(text).replace(/<studyset[\s\S]*$/i, '').trim();
 
@@ -70,15 +119,22 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
   const searchParams = new URLSearchParams(location.search);
   const effectiveMaterialId = initialMaterialId || (location.state as any)?.materialId || searchParams.get('materialId') || undefined;
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (initialMessage) return [];
+    return getSavedChatSession().messages;
+  });
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatMode, setChatMode] = useState<'general' | 'sources' | 'library'>(() => {
-    return effectiveMaterialId ? 'sources' : 'general';
+    if (effectiveMaterialId) return 'sources';
+    if (initialMessage) return 'general';
+    return getSavedChatSession().chatMode || 'general';
   });
   const [materials, setMaterials] = useState<MaterialSource[]>([]);
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(() => {
-    return effectiveMaterialId ? new Set([effectiveMaterialId]) : new Set();
+    if (effectiveMaterialId) return new Set([effectiveMaterialId]);
+    const savedIds = getSavedChatSession().selectedSourceIds;
+    return savedIds && savedIds.length > 0 ? new Set(savedIds) : new Set();
   });
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [catalogRows, setCatalogRows] = useState<CatalogMaterialRow[]>([]);
@@ -95,6 +151,31 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Salva o histórico no localStorage temporariamente (TTL de 1 hora)
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (messages.length === 0) {
+      localStorage.removeItem(CHAT_STORAGE_KEY);
+      return;
+    }
+
+    try {
+      const payload: SavedChatSession = {
+        messages: messages.map(m => ({
+          ...m,
+          timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : new Date().toISOString(),
+        })),
+        savedAt: Date.now(),
+        chatMode,
+        selectedSourceIds: Array.from(selectedSourceIds),
+      };
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
+    } catch (err) {
+      console.warn('Falha ao persistir histórico do chat no localStorage:', err);
+    }
+  }, [messages, isLoading, chatMode, selectedSourceIds]);
 
   // Se effectiveMaterialId mudar, garante a ativação do modo fontes e do documento
   useEffect(() => {
@@ -385,6 +466,11 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
 
   const clearChat = () => {
     setMessages([]);
+    localStorage.removeItem(CHAT_STORAGE_KEY);
+    toast({
+      title: 'Conversa limpa',
+      description: 'O histórico temporário foi apagado.',
+    });
   };
 
   return (
@@ -399,9 +485,14 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
           
           <div className="flex items-center gap-2">
             {messages.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearChat} className="text-xs h-8">
-                Limpar Conversa
-              </Button>
+              <>
+                <Badge variant="outline" className="text-[10px] text-muted-foreground font-normal border-border/60 hidden sm:inline-flex">
+                  Histórico temporário (1h)
+                </Badge>
+                <Button variant="ghost" size="sm" onClick={clearChat} className="text-xs h-8 text-muted-foreground hover:text-destructive">
+                  Limpar Conversa
+                </Button>
+              </>
             )}
           </div>
         </div>
