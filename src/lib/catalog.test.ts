@@ -11,6 +11,7 @@ import {
   stripStudySet,
   textToTopics,
   topicsToText,
+  enrichMessageWithMaterialLinks,
   type CatalogMaterialRow,
 } from './catalog';
 
@@ -68,3 +69,18 @@ test('tópicos: normalização e ida/volta texto', () => {
   assert.equal(topicsToText(['x', 'y']), 'x\ny');
   assert.deepEqual(textToTopics('x\n\n y '), ['x', 'y']);
 });
+
+test('enrichMessageWithMaterialLinks linkifica [D#], [Título] e "Título"', () => {
+  const materials = [
+    { id: 'mat-1', title: 'Teste Ciclo da Água' },
+    { id: 'mat-2', title: 'Teste Sistema Solar' },
+  ];
+  const refToId = { D1: 'mat-1', D2: 'mat-2' };
+  const input = 'Veja o documento [D1] e também consulte [Teste Sistema Solar] ou "Teste Ciclo da Água" para saber mais.';
+  const output = enrichMessageWithMaterialLinks(input, materials, refToId);
+  assert.equal(
+    output,
+    'Veja o documento [D1](#material-mat-1) e também consulte [Teste Sistema Solar](#material-mat-2) ou [Teste Ciclo da Água](#material-mat-1) para saber mais.'
+  );
+});
+

@@ -6,6 +6,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import {
   buildCatalogEntries,
@@ -13,6 +19,7 @@ import {
   needsIndexing,
   resolveStudySet,
   stripStudySet,
+  enrichMessageWithMaterialLinks,
   type CatalogMaterialRow,
 } from '@/lib/catalog';
 import { indexMaterial } from '@/lib/catalogIndexer';
@@ -31,10 +38,15 @@ import {
   Sparkles,
   Info,
   Library,
-  RefreshCw
+  RefreshCw,
+  ExternalLink,
+  Eye,
+  Download,
+  Brain
 } from 'lucide-react';
 import { MarkdownContentCompact } from '@/components/MarkdownContentCompact';
-import { useLocation } from 'react-router-dom';
+import { MarkdownContent } from '@/components/MarkdownContent';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -52,6 +64,8 @@ interface MaterialSource {
   content: string;
   file_type?: string;
   class_name?: string | null;
+  file_url?: string | null;
+  file_name?: string | null;
 }
 
 // Acima disso o modo SyncDocs (texto completo) tende a ficar lento/truncado
@@ -115,6 +129,7 @@ interface AIChatProps {
 }
 
 const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) => {
+  const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const effectiveMaterialId = initialMaterialId || (location.state as any)?.materialId || searchParams.get('materialId') || undefined;
@@ -141,6 +156,8 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
   const [indexing, setIndexing] = useState<{ done: number; total: number } | null>(null);
   const refToIdRef = useRef<Record<string, string>>({});
   const [showSourcesPanel, setShowSourcesPanel] = useState(false);
+  const [previewMaterial, setPreviewMaterial] = useState<MaterialSource | null>(null);
+  const [previewMode, setPreviewMode] = useState<'original' | 'text'>('original');
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -151,6 +168,74 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Mantém o mapa de referências atualizado sempre que catalogRows mudar
+  useEffect(() => {
+    if (catalogRows.length > 0) {
+      const { refToId } = buildCatalogEntries(catalogRows);
+      refToIdRef.current = refToId;
+    }
+  }, [catalogRows]);
+
+  const isRawPdfContent = (content: string) => {
+    return content.trim().startsWith('%PDF-') || content.includes('/Type /Catalog');
+  };
+
+  const openMaterialPreview = (matOrId: MaterialSource | string) => {
+    let mat: MaterialSource | undefined;
+    if (typeof matOrId === 'string') {
+      mat = materials.find(m => m.id === matOrId);
+      if (!mat) {
+        const row = catalogRows.find(r => r.id === matOrId);
+        if (row) {
+          mat = {
+            id: row.id,
+            title: row.title,
+            content: (row as any).extracted_text || row.description || '',
+            file_type: (row as any).file_type,
+            class_name: row.classes?.name ?? null,
+            file_url: (row as any).file_url ?? null,
+            file_name: (row as any).file_name ?? null,
+          };
+        }
+      }
+    } else {
+      mat = matOrId;
+    }
+
+    if (!mat) {
+      toast({
+        title: 'Material não encontrado',
+        description: 'Não foi possível carregar os detalhes deste material.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setPreviewMaterial(mat);
+    if (mat.file_url) {
+      setPreviewMode('original');
+    } else {
+      setPreviewMode('text');
+    }
+  };
+
+  const handleDownload = async (url: string, filename?: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename || 'documento';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
 
   // Salva o histórico no localStorage temporariamente (TTL de 1 hora)
   useEffect(() => {
@@ -197,13 +282,13 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
       let rows: any[] = [];
       const full = await supabase
         .from('materials')
-        .select('id, title, extracted_text, file_type, description, class_id, created_at, subject, catalog_summary, topics, catalog_status, catalog_edited, classes(name)' as any)
+        .select('id, title, extracted_text, file_type, description, class_id, created_at, subject, catalog_summary, topics, catalog_status, catalog_edited, file_url, file_name, classes(name)' as any)
         .order('created_at', { ascending: false });
 
       if (full.error) {
         const legacy = await supabase
           .from('materials')
-          .select('id, title, extracted_text, file_type, description, class_id, created_at, classes(name)' as any)
+          .select('id, title, extracted_text, file_type, description, class_id, created_at, file_url, file_name, classes(name)' as any)
           .order('created_at', { ascending: false });
         if (legacy.error) throw legacy.error;
         rows = (legacy.data as any[]) || [];
@@ -220,7 +305,9 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
           title: m.title,
           content: m.extracted_text || m.description || m.title || '',
           file_type: m.file_type || 'DOC',
-          class_name: m.classes?.name ?? null
+          class_name: m.classes?.name ?? null,
+          file_url: m.file_url ?? null,
+          file_name: m.file_name ?? null,
         }))
         .filter(m => m.content && m.content.trim() && m.content !== 'ai-generated');
 
@@ -233,7 +320,9 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
             title: found.title,
             content: found.extracted_text || found.description || found.title || 'Conteúdo do documento',
             file_type: found.file_type || 'DOC',
-            class_name: found.classes?.name ?? null
+            class_name: found.classes?.name ?? null,
+            file_url: found.file_url ?? null,
+            file_name: found.file_name ?? null,
           });
         }
       }
@@ -574,9 +663,17 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
             {materials
               .filter(m => selectedSourceIds.has(m.id))
               .map(m => (
-                <Badge key={m.id} variant="secondary" className="text-[10px] py-0 px-2 bg-accent/10 text-accent border border-accent/20">
-                  {m.title}
-                </Badge>
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => openMaterialPreview(m)}
+                  className="inline-flex items-center gap-1 text-[10px] py-0.5 px-2 rounded-full bg-accent/10 hover:bg-accent/20 text-accent border border-accent/30 transition-all font-medium cursor-pointer group hover:shadow-xs active:scale-95"
+                  title="Clique para visualizar o conteúdo deste material"
+                >
+                  <FileText className="w-2.5 h-2.5 shrink-0" />
+                  <span className="max-w-[180px] truncate">{m.title}</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100 shrink-0 transition-opacity" />
+                </button>
               ))}
           </div>
         )}
@@ -660,29 +757,39 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
           ) : (
             <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
               {materials.map((material) => (
-                <label
+                <div
                   key={material.id}
-                  className={`flex items-center gap-2.5 p-2 rounded-md border text-xs cursor-pointer transition-colors ${
+                  className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors ${
                     selectedSourceIds.has(material.id)
                       ? 'bg-accent/10 border-accent/40 font-medium'
                       : 'bg-background hover:bg-muted/50 border-muted'
                   }`}
                 >
-                  <Checkbox
-                    checked={selectedSourceIds.has(material.id)}
-                    onCheckedChange={() => toggleSource(material.id)}
-                  />
-                  <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="truncate flex-1">{material.title}</span>
-                  {material.class_name && (
-                    <Badge variant="secondary" className="text-[10px] py-0 px-1.5 max-w-[110px] truncate">
-                      {material.class_name}
+                  <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
+                    <Checkbox
+                      checked={selectedSourceIds.has(material.id)}
+                      onCheckedChange={() => toggleSource(material.id)}
+                    />
+                    <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="truncate flex-1">{material.title}</span>
+                    {material.class_name && (
+                      <Badge variant="secondary" className="text-[10px] py-0 px-1.5 max-w-[110px] truncate">
+                        {material.class_name}
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">
+                      {material.file_type}
                     </Badge>
-                  )}
-                  <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-                    {material.file_type}
-                  </Badge>
-                </label>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => openMaterialPreview(material)}
+                    className="p-1 rounded hover:bg-accent/20 text-muted-foreground hover:text-accent transition-colors shrink-0"
+                    title="Visualizar documento"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -751,16 +858,42 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
                     </div>
                   )}
                   {message.mode === 'sources' && message.role === 'model' && (
-                    <div className="flex items-center gap-1 text-[10px] text-accent font-medium mb-1.5 border-b border-accent/20 pb-1">
-                      <BookOpen className="w-3 h-3" />
-                      <span>Embasado em {message.sourcesUsed?.length || 1} {message.sourcesUsed?.length === 1 ? 'documento do SyncDocs' : 'documentos do SyncDocs'}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-accent font-medium mb-1.5 border-b border-accent/20 pb-1.5">
+                      <div className="flex items-center gap-1">
+                        <BookOpen className="w-3 h-3 shrink-0" />
+                        <span>Embasado em {message.sourcesUsed?.length || 1} {message.sourcesUsed?.length === 1 ? 'documento:' : 'documentos:'}</span>
+                      </div>
+                      {message.sourcesUsed && message.sourcesUsed.map((sourceTitle, sIdx) => {
+                        const matchedMat = materials.find(m => m.title === sourceTitle);
+                        return (
+                          <button
+                            key={sIdx}
+                            type="button"
+                            onClick={() => matchedMat ? openMaterialPreview(matchedMat) : null}
+                            disabled={!matchedMat}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/15 hover:bg-accent/25 text-accent border border-accent/30 transition-colors max-w-[200px] truncate cursor-pointer disabled:cursor-default"
+                            title={matchedMat ? `Clique para visualizar "${matchedMat.title}"` : sourceTitle}
+                          >
+                            <FileText className="w-2.5 h-2.5 shrink-0" />
+                            <span className="truncate">{sourceTitle}</span>
+                            {matchedMat && <ExternalLink className="w-2 h-2 shrink-0 opacity-70" />}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
 
                   {message.role === 'user' ? (
                     <p className="whitespace-pre-wrap">{message.parts[0].text}</p>
                   ) : (
-                    <MarkdownContentCompact content={message.mode === 'library' ? displayText(message.parts[0].text) : message.parts[0].text} />
+                    <MarkdownContentCompact
+                      content={enrichMessageWithMaterialLinks(
+                        message.mode === 'library' ? displayText(message.parts[0].text) : message.parts[0].text,
+                        materials,
+                        refToIdRef.current
+                      )}
+                      onMaterialClick={openMaterialPreview}
+                    />
                   )}
                   {message.role === 'model' && message.studySetIds && message.studySetIds.length > 0 && (
                     <Button
@@ -839,6 +972,153 @@ const AIChat: React.FC<AIChatProps> = ({ initialMessage, initialMaterialId }) =>
           </Button>
         </div>
       </CardContent>
+
+      {/* Modal Leitor / Pré-visualização de Documento */}
+      <Dialog open={!!previewMaterial} onOpenChange={(open) => !open && setPreviewMaterial(null)}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0 overflow-hidden bg-background">
+          <DialogHeader className="p-4 border-b flex-shrink-0 flex flex-row items-center justify-between space-y-0 pr-12">
+            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+              <div className="p-2 bg-primary/10 text-primary rounded-lg shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <DialogTitle className="text-base font-semibold truncate flex items-center gap-2">
+                  <span className="truncate">{previewMaterial?.title}</span>
+                  {previewMaterial?.file_type && (
+                    <Badge variant="outline" className="text-[10px] shrink-0 font-normal">
+                      {previewMaterial.file_type}
+                    </Badge>
+                  )}
+                  {previewMaterial?.class_name && (
+                    <Badge variant="secondary" className="text-[10px] shrink-0 font-normal bg-accent/10 text-accent">
+                      {previewMaterial.class_name}
+                    </Badge>
+                  )}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground truncate">
+                  Visualizando material diretamente do chat
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Seletor de Modo (Original vs Texto Extraído) */}
+              {previewMaterial?.file_url && (
+                <div className="inline-flex items-center bg-muted p-0.5 rounded-lg text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode('original')}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      previewMode === 'original'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Original
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode('text')}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      previewMode === 'text'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Texto Extraído
+                  </button>
+                </div>
+              )}
+
+              {previewMaterial?.file_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => handleDownload(previewMaterial.file_url!, previewMaterial.file_name || previewMaterial.title)}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Baixar</span>
+                </Button>
+              )}
+
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => {
+                  if (!previewMaterial) return;
+                  setSelectedSourceIds(prev => new Set([...prev, previewMaterial.id]));
+                  setChatMode('sources');
+                  setPreviewMaterial(null);
+                  toast({
+                    title: 'Foco atualizado',
+                    description: `"${previewMaterial.title}" agora é fonte ativa no chat.`,
+                  });
+                }}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Perguntar no chat</span>
+              </Button>
+            </div>
+          </DialogHeader>
+
+          {/* Conteúdo do Leitor */}
+          <div className="flex-1 overflow-hidden relative bg-muted/20">
+            {previewMode === 'original' && previewMaterial?.file_url ? (
+              <div className="w-full h-full flex flex-col items-center justify-center">
+                {previewMaterial.file_type === 'PDF' || previewMaterial.file_url.toLowerCase().endsWith('.pdf') ? (
+                  <iframe
+                    src={`${previewMaterial.file_url}#toolbar=1`}
+                    className="w-full h-full border-none"
+                    title={previewMaterial.title}
+                  />
+                ) : (
+                  <div className="text-center p-8 space-y-4">
+                    <FileText className="w-16 h-16 mx-auto text-muted-foreground/60" />
+                    <div>
+                      <p className="font-medium text-foreground">Pré-visualização direta não suportada para este formato</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Você pode baixar o arquivo original ou alternar para a aba "Texto Extraído" acima.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleDownload(previewMaterial.file_url!, previewMaterial.file_name || previewMaterial.title)}
+                      className="gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Baixar Arquivo ({previewMaterial.file_type || 'Arquivo'})
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <ScrollArea className="h-full p-6">
+                <div className="max-w-3xl mx-auto space-y-4">
+                  {previewMaterial?.content && !isRawPdfContent(previewMaterial.content) ? (
+                    <MarkdownContent content={previewMaterial.content} />
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground space-y-3">
+                      <Info className="w-10 h-10 mx-auto text-muted-foreground/50" />
+                      <p className="text-sm">Texto extraído não disponível ou em formato binário.</p>
+                      {previewMaterial?.file_url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPreviewMode('original')}
+                        >
+                          Ver documento original
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

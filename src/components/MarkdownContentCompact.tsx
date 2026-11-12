@@ -1,11 +1,13 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { FileText, ExternalLink } from 'lucide-react';
 
 interface MarkdownContentCompactProps {
   content: string;
+  onMaterialClick?: (materialId: string) => void;
 }
 
-export const MarkdownContentCompact = ({ content }: MarkdownContentCompactProps) => {
+export const MarkdownContentCompact = ({ content, onMaterialClick }: MarkdownContentCompactProps) => {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -50,9 +52,38 @@ export const MarkdownContentCompact = ({ content }: MarkdownContentCompactProps)
         p: ({node, ...props}) => (
           <p className="mb-2 leading-relaxed text-foreground text-sm" {...props} />
         ),
-        a: ({node, ...props}) => (
-          <a className="text-primary underline hover:text-primary/80 transition-colors text-sm" {...props} />
-        ),
+        a: ({node, href, children, ...props}: any) => {
+          if (href && (href.startsWith('#material-') || href.startsWith('material:'))) {
+            const materialId = href.replace(/^#material-/, '').replace(/^material:/, '');
+            return (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onMaterialClick?.(materialId);
+                }}
+                className="inline-flex items-center gap-1 font-semibold text-accent hover:text-accent/80 bg-accent/10 hover:bg-accent/20 px-1.5 py-0.5 rounded text-xs transition-all cursor-pointer border border-accent/25 mx-0.5 align-baseline"
+                title="Clique para abrir e visualizar este material"
+              >
+                <FileText className="w-3 h-3 text-accent inline-block shrink-0" />
+                <span className="underline-offset-2 hover:underline">{children}</span>
+                <ExternalLink className="w-2.5 h-2.5 inline-block opacity-70 shrink-0" />
+              </button>
+            );
+          }
+          return (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline hover:text-primary/80 transition-colors text-sm"
+              {...props}
+            >
+              {children}
+            </a>
+          );
+        },
         hr: ({node, ...props}) => (
           <hr className="my-3 border-t border-muted" {...props} />
         ),

@@ -141,3 +141,46 @@ export function groupByClass(rows: CatalogMaterialRow[]): ClassGroup[] {
   }
   return [...map.values()].sort((a, b) => a.className.localeCompare(b.className, 'pt-BR'));
 }
+
+/**
+ * Converte citações como [D1], [D2] ou menções explícitas [Título do Documento]
+ * em links markdown clicáveis [D1](#material-<id>) para o usuário abrir o material direto do chat.
+ */
+export function enrichMessageWithMaterialLinks(
+  rawText: string,
+  materialsList: Array<{ id: string; title: string }>,
+  refToId?: Record<string, string>
+): string {
+  if (!rawText) return '';
+  let text = rawText;
+
+  // 1. Substitui referências de catálogo [D1], [D2] etc por links #material-<id>
+  if (refToId && Object.keys(refToId).length > 0) {
+    text = text.replace(/\[(D\d+)\]/gi, (match, ref) => {
+      const upperRef = ref.toUpperCase();
+      const id = refToId[upperRef];
+      if (id) {
+        return `[${upperRef}](#material-${id})`;
+      }
+      return match;
+    });
+  }
+
+  // 2. Se a IA citou títulos entre colchetes [Título] ou aspas "Título", substitui pelos links correspondentes
+  materialsList.forEach(mat => {
+    if (!mat.title || mat.title.trim().length < 3) return;
+    const trimmedTitle = mat.title.trim();
+    const escaped = trimmedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Entre colchetes: [Título]
+    const bracketRegex = new RegExp(`\\[${escaped}\\](?!\\(#material-)`, 'gi');
+    text = text.replace(bracketRegex, `[${trimmedTitle}](#material-${mat.id})`);
+
+    // Entre aspas: "Título" ou “Título”
+    const quoteRegex = new RegExp(`["“]${escaped}["”](?!\\(#material-)`, 'gi');
+    text = text.replace(quoteRegex, `[${trimmedTitle}](#material-${mat.id})`);
+  });
+
+  return text;
+}
+
